@@ -38,8 +38,6 @@ const PRODUCTS = [
 ];
 PRODUCTS.forEach(p => p.img = 'assets/img/' + p.id + '.jpg');
 
-const PLUS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
-
 /* ---------- الحالة (لا جلسات ولا تخزين أسماء) ---------- */
 const state = {
   cat: 'hot',
@@ -53,7 +51,7 @@ const DEVICE_KEY = 'dose_device_v1';
 /* ---------- عناصر ---------- */
 const $ = id => document.getElementById(id);
 const grid = $('grid'), catsEl = $('cats'), cartChips = $('cartChips'), cartMeta = $('cartMeta');
-const cartbar = $('cartbar'), sendBtn = $('sendBtn');
+const sendBtn = $('sendBtn');
 const acct = $('acct'), accountBtn = $('accountBtn');
 const nameSearch = $('nameSearch'), suggestEl = $('suggest');
 const selectedName = $('selectedName'), selectedNameVal = $('selectedNameVal');
@@ -127,11 +125,11 @@ $('cancelSignup').addEventListener('click', () => {
 function renderProducts() {
   const list = PRODUCTS.filter(p => p.cat === state.cat);
   grid.innerHTML = list.map((p, i) => `
-    <article class="card" style="--d:${i * 40}ms">
+    <article class="card" data-add="${p.id}" style="--d:${i * 40}ms" role="button" tabindex="0" aria-label="أضف ${p.ar} إلى الطلب">
       <div class="card-img">
         <img src="${p.img}" alt="${p.ar}" loading="lazy"
              onerror="this.closest('.card-img').classList.add('noimg')">
-        <button class="add-btn" data-add="${p.id}" aria-label="أضف ${p.ar} إلى الطلب">${PLUS_SVG}</button>
+        <span class="qty-badge hidden" data-qty="${p.id}"></span>
       </div>
       <div class="card-body">
         <div class="card-title">
@@ -141,6 +139,21 @@ function renderProducts() {
       </div>
     </article>
   `).join('');
+  updateCardStates();
+}
+
+/* مزامنة شارات الكمية وحالة التحديد على البطاقات */
+function updateCardStates() {
+  grid.querySelectorAll('.card').forEach(card => {
+    const id = card.dataset.add;
+    const qty = state.cart.get(id) || 0;
+    card.classList.toggle('selected', qty > 0);
+    const badge = card.querySelector('.qty-badge');
+    if (badge) {
+      badge.textContent = '×' + qty;
+      badge.classList.toggle('hidden', qty === 0);
+    }
+  });
 }
 
 catsEl.addEventListener('click', e => {
@@ -172,10 +185,11 @@ function cartItems() {
 function renderCart() {
   const { items, count } = cartItems();
   if (!items.length) {
-    cartChips.innerHTML = '<span class="cart-empty-hint">لم تضف أي منتجات بعد — اختر من القائمة واضغط «+»</span>';
+    cartChips.innerHTML = '<span class="cart-empty-hint">اضغط على أي منتج لإضافته إلى طلبك</span>';
     cartMeta.innerHTML = '';
     sendBtn.disabled = true;
     sendBtn.dataset.disabled = '1';
+    updateCardStates();
     return;
   }
   sendBtn.disabled = false;
@@ -186,16 +200,17 @@ function renderCart() {
     </span>`).join('') +
     (count > 1 ? '<button class="chip" data-clear="1" style="color:var(--faint)">تفريغ الطلب</button>' : '');
   cartMeta.textContent = itemsWord(count) + ' في طلبك';
+  updateCardStates();
 }
 
 grid.addEventListener('click', e => {
-  const btn = e.target.closest('[data-add]');
-  if (!btn) return;
-  const id = btn.dataset.add;
+  const card = e.target.closest('.card[data-add]');
+  if (!card) return;
+  const id = card.dataset.add;
   state.cart.set(id, (state.cart.get(id) || 0) + 1);
+  card.style.transform = 'scale(.965)';
+  setTimeout(() => card.style.transform = '', 140);
   renderCart();
-  cartbar.style.transform = 'scale(1.012)';
-  setTimeout(() => cartbar.style.transform = '', 160);
 });
 
 cartChips.addEventListener('click', e => {

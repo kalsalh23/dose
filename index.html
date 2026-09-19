@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dose Coffee &amp; More</title>
 <meta name="description" content="منصة Dose Coffee & More — اطلب، اجمع النقاط، واستمتع بالمكافآت">
-<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="icon" type="image/jpeg" href="assets/logo.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=4">
+<link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
 <div class="app">
@@ -17,7 +17,7 @@
   <!-- ===== الشريط العلوي ===== -->
   <header class="topbar">
     <div class="brand">
-      <div class="brand-mark" aria-hidden="true">D</div>
+      <img class="brand-logo" src="assets/logo.jpg" alt="Dose Coffee">
       <div class="brand-text">
         <span class="brand-name">Dose</span>
         <span class="brand-sub">Coffee &amp; More</span>
@@ -26,7 +26,7 @@
 
     <div class="top-actions">
       <button id="accountBtn" class="btn-ghost" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="19" height="19" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
           <circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/>
         </svg>
         <span>لا أملك حساب</span>
@@ -42,23 +42,23 @@
       <div class="menu-head">
         <div class="menu-title">
           <h1>قائمة <span class="serif">Dose</span></h1>
-          <p>اختر ما يعجبك وأضفه إلى طلبك</p>
+          <p>اضغط على المنتج لإضافته إلى طلبك</p>
         </div>
         <div class="cats" id="cats" role="tablist" aria-label="التصنيفات">
           <button class="cat active" data-cat="hot" role="tab" aria-selected="true" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
               <path d="M4 9h12v5.5A5.5 5.5 0 0 1 10.5 20h-1A5.5 5.5 0 0 1 4 14.5V9Z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8 3.5c0 1-1 1.5-1 2.5M12 3.5c0 1-1 1.5-1 2.5"/>
             </svg>
             <span>المشروبات الساخنة</span>
           </button>
           <button class="cat" data-cat="cold" role="tab" aria-selected="false" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
               <path d="M12 2v20M4.2 6.5l15.6 11M19.8 6.5l-15.6 11"/><path d="M12 5.5 9.8 3.8M12 5.5l2.2-1.7M12 18.5l-2.2 1.7M12 18.5l2.2 1.7"/>
             </svg>
             <span>المشروبات الباردة</span>
           </button>
           <button class="cat" data-cat="dessert" role="tab" aria-selected="false" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
               <path d="M4 20h16"/><path d="M5.5 20v-5.5a3.5 3.5 0 0 1 3.5-3.5h6a3.5 3.5 0 0 1 3.5 3.5V20"/><path d="M12 11V8.5"/><path d="M12 5.2c.9.9.9 1.9 0 2.6-.9-.7-.9-1.7 0-2.6Z"/>
             </svg>
             <span>الحلويات</span>
@@ -69,31 +69,21 @@
       <div class="products-scroll">
         <div class="grid" id="grid"><!-- بطاقات المنتجات --></div>
       </div>
-
-      <div class="cartbar" id="cartbar">
-        <div class="cart-info">
-          <div class="cart-chips" id="cartChips"></div>
-          <div class="cart-meta" id="cartMeta"></div>
-        </div>
-        <button class="btn-primary btn-send" id="sendBtn" type="button" disabled>
-          <span>اطلب الآن</span>
-        </button>
-      </div>
     </section>
 
-    <!-- الحساب (يسار): ادخل اسمك -->
-    <aside class="panel-account" id="acct" data-state="lookup" aria-label="أدخل اسمك">
+    <!-- الحساب (يسار): ادخل اسمك + الطلب -->
+    <aside class="panel-account" id="acct" data-state="lookup" aria-label="أدخل اسمك واطلب">
       <div class="acct-inner">
         <div class="acct-views">
 
-          <!-- البحث عن الاسم -->
+          <!-- البحث عن الاسم + زر الطلب -->
           <div class="acct-view view-lookup">
-            <div class="lookup-mark" aria-hidden="true">D</div>
+            <img class="lookup-logo" src="assets/logo.jpg" alt="">
             <h2>ادخل اسمك</h2>
             <p class="acct-sub">اكتب اسمك واختره من القائمة، ثم أكّد طلبك برمز PIN</p>
 
             <div class="field search-field">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" width="19" height="19" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-3.8-3.8"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" width="15" height="15" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-3.8-3.8"/></svg>
               <input id="nameSearch" type="text" placeholder="اكتب اسمك هنا…" autocomplete="off" spellcheck="false">
             </div>
 
@@ -103,14 +93,23 @@
 
             <div class="selected-name hidden" id="selectedName">
               <span class="sn-check">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true"><path d="M5 13l4.2 4.2L19 7.5"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true"><path d="M5 13l4.2 4.2L19 7.5"/></svg>
               </span>
               <span class="sn-text"><b id="selectedNameVal">—</b><small>تم اختيار اسمك</small></span>
               <button class="sn-change" id="changeName" type="button">تغيير</button>
             </div>
 
+            <div class="orderbox">
+              <div class="cart-chips" id="cartChips"></div>
+              <div class="cart-meta" id="cartMeta"></div>
+              <button class="btn-primary btn-send" id="sendBtn" type="button" disabled>
+                <span class="btn-label">اطلب الآن</span>
+                <span class="spinner" aria-hidden="true"></span>
+              </button>
+            </div>
+
             <p class="note">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" aria-hidden="true">
                 <circle cx="12" cy="12" r="9"/><path d="M12 8v.5M12 11v5"/>
               </svg>
               <span>لست مسجل؟ اضغط «لا أملك حساب» في الشريط العلوي وأنشئ حسابك في ثوانٍ</span>
@@ -148,7 +147,7 @@
               <p class="field-err" data-err="pin"></p>
 
               <p class="note">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" aria-hidden="true">
                   <rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>
                 </svg>
                 <span>سيتم ربط حسابك بجهازك لإرسال إشعارات الطلب والنقاط</span>
@@ -173,20 +172,20 @@
   <!-- ===== الشريط السفلي ===== -->
   <footer class="footerbar">
     <div class="foot-brand">
-      <span class="foot-mark" aria-hidden="true">D</span>
+      <img class="foot-logo" src="assets/logo.jpg" alt="">
       <span class="foot-name">Dose <i>Coffee &amp; More</i></span>
     </div>
     <div class="foot-info">
       <a class="foot-item" href="tel:0952639157" id="footPhone">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="12" height="12" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/></svg>
         <span dir="ltr">0952639157</span>
       </a>
       <a class="foot-item" href="https://instagram.com/dose.coffee" target="_blank" rel="noopener">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><circle cx="12" cy="12" r="3.8"/><circle cx="17" cy="7" r="1" fill="currentColor" stroke="none"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="12" height="12" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><circle cx="12" cy="12" r="3.8"/><circle cx="17" cy="7" r="1" fill="currentColor" stroke="none"/></svg>
         <span dir="ltr">@dose.coffee</span>
       </a>
       <a class="foot-item" href="https://tiktok.com/@dose.coffee" target="_blank" rel="noopener">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><path d="M13.5 3v11.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M13.5 3c.5 2.5 2.2 4.3 5 4.5"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="12" height="12" aria-hidden="true"><path d="M13.5 3v11.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M13.5 3c.5 2.5 2.2 4.3 5 4.5"/></svg>
         <span dir="ltr">@dose.coffee</span>
       </a>
     </div>
@@ -198,7 +197,7 @@
 <div class="overlay hidden" id="pinOverlay" role="dialog" aria-modal="true" aria-label="تأكيد الهوية">
   <div class="modal pin-modal">
     <button class="modal-close" id="pinClose" type="button" aria-label="إغلاق">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="14" height="14"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
     <h3>تأكيد الهوية</h3>
     <p class="modal-sub" id="pinWho">أدخل رمز PIN المكوّن من 4 أرقام لتأكيد طلبك</p>
@@ -219,7 +218,7 @@
       <button type="button" data-k="8">8</button>
       <button type="button" data-k="9">9</button>
       <button type="button" class="k-alt" data-k="back" aria-label="حذف">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M9 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-6-7 6-7Z"/><path d="M12.5 9.5l5 5M17.5 9.5l-5 5"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M9 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-6-7 6-7Z"/><path d="M12.5 9.5l5 5M17.5 9.5l-5 5"/></svg>
       </button>
       <button type="button" data-k="0">0</button>
       <button type="button" class="k-alt" data-k="clear">مسح</button>
@@ -237,7 +236,7 @@
 <div class="overlay hidden" id="doneOverlay" role="dialog" aria-modal="true" aria-label="تم إرسال الطلب">
   <div class="modal done-modal">
     <div class="done-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="40" height="40"><path d="M5 13l4.2 4.2L19 7.5"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="30" height="30"><path d="M5 13l4.2 4.2L19 7.5"/></svg>
     </div>
     <h3>تم إرسال طلبك بنجاح</h3>
     <p class="modal-sub" id="doneRef">طلب رقم #—</p>
@@ -251,12 +250,12 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
 <noscript>
-  <div style="position:fixed;inset:0;z-index:999;background:#141110;color:#F5EEE3;display:grid;place-items:center;font-family:sans-serif;font-size:18px;padding:24px;text-align:center">
+  <div style="position:fixed;inset:0;z-index:999;background:#F3DEBA;color:#453E33;display:grid;place-items:center;font-family:sans-serif;font-size:18px;padding:24px;text-align:center">
     فضلًا فعّل JavaScript في المتصفح لتشغيل منصة Dose
   </div>
 </noscript>
 
-<script src="vendor/supabase.js?v=4"></script>
-<script src="app.js?v=4"></script>
+<script src="vendor/supabase.js?v=5"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>
