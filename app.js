@@ -7,7 +7,18 @@
 const SUPABASE_URL = 'https://mqstsxuscqbxnyejhixk.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xc3RzeHVzY3FieG55ZWpoaXhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NjAwMDksImV4cCI6MjEwNTMzNjAwOX0.1Em6nTniOf3xgQWQxBf0N6h_3WZqBHba5C17i7LJ5K0';
 
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+/* تهيئة آمنة — لو فشل تحميل المكتبة تبقى الواجهة تعمل ورسائل الشبكة تظهر بلطف */
+let sb = null;
+try {
+  if (window.supabase) sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} catch (e) { console.warn('Supabase init failed:', e); }
+
+async function rpc(fn, params) {
+  if (!sb) throw { friendly: true, message: 'تعذر الاتصال بالخدمة، حدّث الصفحة وتأكد من الإنترنت' };
+  const { data, error } = await sb.rpc(fn, params);
+  if (error) throw error;
+  return data;
+}
 
 /* ---------- بيانات القائمة ---------- */
 const PRODUCTS = [
@@ -124,7 +135,7 @@ $('cancelSignup').addEventListener('click', () => {
 $('signOut').addEventListener('click', () => {
   clearSession();
   updateTopbar();
-  acct.dataset.state = 'signup';
+  acct.dataset.state = 'welcome';
   closeAccountOverlay();
   toast('تم تسجيل الخروج، نراك قريبًا في Dose');
 });
@@ -266,13 +277,12 @@ form.addEventListener('submit', async e => {
   setBtnLoading(btn, true);
   try {
     const pinHash = await hashPin(phone, pin);
-    const { data, error } = await sb.rpc('create_customer', {
+    const data = await rpc('create_customer', {
       p_full_name: name,
       p_phone: phone,
       p_pin_hash: pinHash,
       p_device_id: getDeviceId(),
     });
-    if (error) throw error;
 
     state.customer = { id: data.id, name: data.full_name, phone: data.phone, points: data.points || 0 };
     saveSession();
@@ -284,7 +294,8 @@ form.addEventListener('submit', async e => {
     toast('تم إنشاء حسابك بنجاح، أهلًا بك في Dose', 'ok');
   } catch (err) {
     const m = (err && err.message) || '';
-    if (m.includes('phone_exists')) $('signupErr').textContent = 'هذا الرقم مسجّل مسبقًا — تواصل مع الباريستا للمساعدة';
+    if (err && err.friendly) $('signupErr').textContent = err.message;
+    else if (m.includes('phone_exists')) $('signupErr').textContent = 'هذا الرقم مسجّل مسبقًا — تواصل مع الباريستا للمساعدة';
     else if (m.includes('Failed to fetch') || m.includes('network')) $('signupErr').textContent = 'تعذر الاتصال بالخدمة، تأكد من الإنترنت وحاول مجددًا';
     else $('signupErr').textContent = 'حدث خطأ غير متوقع، حاول مجددًا';
   } finally {
@@ -325,7 +336,7 @@ function openPinModal() {
   updatePinDots();
   const { items, total } = cartItems();
   pinSummary.innerHTML = 'طلبك: ' + items.map(i => `${i.product_ar} ×${i.qty}`).join('، ') +
-    ` — س تكسب <b>${total} نقطة</b>`;
+    ` — ستكسب <b>${total} نقطة</b>`;
   pinConfirm.disabled = true;
   pinConfirm.dataset.disabled = '1';
   pinOverlay.classList.remove('hidden');
@@ -374,25 +385,23 @@ pinConfirm.addEventListener('click', async () => {
     const { items, total } = cartItems();
     const pinHash = await hashPin(state.customer.phone, state.pinEntry);
 
-    const v = await sb.rpc('verify_customer', { p_phone: state.customer.phone, p_pin_hash: pinHash });
-    if (v.error) throw v.error;
-    if (!v.data || (Array.isArray(v.data) ? v.data.length === 0 : !v.data.id)) {
+    const v = await rpc('verify_customer', { p_phone: state.customer.phone, p_pin_hash: pinHash });
+    if (!v || (Array.isArray(v) ? v.length === 0 : !v.id)) {
       throw { wrongPin: true };
     }
 
-    const o = await sb.rpc('create_order', {
+    const o = await rpc('create_order', {
       p_customer_id: state.customer.id,
       p_items: items,
       p_total_points: total,
     });
-    if (o.error) throw o.error;
 
-    state.customer.points = o.data.balance;
+    state.customer.points = o.balance;
     saveSession();
     updateTopbar();
     renderHome();
     closePinModal();
-    showDone(o.data);
+    showDone(o);
   } catch (err) {
     if (err && err.wrongPin) {
       pinErr.textContent = 'رمز PIN غير صحيح، حاول مجددًا';
@@ -404,7 +413,7 @@ pinConfirm.addEventListener('click', async () => {
     } else {
       pinErr.textContent = '';
       closePinModal();
-      toast('تعذر إرسال الطلب، تأكد من الإنترنت وحاول مجددًا', 'err');
+      toast((err && err.friendly) ? err.message : 'تعذر إرسال الطلب، تأكد من الإنترنت وحاول مجددًا', 'err');
     }
   } finally {
     state.busy = false;
@@ -434,4 +443,4 @@ renderProducts();
 renderCart();
 updateTopbar();
 if (state.customer) renderHome();
-acct.dataset.state = state.customer ? 'home' : 'signup';
+acct.dataset.state = state.customer ? 'home' : 'welcome';
