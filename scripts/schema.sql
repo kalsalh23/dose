@@ -90,3 +90,29 @@ end $$;
 grant execute on function public.create_customer(text, text, text, text) to anon;
 grant execute on function public.verify_customer(text, text)            to anon;
 grant execute on function public.create_order(uuid, jsonb, integer)     to anon;
+
+-- اقتراح الأسماء أثناء الكتابة (مع تمييز مبهم لآخر أرقام الهاتف)
+drop function if exists public.search_customers(text);
+create or replace function public.search_customers(p_query text)
+returns table (id uuid, full_name text, mask text)
+language sql security definer set search_path = public as $$
+  select c.id, c.full_name, '••• ' || right(c.phone, 3) as mask
+  from public.customers c
+  where btrim(p_query) <> '' and c.full_name ilike '%' || btrim(p_query) || '%'
+  order by c.full_name asc
+  limit 8;
+$$;
+
+-- التحقق من رمز PIN عبر معرف العميل (يُحسب الهاش داخل القاعدة)
+create or replace function public.verify_pin_by_id(p_customer_id uuid, p_pin text)
+returns table (id uuid, full_name text)
+language sql security definer set search_path = public as $$
+  select c.id, c.full_name
+  from public.customers c
+  where c.id = p_customer_id
+    and c.pin_hash = encode(extensions.digest(btrim(c.phone) || ':' || btrim(p_pin), 'sha256'), 'hex')
+  limit 1;
+$$;
+
+grant execute on function public.search_customers(text)       to anon;
+grant execute on function public.verify_pin_by_id(uuid, text) to anon;

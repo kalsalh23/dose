@@ -1,7 +1,8 @@
 'use strict';
 
 /* ============================================================
-   Dose Coffee & More — Kiosk App Logic
+   Dose Coffee & More — Kiosk App Logic (واجهة كشك بلا جلسات)
+   التدفق: اكتب اسمك ← اختر من الاقتراحات ← اطلب الآن ← PIN ← عودة للحالة الطبيعية
    ============================================================ */
 
 const SUPABASE_URL = 'https://mqstsxuscqbxnyejhixk.supabase.co';
@@ -37,31 +38,36 @@ const PRODUCTS = [
 ];
 PRODUCTS.forEach(p => p.img = 'assets/img/' + p.id + '.jpg');
 
-const STAR_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M12 2.6l2.9 5.9 6.5.95-4.7 4.6 1.1 6.5L12 17.5l-5.8 3.05 1.1-6.5-4.7-4.6 6.5-.95L12 2.6z"/></svg>';
-const PLUS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" width="20" height="20" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+const PLUS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
 
-/* ---------- الحالة ---------- */
+/* ---------- الحالة (لا جلسات ولا تخزين أسماء) ---------- */
 const state = {
   cat: 'hot',
   cart: new Map(),   // productId -> qty
-  customer: null,    // {id, name, phone, points}
+  customer: null,    // {id, name} اختيار الاسم للطلب الحالي فقط
   pinEntry: '',
   busy: false,
 };
-const SESSION_KEY = 'dose_session_v1';
-const DEVICE_KEY  = 'dose_device_v1';
+const DEVICE_KEY = 'dose_device_v1';
 
 /* ---------- عناصر ---------- */
 const $ = id => document.getElementById(id);
 const grid = $('grid'), catsEl = $('cats'), cartChips = $('cartChips'), cartMeta = $('cartMeta');
 const cartbar = $('cartbar'), sendBtn = $('sendBtn');
-const acct = $('acct'), accountBtn = $('accountBtn'), userChip = $('userChip');
+const acct = $('acct'), accountBtn = $('accountBtn');
+const nameSearch = $('nameSearch'), suggestEl = $('suggest');
+const selectedName = $('selectedName'), selectedNameVal = $('selectedNameVal');
+const searchField = document.querySelector('.search-field');
 const pinOverlay = $('pinOverlay'), pinDisplay = $('pinDisplay'), pinErr = $('pinErr');
 const pinConfirm = $('pinConfirm'), pinSummary = $('pinSummary'), pinModal = pinOverlay.querySelector('.modal');
 const doneOverlay = $('doneOverlay');
 const toasts = $('toasts');
 
 /* ---------- أدوات ---------- */
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
 function toast(msg, type = '') {
   const t = document.createElement('div');
   t.className = 'toast' + (type ? ' t-' + type : '');
@@ -90,56 +96,32 @@ function setBtnLoading(btn, on) {
   btn.disabled = on ? true : btn.dataset.disabled === '1';
 }
 
-/* ---------- الجلسة ---------- */
-function loadSession() {
-  try {
-    const s = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
-    if (s && s.id && s.phone) state.customer = s;
-  } catch (_) {}
-}
-function saveSession() { localStorage.setItem(SESSION_KEY, JSON.stringify(state.customer)); }
-function clearSession() { localStorage.removeItem(SESSION_KEY); state.customer = null; }
-
-/* ---------- واجهة الشريط العلوي ---------- */
-function updateTopbar() {
-  const c = state.customer;
-  userChip.classList.toggle('hidden', !c);
-  accountBtn.classList.toggle('hidden', !!c);
-  if (c) {
-    $('chipAvatar').textContent = c.name.trim().charAt(0) || 'م';
-    $('chipName').textContent = c.name;
-    $('chipPoints').textContent = c.points;
-  }
+function itemsWord(n) {
+  if (n === 1) return 'صنف واحد';
+  if (n === 2) return 'صنفان';
+  if (n <= 10) return n + ' أصناف';
+  return n + ' صنفًا';
 }
 
-/* ---------- لوح الحساب ---------- */
+/* ---------- لوح الحساب (يسار) ---------- */
 function isNarrow() { return window.matchMedia('(max-width:1080px)').matches; }
 
 function showAccount(view) {
   acct.dataset.state = view;
-  if (isNarrow()) {
-    document.body.classList.add('acct-open');
-  }
+  if (isNarrow()) document.body.classList.add('acct-open');
 }
 function closeAccountOverlay() {
   if (isNarrow()) document.body.classList.remove('acct-open');
 }
 
-accountBtn.addEventListener('click', () => showAccount(state.customer ? 'home' : 'signup'));
-userChip.addEventListener('click', () => showAccount('home'));
-$('openSignup').addEventListener('click', () => showAccount('signup'));
+accountBtn.addEventListener('click', () => {
+  if (state.customer) { deselectCustomer(); }
+  showAccount('signup');
+});
 $('cancelSignup').addEventListener('click', () => {
-  acct.dataset.state = 'welcome';
+  acct.dataset.state = 'lookup';
   closeAccountOverlay();
 });
-$('signOut').addEventListener('click', () => {
-  clearSession();
-  updateTopbar();
-  acct.dataset.state = 'welcome';
-  closeAccountOverlay();
-  toast('تم تسجيل الخروج، نراك قريبًا في Dose');
-});
-window.addEventListener('resize', () => { if (!isNarrow()) document.body.classList.remove('acct-open'); });
 
 /* ---------- المنتجات ---------- */
 function renderProducts() {
@@ -156,7 +138,6 @@ function renderProducts() {
           <span class="latin">${p.en}</span>
         </div>
         <div class="card-foot">
-          <span class="points-pill">${STAR_SVG}<span>${p.points} نقاط</span></span>
           <button class="add-btn" data-add="${p.id}" aria-label="أضف ${p.ar} إلى الطلب">${PLUS_SVG}</button>
         </div>
       </div>
@@ -191,7 +172,7 @@ function cartItems() {
 }
 
 function renderCart() {
-  const { items, total, count } = cartItems();
+  const { items, count } = cartItems();
   if (!items.length) {
     cartChips.innerHTML = '<span class="cart-empty-hint">لم تضف أي منتجات بعد — اختر من القائمة واضغط «+»</span>';
     cartMeta.innerHTML = '';
@@ -206,7 +187,7 @@ function renderCart() {
       <button data-dec="${it.product_en}" aria-label="إنقاص ${it.product_ar}">×</button>
     </span>`).join('') +
     (count > 1 ? '<button class="chip" data-clear="1" style="color:var(--faint)">تفريغ الطلب</button>' : '');
-  cartMeta.innerHTML = `المجموع: <b>${total} نقطة</b> ستُضاف إلى رصيدك`;
+  cartMeta.textContent = itemsWord(count) + ' في طلبك';
 }
 
 grid.addEventListener('click', e => {
@@ -235,6 +216,62 @@ cartChips.addEventListener('click', e => {
     renderCart();
   }
 });
+
+/* ---------- البحث عن الاسم والاقتراحات ---------- */
+let searchTimer = null;
+
+function renderSuggest(res) {
+  if (res === 'idle')   { suggestEl.innerHTML = '<p class="sug-hint">ابدأ بكتابة أول حروف اسمك…</p>'; return; }
+  if (res === 'loading'){ suggestEl.innerHTML = '<p class="sug-hint">جارٍ البحث…</p>'; return; }
+  if (res === 'empty')  { suggestEl.innerHTML = '<p class="sug-hint">لا يوجد اسم مطابق — إن لم تكن مسجلًا اضغط «لا أملك حساب» بالأعلى</p>'; return; }
+  if (res === 'error')  { suggestEl.innerHTML = '<p class="sug-hint">تعذر البحث، تحقق من الإنترنت وحاول مجددًا</p>'; return; }
+  suggestEl.innerHTML = res.rows.map(r =>
+    `<button type="button" class="sug-item" data-cid="${r.id}"><span>${esc(r.full_name)}</span><small>${esc(r.mask || '')}</small></button>`
+  ).join('');
+}
+
+nameSearch.addEventListener('input', () => {
+  const q = nameSearch.value.trim();
+  clearTimeout(searchTimer);
+  if (q.length < 2) { renderSuggest('idle'); return; }
+  renderSuggest('loading');
+  searchTimer = setTimeout(async () => {
+    try {
+      const data = await rpc('search_customers', { p_query: q });
+      const rows = Array.isArray(data) ? data : (data ? [data] : []);
+      renderSuggest(rows.length ? { rows } : 'empty');
+    } catch (err) {
+      renderSuggest(err && err.friendly ? 'error' : 'error');
+    }
+  }, 260);
+});
+
+suggestEl.addEventListener('click', e => {
+  const b = e.target.closest('.sug-item');
+  if (!b) return;
+  selectCustomer(b.dataset.cid, b.querySelector('span').textContent.trim());
+});
+
+function selectCustomer(id, name) {
+  state.customer = { id, name };
+  selectedNameVal.textContent = name;
+  searchField.classList.add('hidden');
+  suggestEl.classList.add('hidden');
+  selectedName.classList.remove('hidden');
+  $('pinWho').textContent = 'أدخل رمز PIN الخاص باسم ' + name + ' لتأكيد طلبك';
+  toast('مرحبًا ' + name + ' — اختر منتجاتك واضغط «اطلب الآن»', 'ok');
+}
+
+function deselectCustomer() {
+  state.customer = null;
+  selectedName.classList.add('hidden');
+  searchField.classList.remove('hidden');
+  suggestEl.classList.remove('hidden');
+  nameSearch.value = '';
+  renderSuggest('idle');
+}
+
+$('changeName').addEventListener('click', deselectCustomer);
 
 /* ---------- إنشاء الحساب ---------- */
 const form = $('signupForm');
@@ -277,25 +314,21 @@ form.addEventListener('submit', async e => {
   setBtnLoading(btn, true);
   try {
     const pinHash = await hashPin(phone, pin);
-    const data = await rpc('create_customer', {
+    await rpc('create_customer', {
       p_full_name: name,
       p_phone: phone,
       p_pin_hash: pinHash,
       p_device_id: getDeviceId(),
     });
-
-    state.customer = { id: data.id, name: data.full_name, phone: data.phone, points: data.points || 0 };
-    saveSession();
-    updateTopbar();
-    renderHome();
-    acct.dataset.state = 'home';
-    closeAccountOverlay();
     form.reset();
-    toast('تم إنشاء حسابك بنجاح، أهلًا بك في Dose', 'ok');
+    acct.dataset.state = 'lookup';
+    closeAccountOverlay();
+    renderSuggest('idle');
+    toast('تم إنشاء حسابك بنجاح — اكتب اسمك الآن واطلب', 'ok');
   } catch (err) {
     const m = (err && err.message) || '';
     if (err && err.friendly) $('signupErr').textContent = err.message;
-    else if (m.includes('phone_exists')) $('signupErr').textContent = 'هذا الرقم مسجّل مسبقًا — تواصل مع الباريستا للمساعدة';
+    else if (m.includes('phone_exists')) $('signupErr').textContent = 'هذا الرقم مسجّل مسبقًا — اكتب اسمك في البطاقة واطلب مباشرة';
     else if (m.includes('Failed to fetch') || m.includes('network')) $('signupErr').textContent = 'تعذر الاتصال بالخدمة، تأكد من الإنترنت وحاول مجددًا';
     else $('signupErr').textContent = 'حدث خطأ غير متوقع، حاول مجددًا';
   } finally {
@@ -304,24 +337,15 @@ form.addEventListener('submit', async e => {
   }
 });
 
-function renderHome() {
-  const c = state.customer;
-  if (!c) return;
-  $('homeName').textContent = c.name.split(' ')[0];
-  $('homePoints').textContent = c.points;
-  $('homeAvatar').textContent = c.name.trim().charAt(0) || 'م';
-  $('chipPoints').textContent = c.points;
-}
-
 /* ---------- إرسال الطلب ---------- */
 sendBtn.addEventListener('click', () => {
   const { items } = cartItems();
   if (!items.length) { toast('أضف منتجات إلى طلبك أولًا'); return; }
   if (!state.customer) {
-    toast('أنشئ حسابك أولًا لإرسال الطلب');
-    showAccount('signup');
-    accountBtn.classList.add('pulse');
-    setTimeout(() => accountBtn.classList.remove('pulse'), 2400);
+    toast('اختر اسمك أولًا من البطاقة اليسرى');
+    showAccount('lookup');
+    acct.classList.add('pulse');
+    setTimeout(() => acct.classList.remove('pulse'), 2400);
     return;
   }
   openPinModal();
@@ -334,9 +358,8 @@ function openPinModal() {
   state.pinEntry = '';
   pinErr.textContent = '';
   updatePinDots();
-  const { items, total } = cartItems();
-  pinSummary.innerHTML = 'طلبك: ' + items.map(i => `${i.product_ar} ×${i.qty}`).join('، ') +
-    ` — ستكسب <b>${total} نقطة</b>`;
+  const { items } = cartItems();
+  pinSummary.textContent = 'طلبك: ' + items.map(i => `${i.product_ar} ×${i.qty}`).join('، ');
   pinConfirm.disabled = true;
   pinConfirm.dataset.disabled = '1';
   pinOverlay.classList.remove('hidden');
@@ -383,12 +406,10 @@ pinConfirm.addEventListener('click', async () => {
   pinErr.textContent = '';
   try {
     const { items, total } = cartItems();
-    const pinHash = await hashPin(state.customer.phone, state.pinEntry);
 
-    const v = await rpc('verify_customer', { p_phone: state.customer.phone, p_pin_hash: pinHash });
-    if (!v || (Array.isArray(v) ? v.length === 0 : !v.id)) {
-      throw { wrongPin: true };
-    }
+    const v = await rpc('verify_pin_by_id', { p_customer_id: state.customer.id, p_pin: state.pinEntry });
+    const row = Array.isArray(v) ? v[0] : v;
+    if (!row || !row.id) throw { wrongPin: true };
 
     const o = await rpc('create_order', {
       p_customer_id: state.customer.id,
@@ -396,10 +417,6 @@ pinConfirm.addEventListener('click', async () => {
       p_total_points: total,
     });
 
-    state.customer.points = o.balance;
-    saveSession();
-    updateTopbar();
-    renderHome();
     closePinModal();
     showDone(o);
   } catch (err) {
@@ -421,26 +438,28 @@ pinConfirm.addEventListener('click', async () => {
   }
 });
 
-/* ---------- شاشة النجاح ---------- */
+/* ---------- شاشة النجاح ثم العودة للحالة الطبيعية ---------- */
 function showDone(order) {
   $('doneRef').textContent = 'طلب رقم #' + order.order_number;
   $('donePoints').textContent = '+' + order.earned + ' نقطة';
-  $('doneBalance').textContent = 'رصيدك الحالي: ' + order.balance + ' نقطة';
   doneOverlay.classList.remove('hidden');
 }
 
 $('newOrderBtn').addEventListener('click', () => {
   doneOverlay.classList.add('hidden');
-  state.cart.clear();
-  renderCart();
-  acct.dataset.state = 'home';
-  document.querySelector('.products-scroll').scrollTo({ top: 0, behavior: 'smooth' });
+  resetKiosk();
 });
 
+function resetKiosk() {
+  state.cart.clear();
+  renderCart();
+  deselectCustomer();
+  acct.dataset.state = 'lookup';
+  closeAccountOverlay();
+  document.querySelector('.products-scroll').scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 /* ---------- الإقلاع ---------- */
-loadSession();
 renderProducts();
 renderCart();
-updateTopbar();
-if (state.customer) renderHome();
-acct.dataset.state = state.customer ? 'home' : 'welcome';
+renderSuggest('idle');
