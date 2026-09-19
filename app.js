@@ -127,18 +127,16 @@ $('cancelSignup').addEventListener('click', () => {
 function renderProducts() {
   const list = PRODUCTS.filter(p => p.cat === state.cat);
   grid.innerHTML = list.map((p, i) => `
-    <article class="card" style="--d:${i * 45}ms">
+    <article class="card" style="--d:${i * 40}ms">
       <div class="card-img">
         <img src="${p.img}" alt="${p.ar}" loading="lazy"
              onerror="this.closest('.card-img').classList.add('noimg')">
+        <button class="add-btn" data-add="${p.id}" aria-label="أضف ${p.ar} إلى الطلب">${PLUS_SVG}</button>
       </div>
       <div class="card-body">
         <div class="card-title">
           <h3>${p.ar}</h3>
           <span class="latin">${p.en}</span>
-        </div>
-        <div class="card-foot">
-          <button class="add-btn" data-add="${p.id}" aria-label="أضف ${p.ar} إلى الطلب">${PLUS_SVG}</button>
         </div>
       </div>
     </article>
