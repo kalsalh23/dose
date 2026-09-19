@@ -1,5 +1,4 @@
-// تنفيذ مخطط قاعدة البيانات على Supabase عبر Management API
-// الاستخدام: set SB_TOKEN=sbp_xxx && node scripts/apply-schema.mjs
+// تنفيذ مخطط المنصة على Supabase — set SB_TOKEN=xxx && node scripts/apply-schema.mjs
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -9,7 +8,7 @@ const token = process.env.SB_TOKEN;
 if (!token) { console.error('Missing SB_TOKEN env var'); process.exit(1); }
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const sql = await readFile(join(__dirname, 'schema.sql'), 'utf8');
+const sql = await readFile(join(__dirname, '..', 'supabase', 'schema.sql'), 'utf8');
 
 const res = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
   method: 'POST',
@@ -18,5 +17,5 @@ const res = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/qu
 });
 const body = await res.text();
 console.log('Status:', res.status);
-console.log(body.slice(0, 2000));
+console.log(body.slice(0, 3000));
 process.exit(res.ok ? 0 : 1);

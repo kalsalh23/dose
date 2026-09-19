@@ -1,50 +1,40 @@
-# Dose Coffee & More — Kiosk Loyalty Platform
+# Dose Coffee & More
 
-منصة نقاط ولاء للتابلت المثبّت داخل محل Dose Coffee & More — واجهة عربية RTL بتصميم Premium Coffee UI، تعمل بالكامل من شاشة التابلت: إنشاء الحساب، اختيار المنتجات، إرسال الطلب، وتأكيد الهوية برمز PIN.
+منصة رقمية متكاملة لـ **Dose Coffee & More** — ولاء، طلبات، WhatsApp، مكافآت، ولوحة إدارة.
 
-## المزايا
+## المنظومة
 
-- **إنشاء حساب من نفس الشاشة** — الاسم، رقم الهاتف، ورمز PIN من 4 أرقام (يُخزَّن مشفَّرًا SHA-256).
-- **قائمة منتجات** بثلاث تصنيفات (ساخنة / باردة / حلويات) مع نقاط لكل منتج — بدون عرض أي أسعار.
-- **سلة طلب** مع شريط سفلي وإرسال الطلب بضغطة واحدة.
-- **تأكيد الهوية بشاشة PIN** (لوحة أرقام على الشاشة) قبل تسجيل الطلب وإضافة النقاط.
-- **Backend على Supabase** — جداول `customers` و`orders` محمية بـ RLS، والوصول فقط عبر دوال RPC آمنة (`create_customer`, `verify_customer`, `create_order`).
+| الواجهة | الرابط | الجمهور |
+|---|---|---|
+| منصة العميل | `/` | هاتف العميل (PWA) |
+| منصة المحل (كشك) | `/kiosk` | التابلت داخل المحل |
+| لوحة الإدارة | `/admin` | المدير |
 
-## البنية
+الجميع متصل بنفس قاعدة بيانات **Supabase** — لا وجود لأي نظام طلبات منفصل.
 
-```
-index.html            الواجهة (RTL)
-styles.css            التصميم (Premium Coffee UI)
-app.js                المنطق + إعدادات Supabase
-vendor/supabase.js    مكتبة supabase-js (محلية، بدون CDN)
-assets/img/           صور المنتجات
-scripts/schema.sql    مخطط قاعدة البيانات
-scripts/apply-schema.mjs   أداة تنفيذ المخطط
-scripts/dev-server.mjs     خادم تطوير محلي
-```
+## التقنيات
+React 19 · Vite · TypeScript · Tailwind CSS v4 · Supabase (Postgres + RPC + Realtime-ready) · PWA · WhatsApp Deep Link (قابل للترقية إلى WhatsApp Business API عبر مزود واحد في `src/lib/whatsapp.ts`).
 
 ## التشغيل محليًا
-
 ```bash
-node scripts/dev-server.mjs
-# ثم افتح http://localhost:4173
+npm install
+npm run dev        # http://localhost:5173
+npm run build      # بناء الإنتاج
 ```
 
-## إعداد قاعدة البيانات (مرة واحدة)
+## قاعدة البيانات
+`supabase/schema.sql` — الجداول (customers, products, orders, order_items, points_transactions, rewards, reward_redemptions, notifications, advertisements, stores, device_tokens, admin_users, settings, profiles…) مع RLS كامل وجميع العمليات عبر دوال RPC.
 
 ```bash
 set SB_TOKEN=<supabase-access-token>
 node scripts/apply-schema.mjs
 ```
 
-## النشر
+## الحسابات الافتراضية
+- **لوحة الإدارة:** `admin` / `dose-admin-2026` — ⚠️ غيّر كلمة المرور من جدول `admin_users`.
+- **كشك المحل:** يعمل مباشرة على `/kiosk` — لا يحتاج دخولًا.
 
-الموقع مُهيّأ للنشر الثابت على Vercel (بدون build):
+## تدفق الطلب
+اسم العميل ← المنتجات ← استلام/توصيل ← (موقع) ← PIN ← **Supabase** ← **WhatsApp** لرقم المحل.
 
-```bash
-npx vercel --prod
-```
-
-## إدارة الطلبات
-
-الطلبات تُسجَّل في جدول `orders` في Supabase (لوحة التحكم → Table Editor). رقم الطلب تسلسلي، والحالة الافتراضية `new` — يمكن لاحقًا بناء شاشة باريستا تقرأ الطلبات الجديدة.
+النقاط تُمنح عند إكمال الطلب (قابل للتغيير من الإعدادات). استبدال النقاط يولّد Reward Code يُستخدم مرة واحدة.
