@@ -190,7 +190,7 @@ function FeaturedCategories({ catalog, cat, setCat }: { catalog: Catalog | null;
 }
 
 /* ============================ الرئيسية ============================ */
-function Home({ catalog, openProduct, onOpenAd }: { catalog: Catalog | null; openProduct: (p: Product) => void; onOpenAd: (a: Ad) => void }) {
+function Home({ catalog, openProduct }: { catalog: Catalog | null; openProduct: (p: Product) => void }) {
   const [cat, setCat] = useState('all');
   const products = catalog?.products ?? [];
   const shown = cat === 'all' ? products : products.filter((p) => p.category === cat);
@@ -198,9 +198,6 @@ function Home({ catalog, openProduct, onOpenAd }: { catalog: Catalog | null; ope
 
   return (
     <div className="anim-rise">
-      {/* بانر العروض — متصل بالشريط العلوي */}
-      <OfferBanners ads={catalog?.ads ?? []} cur={cur} onOpen={onOpenAd} />
-
       {/* فئات مميزة */}
       <FeaturedCategories catalog={catalog} cat={cat} setCat={setCat} />
 
@@ -755,7 +752,7 @@ export default function CustomerApp() {
 
       <main className="flex-1 px-4 pb-28 pt-2">
         <Routes>
-          <Route path="/" element={<Home catalog={catalog} openProduct={setProduct} onOpenAd={(a) => setAdOpen(a)} />} />
+          <Route path="/" element={<Home catalog={catalog} openProduct={setProduct} />} />
           <Route path="/rewards" element={<RewardsPage catalog={catalog} myData={myData} session={session} onRedeem={redeem} />} />
           <Route path="/orders" element={<OrdersPage myData={myData} session={session} />} />
           <Route path="/notifications" element={
