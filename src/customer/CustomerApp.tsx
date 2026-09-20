@@ -69,34 +69,25 @@ function useToast() {
 type Fulfillment = 'pickup' | 'delivery';
 interface OrderFlow { step: 'fulfillment' | 'location' | 'pin' | null; lines: CartLine[]; fulfillment?: Fulfillment; loc?: { lat: number; lng: number; mapUrl: string } }
 
-/* ============================ الشاشة الترحيبية — 5 ثوانٍ ============================ */
+/* ============================ الشاشة الترحيبية — الشعار + الشعار النصي، 3 ثوانٍ ============================ */
 function WelcomeScreen({ onClose }: { onClose: () => void }) {
   useEffect(() => {
-    const t = setTimeout(onClose, 5000);
+    const t = setTimeout(onClose, 3000);
     return () => clearTimeout(t);
   }, []);
   return (
-    <div className="fixed inset-0 z-[200] flex flex-col items-center overflow-hidden bg-[#F6E7C9] anim-fade">
-      {/* حبوب قهوة زخرفية باهتة */}
+    <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center overflow-hidden bg-[#F6E7C9] anim-fade">
       <div className="pointer-events-none absolute -top-10 -left-10 size-44 rounded-full bg-[#EAD3A0]/60 blur-2xl" />
-      <div className="pointer-events-none absolute top-24 -right-12 size-52 rounded-full bg-[#E0C288]/50 blur-2xl" />
+      <div className="pointer-events-none absolute bottom-16 -right-12 size-52 rounded-full bg-[#E0C288]/50 blur-2xl" />
 
-      <div className="relative mt-14 w-full px-8">
-        <img src="/img/iced-latte.jpg" alt="قهوة مثلجة"
-          className="mx-auto h-[46vh] w-full max-w-sm rounded-[2.5rem] object-cover shadow-2xl shadow-[#8a6a48]/45" />
-        <span className="absolute -bottom-4 right-10 rounded-2xl bg-[#EAC98F] px-4 py-2 text-xs font-black text-[#221B12] shadow-lg rotate-3">
-          Dose Coffee &amp; More
-        </span>
-      </div>
+      <img src="/logo.jpg" alt="Dose Coffee & More"
+        className="size-36 rounded-[2.2rem] object-cover shadow-2xl shadow-[#8a6a48]/45 ring-4 ring-white" />
 
-      <div className="mt-auto px-8 pb-12 text-center">
-        <h1 className="text-4xl font-black leading-[1.25] text-[#221B12]">قهوتك<br />بين يديك</h1>
-        <p className="mt-3 text-sm leading-relaxed text-[#94826A]">
-          اطلب مشروبك المفضل في ثوانٍ، واجمع النقاط والمكافآت مع Dose
-        </p>
-        <div className="mx-auto mt-6 h-1 w-28 overflow-hidden rounded-full bg-[#EAD3A0]">
-          <div className="h-full rounded-full bg-[#8A6A48]" style={{ width: '100%', animation: 'welcome-progress 5s linear forwards' }} />
-        </div>
+      <h1 className="mt-8 text-4xl font-black text-[#221B12]">حب من طرف قهوة</h1>
+      <p className="mt-2 text-sm font-bold tracking-wide text-[#94826A]">Dose Coffee &amp; More</p>
+
+      <div className="absolute bottom-12 h-1 w-28 overflow-hidden rounded-full bg-[#EAD3A0]">
+        <div className="h-full rounded-full bg-[#8A6A48]" style={{ width: '100%', animation: 'welcome-progress 3s linear forwards' }} />
       </div>
     </div>
   );
