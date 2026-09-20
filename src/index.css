@@ -18,23 +18,23 @@
   --color-sage: #ABC4AA;
   --color-taupe: #675D50;
 
-  /* هوية Dose الفريش — أخضر فاتح + أبيض */
-  --color-fresh-50: #F0F9F4;
-  --color-fresh-100: #DFF3E7;
-  --color-fresh-200: #BFE7CF;
-  --color-fresh-300: #8FD6AE;
-  --color-fresh-500: #34A971;
-  --color-fresh-600: #218A5C;
-  --color-fresh-700: #166B4A;
-  --color-fresh-900: #0F3D2C;
-  --color-fresh-ink: #14231C;
+  /* هوية Dose الدافئة — كريمي · كراميل · بني داكن (مطابقة للتصميم المرجعي) */
+  --color-fresh-50: #F8EED6;
+  --color-fresh-100: #EAD3A0;
+  --color-fresh-200: #E0C288;
+  --color-fresh-300: #D9B171;
+  --color-fresh-500: #EAC98F;
+  --color-fresh-600: #D9B171;
+  --color-fresh-700: #8A6A48;
+  --color-fresh-900: #4A3A28;
+  --color-fresh-ink: #221B12;
 }
 
 html, body, #root { height: 100%; }
 body {
   font-family: var(--font-sans);
-  background: linear-gradient(180deg, #F2FAF5, #EAF6EE);
-  color: #14231C;
+  background: linear-gradient(180deg, #F9EDD2, #F3DFB6);
+  color: #221B12;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
 }
@@ -47,6 +47,7 @@ body {
 @keyframes shake-x { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(7px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(3px)} }
 @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(50%); } }
+@keyframes welcome-progress { from { width: 0; } to { width: 100%; } }
 
 .anim-pop { animation: pop-in .28s cubic-bezier(.22,.8,.3,1) both; }
 .anim-fade { animation: fade-in .25s both; }
