@@ -2,14 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { rpc } from '../lib/supabase';
 import type { Catalog, Product } from '../lib/types';
 import { deviceId } from '../lib/utils';
-import { buildOrderMessage, whatsapp } from '../lib/whatsapp';
 import PinPad from '../components/PinPad';
 import { Icon } from '../components/Icons';
 
 /* ============================================================
    منصة المحل الداخلية — Tablet Kiosk
    نفس هوية التطبيق: كريمي · كراميل · بني داكن
-   التدفق: اسم ← منتجات ← PIN ← Supabase ← WhatsApp (استلام من المحل)
+   التدفق: اسم ← منتجات ← PIN ← Supabase (النقاط تُحتسب في حسابه)
    ============================================================ */
 
 interface Suggestion { id: string; full_name: string; mask: string }
@@ -26,10 +25,9 @@ export default function KioskApp() {
   const [step, setStep] = useState<Step>('idle');
   const [pinErr, setPinErr] = useState('');
   const [pinBusy, setPinBusy] = useState(false);
-  const [done, setDone] = useState<{ orderNumber: number; points: number; message: string; waSent: boolean } | null>(null);
+  const [done, setDone] = useState<{ orderNumber: number; points: number } | null>(null);
   const [toast, setToast] = useState<{ msg: string; kind?: 'ok' | 'err' } | null>(null);
   const searchTimer = useRef<number | undefined>(undefined);
-  const waNumber = catalog?.settings?.whatsapp_number ?? '963952639157';
 
   const showToast = (msg: string, kind?: 'ok' | 'err') => {
     setToast({ msg, kind });
@@ -84,19 +82,7 @@ export default function KioskApp() {
         p_items: items,
         p_source: 'kiosk',
       });
-      const lines = [...cart.entries()].map(([pid, qty]) => {
-        const p = catalog!.products.find((x) => x.id === pid)!;
-        return { name: p.name_ar, qty, unitPriceCents: p.price_cents };
-      });
-      const message = buildOrderMessage({
-        orderNumber: res.order_number, customerName: res.customer_name, customerPhone: res.customer_phone,
-        fulfillmentType: 'pickup', items: lines,
-        totalCents: res.total_cents, totalPoints: res.total_points,
-        mapUrl: null, createdAt: res.created_at,
-        currencySymbol: catalog?.settings?.currency_symbol,
-      });
-      const waSent = whatsapp.send(waNumber, message);
-      setDone({ orderNumber: res.order_number, points: res.total_points, message, waSent });
+      setDone({ orderNumber: res.order_number, points: res.total_points });
       setStep('success');
     } catch (e: any) {
       setPinErr(e.message);
@@ -298,16 +284,17 @@ export default function KioskApp() {
             <span className="mx-auto grid size-16 place-items-center rounded-full text-white shadow-lg" style={{ background: '#EAC98F', color: '#221B12' }}>
               <Icon name="check" size={30} strokeWidth={2.4} />
             </span>
-            <h3 className="mt-3 text-lg font-black" style={{ color: '#221B12' }}>تم إرسال طلبك بنجاح</h3>
+            <h3 className="mt-3 text-lg font-black" style={{ color: '#221B12' }}>تم تسجيل طلبك بنجاح</h3>
             <p className="mt-1 text-sm font-bold" style={{ color: '#6E6553' }}>طلب رقم #{done.orderNumber}</p>
             <p className="mt-2 inline-block rounded-full px-4 py-1.5 text-[15px] font-black" style={{ background: '#F1DCB0', color: '#8A6A48' }}>
               ⭐ +{done.points} نقطة عند إكمال الطلب
             </p>
-            <button onClick={() => whatsapp.send(waNumber, done.message)}
-              className="mt-4 w-full rounded-full bg-[#25D366] py-3.5 text-base font-black text-white shadow-lg active:scale-[.98]">
-              {done.waSent ? 'إعادة إرسال عبر WhatsApp' : 'إرسال عبر WhatsApp'}
+            <p className="mt-2 text-[11px] font-bold" style={{ color: '#94826A' }}>
+              ستظهر النقاط في حساب {customer?.name} داخل تطبيق Dose
+            </p>
+            <button onClick={reset} className="mt-5 w-full rounded-full py-3.5 text-base font-black text-white shadow-lg active:scale-[.98]" style={{ background: '#EAC98F', color: '#221B12' }}>
+              طلب جديد
             </button>
-            <button onClick={reset} className="mt-3 w-full rounded-full py-2.5 text-sm font-bold" style={{ color: '#94826A' }}>طلب جديد</button>
           </div>
         </div>
       )}
