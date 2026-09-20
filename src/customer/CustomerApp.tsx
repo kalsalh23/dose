@@ -44,9 +44,9 @@ function useCatalog() {
 }
 
 /* ============================ عناصر مشتركة ============================ */
-const Logo = ({ size = 40 }: { size?: number }) => (
+const Logo = ({ size = 42 }: { size?: number }) => (
   <img src="/logo.jpg" alt="Dose" style={{ width: size, height: size }}
-    className="rounded-xl border-2 border-fresh-200 object-cover shadow" />
+    className="rounded-2xl object-cover shadow-md shadow-fresh-900/15 ring-2 ring-white" />
 );
 
 function useToast() {
@@ -58,8 +58,8 @@ function useToast() {
     timer.current = window.setTimeout(() => setToast(null), 3200);
   };
   const node = toast ? (
-    <div className={`fixed inset-x-0 bottom-28 z-[300] mx-auto w-fit max-w-[92vw] rounded-2xl px-5 py-3 text-center text-sm font-bold shadow-2xl anim-pop ${
-      toast.kind === 'err' ? 'bg-red-600 text-white' : 'bg-fresh-700 text-white'}`}>{toast.msg}</div>
+    <div className={`fixed inset-x-0 bottom-32 z-[300] mx-auto w-fit max-w-[92vw] rounded-full px-5 py-3 text-center text-sm font-bold shadow-2xl anim-pop ${
+      toast.kind === 'err' ? 'bg-red-500 text-white' : 'bg-fresh-ink text-white'}`}>{toast.msg}</div>
   ) : null;
   return { show, node };
 }
@@ -67,61 +67,49 @@ function useToast() {
 type Fulfillment = 'pickup' | 'delivery';
 interface OrderFlow { step: 'fulfillment' | 'location' | 'pin' | null; lines: CartLine[]; fulfillment?: Fulfillment; loc?: { lat: number; lng: number; mapUrl: string } }
 
-/* ============================ الإعلان الحصري (5 ثوانٍ) ============================ */
+/* ============================ الإعلان الحصري — أسلوب القصص ============================ */
 function SplashAd({ ad, cur, onClose }: { ad: Ad; cur: string; onClose: () => void }) {
-  const [left, setLeft] = useState(5);
+  const [p, setP] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setLeft((s) => s - 1), 1000);
+    const start = Date.now();
+    const t = setInterval(() => setP(Math.min(1, (Date.now() - start) / 5000)), 80);
     const end = setTimeout(onClose, 5000);
     return () => { clearInterval(t); clearTimeout(end); };
   }, []);
   return (
-    <div className="fixed inset-0 z-[200] bg-black/85 p-5 backdrop-blur-md anim-fade">
-      <div className="relative mx-auto mt-8 max-w-sm overflow-hidden rounded-[2rem] bg-white shadow-2xl anim-pop">
-        <div className="relative">
-          <img src={ad.image_url} alt={ad.title} className="h-72 w-full object-cover" />
-          <span className="absolute top-3 right-3 rounded-full bg-gold px-3 py-1 text-[11px] font-black text-white shadow-lg">عرض حصري</span>
-          {/* حلقة العد التنازلي */}
-          <button onClick={onClose} className="absolute top-3 left-3 grid size-11 place-items-center" aria-label="تخطي">
-            <svg viewBox="0 0 44 44" className="absolute inset-0 size-full -rotate-90">
-              <circle cx="22" cy="22" r="19" fill="rgba(0,0,0,.45)" stroke="rgba(255,255,255,.3)" strokeWidth="3" />
-              <circle cx="22" cy="22" r="19" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round"
-                strokeDasharray={2 * Math.PI * 19}
-                strokeDashoffset={2 * Math.PI * 19 * (1 - left / 5)}
-                style={{ transition: 'stroke-dashoffset 1s linear' }} />
-            </svg>
-            <span className="relative text-sm font-black text-white">{Math.max(0, left)}</span>
-          </button>
+    <div className="fixed inset-0 z-[200] bg-fresh-ink anim-fade">
+      <img src={ad.image_url} alt={ad.title} className="absolute inset-0 size-full object-cover" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-black/45" />
+
+      <div className="absolute inset-x-4 top-4 flex gap-1.5">
+        <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/25">
+          <div className="h-full rounded-full bg-white" style={{ width: p * 100 + '%', transition: 'width .1s linear' }} />
         </div>
-        <div className="p-5 text-center">
-          <h3 className="text-xl font-black text-coffee-900">{ad.title}</h3>
-          <p className="mt-1 text-sm text-neutral-500">{ad.description_ar}</p>
-          {ad.new_price_cents != null && (
-            <div className="mt-3 flex items-center justify-center gap-3">
-              {ad.old_price_cents != null && <span className="text-sm font-bold text-neutral-400 line-through">{eur(ad.old_price_cents, cur)}</span>}
-              <span className="text-2xl font-black text-fresh-700">{eur(ad.new_price_cents, cur)}</span>
-            </div>
-          )}
-          <button onClick={onClose} className="mt-4 w-full rounded-2xl bg-gradient-to-l from-fresh-500 to-fresh-700 py-3 text-base font-extrabold text-white shadow-lg shadow-fresh-900/25 active:scale-[.98]">
-            اطلب الآن
-          </button>
+      </div>
+      <button onClick={onClose} className="absolute left-4 top-8 rounded-full bg-white/15 px-4 py-2 text-xs font-extrabold text-white backdrop-blur transition active:scale-95">
+        تخطي
+      </button>
+      <span className="absolute right-4 top-8 rounded-full bg-white px-3.5 py-1.5 text-[11px] font-black text-fresh-700 shadow-lg">
+        عرض حصري
+      </span>
+
+      <div className="absolute inset-x-0 bottom-0 p-6 pb-10 text-white">
+        <h2 className="text-[2rem] font-black leading-tight drop-shadow-lg">{ad.title}</h2>
+        <p className="mt-1.5 text-sm font-medium text-white/85">{ad.description_ar}</p>
+        <div className="mt-3 flex items-baseline gap-3">
+          {ad.old_price_cents != null && <span className="text-base font-bold text-white/60 line-through">{eur(ad.old_price_cents, cur)}</span>}
+          {ad.new_price_cents != null && <span className="text-3xl font-black text-[#7FE7B0] drop-shadow">{eur(ad.new_price_cents, cur)}</span>}
         </div>
+        <button onClick={onClose}
+          className="mt-5 w-full rounded-full bg-white py-4 text-base font-black text-fresh-700 shadow-xl transition active:scale-[.97]">
+          اطلب الآن
+        </button>
       </div>
     </div>
   );
 }
 
-/* ============================ الهوية الفريش ============================ */
-/* الأخضر: fresh-700 أساسي · fresh-500 تفاعلي · fresh-100 خلفيات · أبيض للبطاقات */
-
-const CAT_IMAGES: Record<string, string> = {
-  hot: '/img/cappuccino.jpg',
-  cold: '/img/iced-latte.jpg',
-  dessert: '/img/chocolate-cake.jpg',
-  extras: '/img/caramel-macchiato.jpg',
-};
-
-/* بانر العروض — متصل بالشريط العلوي، سلايدر أفقي */
+/* ============================ بانر العروض ============================ */
 function OfferBanners({ ads, cur, onOpen }: { ads: Ad[]; cur: string; onOpen: (a: Ad) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const [idx, setIdx] = useState(0);
@@ -132,20 +120,18 @@ function OfferBanners({ ads, cur, onOpen }: { ads: Ad[]; cur: string; onOpen: (a
     setIdx(Math.round(Math.abs(el.scrollLeft) / el.clientWidth));
   };
   return (
-    <div className="anim-rise">
+    <div>
       <div ref={ref} onScroll={onScroll}
-        className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto"
-        style={{ scrollBehavior: 'smooth' }}>
+        className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto">
         {ads.map((a) => (
           <button key={a.id} onClick={() => onOpen(a)}
-            className="relative h-40 w-full flex-none snap-center overflow-hidden rounded-3xl text-right shadow-lg shadow-fresh-900/15 sm:h-44">
+            className="relative h-36 w-full flex-none snap-center overflow-hidden rounded-[1.75rem] text-right shadow-lg shadow-fresh-900/15 sm:h-40">
             <img src={a.image_url} alt={a.title} className="size-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-l from-black/60 via-black/25 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-l from-black/55 via-black/20 to-transparent" />
             <div className="absolute inset-y-0 right-0 flex flex-col justify-center gap-1 p-5 text-white">
-              <span className="w-fit rounded-full bg-fresh-500 px-3 py-1 text-[10px] font-black shadow">عرض حصري</span>
-              <h3 className="text-xl font-black drop-shadow">{a.title}</h3>
-              <p className="text-[11px] font-medium text-white/85">{a.description_ar}</p>
-              <div className="mt-0.5 flex items-baseline gap-2">
+              <span className="w-fit rounded-full bg-white px-3 py-1 text-[10px] font-black text-fresh-700 shadow">عرض حصري</span>
+              <h3 className="text-lg font-black drop-shadow">{a.title}</h3>
+              <div className="flex items-baseline gap-2">
                 {a.old_price_cents != null && <span className="text-xs font-bold text-white/70 line-through">{eur(a.old_price_cents, cur)}</span>}
                 {a.new_price_cents != null && <span className="text-lg font-black">{eur(a.new_price_cents, cur)}</span>}
               </div>
@@ -156,7 +142,7 @@ function OfferBanners({ ads, cur, onOpen }: { ads: Ad[]; cur: string; onOpen: (a
       {ads.length > 1 && (
         <div className="mt-2.5 flex justify-center gap-1.5">
           {ads.map((_, i) => (
-            <span key={i} className={`h-1.5 rounded-full transition-all ${i === idx ? 'w-5 bg-fresh-600' : 'w-1.5 bg-fresh-200'}`} />
+            <span key={i} className={`h-1.5 rounded-full transition-all ${i === idx ? 'w-5 bg-fresh-500' : 'w-1.5 bg-fresh-200'}`} />
           ))}
         </div>
       )}
@@ -164,23 +150,31 @@ function OfferBanners({ ads, cur, onOpen }: { ads: Ad[]; cur: string; onOpen: (a
   );
 }
 
-/* فئات مميزة — صور دائرية */
+/* ============================ فئات مميزة (حلقة رفيعة) ============================ */
+const CAT_IMAGES: Record<string, string> = {
+  hot: '/img/cappuccino.jpg',
+  cold: '/img/iced-latte.jpg',
+  dessert: '/img/chocolate-cake.jpg',
+  extras: '/img/caramel-macchiato.jpg',
+};
+
 function FeaturedCategories({ catalog, cat, setCat }: { catalog: Catalog | null; cat: string; setCat: (s: string) => void }) {
-  const items = [{ slug: 'all', name_ar: 'الكل', img: '' }, ...(catalog?.categories ?? [])];
+  const items = [{ slug: 'all', name_ar: 'الكل' }, ...(catalog?.categories ?? [])];
   return (
-    <section className="mt-6">
-      <h2 className="mb-3 text-base font-extrabold text-fresh-ink">فئات مميزة</h2>
-      <div className="no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-1">
+    <section className="mt-7">
+      <h2 className="mb-3.5 text-[17px] font-black text-fresh-ink">فئات مميزة</h2>
+      <div className="no-scrollbar -mx-4 flex gap-5 overflow-x-auto px-4 pb-1">
         {items.map((c) => {
           const active = cat === c.slug;
           return (
             <button key={c.slug} onClick={() => setCat(c.slug)} className="flex flex-none flex-col items-center gap-2 transition active:scale-95">
-              <span className={`grid size-20 place-items-center overflow-hidden rounded-full shadow-md transition-all ${active ? 'ring-4 ring-fresh-500 ring-offset-2' : 'ring-4 ring-white'}`}>
+              <span className={`grid size-[76px] place-items-center overflow-hidden rounded-full shadow-md shadow-fresh-900/10 transition-all ${
+                active ? 'ring-2 ring-fresh-500 ring-offset-2 ring-offset-[#F3FAF5]' : 'ring-1 ring-fresh-100'}`}>
                 {c.slug === 'all'
-                  ? <span className="grid size-full place-items-center bg-fresh-600 text-white"><Icon name="package" size={22} /></span>
+                  ? <span className="grid size-full place-items-center bg-fresh-500 text-white"><Icon name="search" size={20} /></span>
                   : <img src={CAT_IMAGES[c.slug] ?? '/img/latte.jpg'} alt={c.name_ar} className="size-full object-cover" loading="lazy" />}
               </span>
-              <span className={`text-xs font-extrabold ${active ? 'text-fresh-700' : 'text-neutral-500'}`}>{c.name_ar}</span>
+              <span className={`text-[11.5px] font-extrabold ${active ? 'text-fresh-700' : 'text-neutral-500'}`}>{c.name_ar}</span>
             </button>
           );
         })}
@@ -195,109 +189,37 @@ function Home({ catalog, openProduct }: { catalog: Catalog | null; openProduct: 
   const products = catalog?.products ?? [];
   const shown = cat === 'all' ? products : products.filter((p) => p.category === cat);
   const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
+  const activeName = cat === 'all' ? 'كل المنتجات' : catalog?.categories?.find((c) => c.slug === cat)?.name_ar;
 
   return (
     <div className="anim-rise">
-      {/* فئات مميزة */}
       <FeaturedCategories catalog={catalog} cat={cat} setCat={setCat} />
 
-      {/* المنتجات */}
-      <section className="mt-6">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-extrabold text-fresh-ink">{cat === 'all' ? 'قائمتنا' : catalog?.categories?.find((c) => c.slug === cat)?.name_ar}</h2>
+      <section className="mt-5">
+        <div className="mb-1 flex items-end justify-between px-1">
+          <h2 className="text-[17px] font-black text-fresh-ink">{activeName}</h2>
           <span className="text-[11px] font-bold text-neutral-400">{shown.length} منتج</span>
         </div>
-        <div className="grid grid-cols-2 gap-3.5 pb-4 sm:grid-cols-3">
+        <div className="divide-y divide-fresh-100">
           {shown.map((p, i) => (
             <button key={p.id} onClick={() => openProduct(p)}
-              className="rounded-[1.6rem] bg-white p-2.5 text-right shadow-[0_10px_30px_-18px_rgba(22,107,74,.45)] transition hover:-translate-y-1 hover:shadow-[0_16px_36px_-16px_rgba(22,107,74,.5)] anim-rise"
-              style={{ animationDelay: `${i * 30}ms` }}>
-              <div className="relative">
-                <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-32 w-full rounded-[1.15rem] object-cover" />
-                <span className="absolute bottom-2 right-2 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-black text-fresh-700 shadow">{eur(p.price_cents, cur)}</span>
-              </div>
-              <div className="px-1 pb-1 pt-2">
-                <h3 className="truncate text-sm font-extrabold text-fresh-ink">{p.name_ar}</h3>
-                <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-neutral-400">{p.name_en}</p>
-              </div>
+              className="flex w-full items-center gap-4 py-3.5 text-right transition active:scale-[.99] anim-rise"
+              style={{ animationDelay: `${i * 25}ms` }}>
+              <img src={p.image_url} alt={p.name_ar} loading="lazy"
+                className="size-[84px] flex-none rounded-[1.35rem] object-cover shadow-md shadow-fresh-900/10" />
+              <span className="min-w-0 flex-1">
+                <h3 className="truncate text-[15px] font-extrabold text-fresh-ink">{p.name_ar}</h3>
+                <p className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-wider text-neutral-400">{p.name_en}</p>
+                <p className="mt-1 text-[15px] font-black text-fresh-600">{eur(p.price_cents, cur)}</p>
+              </span>
+              <span className="grid size-10 flex-none place-items-center rounded-full bg-fresh-100 text-fresh-700">
+                <Icon name="plus" size={18} />
+              </span>
             </button>
           ))}
         </div>
-        <p className="pb-2 text-center text-[11px] text-neutral-400">اجمع النقاط مع كل طلب واستبدلها من صفحة «استبدل نقاطك»</p>
+        <p className="py-3 text-center text-[11px] text-neutral-400">اجمع النقاط مع كل طلب واستبدلها من صفحة «استبدل نقاطك»</p>
       </section>
-    </div>
-  );
-}
-function FulfillmentModal({ onPick, onClose }: { onPick: (f: Fulfillment) => void; onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 z-[110] grid place-items-center bg-black/50 p-4 backdrop-blur-sm anim-fade" onClick={onClose}>
-      <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-center text-lg font-extrabold text-coffee-900">كيف تستلم طلبك؟</h3>
-        <p className="mt-1 text-center text-xs text-neutral-500">اختر طريقة الاستلام قبل إرسال الطلب</p>
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <button className="rounded-3xl border-2 border-fresh-100 bg-fresh-50 p-5 transition hover:border-sage hover:bg-sage/10 active:scale-95"
-            onClick={() => onPick('pickup')}>
-            <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-sage/20 text-sage"><Icon name="check" size={24} /></span>
-            <span className="mt-3 block text-base font-extrabold text-coffee-900">استلام من المحل</span>
-            <span className="mt-1 block text-[11px] text-neutral-500">جهّز طلبك وتفضل بالاستلام</span>
-          </button>
-          <button className="rounded-3xl border-2 border-fresh-100 bg-fresh-50 p-5 transition hover:border-gold hover:bg-gold/10 active:scale-95"
-            onClick={() => onPick('delivery')}>
-            <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-gold/15 text-fresh-700"><Icon name="pin" size={24} /></span>
-            <span className="mt-3 block text-base font-extrabold text-coffee-900">توصيل</span>
-            <span className="mt-1 block text-[11px] text-neutral-500">سنطلب موقعك للتوصيل</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function LocationModal({ onDone, onClose, onBack }: { onDone: (loc: { lat: number; lng: number; mapUrl: string }) => void; onClose: () => void; onBack: () => void }) {
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState('');
-  const share = async () => {
-    setBusy(true); setErr('');
-    try { onDone(await getCurrentLocation()); } catch (e: any) { setErr(e.message); setBusy(false); }
-  };
-  return (
-    <div className="fixed inset-0 z-[110] grid place-items-center bg-black/50 p-4 backdrop-blur-sm anim-fade" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
-        <span className="mx-auto grid size-16 place-items-center rounded-full bg-gold/15 text-fresh-700"><Icon name="pin" size={30} /></span>
-        <h3 className="mt-3 text-lg font-extrabold text-coffee-900">مشاركة موقعك</h3>
-        <p className="mt-2 text-xs leading-relaxed text-neutral-500">نحتاج إلى موقعك لتوصيل الطلب إلى المكان الصحيح.</p>
-        {err && <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-600">{err}</p>}
-        <button disabled={busy} onClick={share}
-          className="mt-5 w-full rounded-2xl bg-gradient-to-l from-fresh-500 to-fresh-700 py-3.5 text-base font-extrabold text-white shadow-lg shadow-fresh-900/25 transition active:scale-[.98] disabled:opacity-50">
-          {busy ? 'جارٍ تحديد موقعك…' : 'مشاركة موقعي'}
-        </button>
-        <button onClick={onBack} className="mt-3 w-full rounded-2xl py-2.5 text-sm font-bold text-neutral-500 hover:text-neutral-800">إلغاء</button>
-      </div>
-    </div>
-  );
-}
-
-function OrderSuccessModal({ orderNumber, points, waNumber, message, onClose }: {
-  orderNumber: number; points: number; waNumber: string; message: string; onClose: () => void;
-}) {
-  const [opened, setOpened] = useState(false);
-  const send = () => { whatsapp.send(waNumber, message); setOpened(true); };
-  return (
-    <div className="fixed inset-0 z-[130] grid place-items-center bg-black/50 p-4 backdrop-blur-sm anim-fade">
-      <div className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-2xl anim-pop">
-        <span className="mx-auto grid size-16 place-items-center rounded-full bg-gradient-to-br from-fresh-500 to-fresh-700 text-white shadow-lg shadow-fresh-900/25">
-          <Icon name="check" size={30} strokeWidth={2.4} />
-        </span>
-        <h3 className="mt-3 text-lg font-extrabold text-coffee-900">تم تسجيل طلبك بنجاح</h3>
-        <p className="mt-1 text-sm font-bold text-neutral-500">طلب رقم #{orderNumber}</p>
-        <p className="mt-2 text-xs leading-relaxed text-neutral-500">ستكسب <b className="text-fresh-700">{points} نقطة</b> عند إكمال الطلب. أرسل الطلب الآن إلى المحل عبر WhatsApp:</p>
-        <button onClick={send}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#25D366] py-3.5 text-base font-extrabold text-white shadow-lg shadow-green-500/30 transition active:scale-[.98]">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Zm5.5 14.1c-.2.7-1.3 1.3-1.9 1.4-.5.1-1.1.1-1.8-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.7-4-4.8-4.2-.1-.2-1.2-1.6-1.2-3s.7-2.1 1-2.4c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.4.2.5.7 1.8.8 1.9.1.1.1.3 0 .5-.1.2-.1.3-.3.5l-.4.5c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1.1 2.2 1.4 2.5 1.5.3.1.5.1.6-.1.2-.2.7-.8.9-1.1.2-.3.4-.2.6-.1l1.8.9c.3.1.5.2.5.3.1.1.1.7-.1 1.3Z"/></svg>
-          {opened ? 'إعادة الإرسال عبر WhatsApp' : 'إرسال الطلب عبر WhatsApp'}
-        </button>
-        <button onClick={onClose} className="mt-3 w-full rounded-2xl py-2.5 text-sm font-bold text-neutral-500 hover:text-neutral-800">تم</button>
-      </div>
     </div>
   );
 }
@@ -309,26 +231,27 @@ function ProductSheet({ product, catalog, onClose, onOrder }: {
   const [qty, setQty] = useState(1);
   const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
   return (
-    <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm anim-fade" onClick={onClose}>
-      <div className="absolute inset-x-0 bottom-0 max-h-[92vh] overflow-y-auto rounded-t-[2rem] bg-white pb-6 shadow-2xl anim-pop sm:mx-auto sm:max-w-md sm:rounded-[2rem] sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[100] bg-black/45 backdrop-blur-sm anim-fade" onClick={onClose}>
+      <div className="absolute inset-x-0 bottom-0 max-h-[92vh] overflow-y-auto rounded-t-[2.2rem] bg-white pb-6 shadow-2xl anim-pop sm:mx-auto sm:max-w-md sm:rounded-[2.2rem] sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2" onClick={(e) => e.stopPropagation()}>
         <div className="relative">
-          <img src={product.image_url} alt={product.name_ar} className="h-56 w-full object-cover" />
-          <button onClick={onClose} className="absolute top-3 left-3 grid size-9 place-items-center rounded-full bg-black/50 text-white" aria-label="إغلاق"><Icon name="x" size={16} /></button>
+          <img src={product.image_url} alt={product.name_ar} className="h-60 w-full object-cover" />
+          <button onClick={onClose} className="absolute top-3 left-3 grid size-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur" aria-label="إغلاق"><Icon name="x" size={16} /></button>
+          <span className="absolute bottom-3 right-5 rounded-full bg-white px-4 py-1.5 text-lg font-black text-fresh-700 shadow-lg">{eur(product.price_cents, cur)}</span>
         </div>
         <div className="p-5">
-          <h2 className="text-xl font-black text-coffee-900">{product.name_ar}</h2>
+          <h2 className="text-2xl font-black text-fresh-ink">{product.name_ar}</h2>
           <p className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-neutral-400">{product.name_en}</p>
           <p className="mt-3 text-sm leading-relaxed text-neutral-600">{product.description_ar || 'مميز من Dose Coffee & More'}</p>
-          <div className="mt-4 flex items-center justify-between rounded-2xl bg-fresh-50 px-4 py-3 ring-1 ring-fresh-100">
+          <div className="mt-4 flex items-center justify-between rounded-3xl bg-fresh-50 px-4 py-3">
             <div className="flex items-center gap-3" dir="ltr">
-              <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="grid size-9 place-items-center rounded-full bg-white text-lg font-black text-coffee-900 shadow ring-1 ring-fresh-100">−</button>
-              <span className="w-8 text-center text-lg font-black">{qty}</span>
-              <button onClick={() => setQty((q) => Math.min(50, q + 1))} className="grid size-9 place-items-center rounded-full bg-white text-lg font-black text-coffee-900 shadow ring-1 ring-fresh-100">+</button>
+              <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="grid size-10 place-items-center rounded-full bg-white text-lg font-black text-fresh-700 shadow ring-1 ring-fresh-100">−</button>
+              <span className="w-8 text-center text-lg font-black text-fresh-ink">{qty}</span>
+              <button onClick={() => setQty((q) => Math.min(50, q + 1))} className="grid size-10 place-items-center rounded-full bg-fresh-500 text-lg font-black text-white shadow">+</button>
             </div>
             <span className="text-xl font-black text-fresh-700">{eur(product.price_cents * qty, cur)}</span>
           </div>
           <button onClick={() => onOrder({ product, qty })}
-            className="mt-5 w-full rounded-2xl bg-gradient-to-l from-fresh-500 to-fresh-700 py-4 text-base font-extrabold text-white shadow-lg shadow-fresh-900/25 transition active:scale-[.98]">
+            className="mt-5 w-full rounded-full bg-gradient-to-l from-fresh-500 to-fresh-700 py-4 text-base font-black text-white shadow-xl shadow-fresh-900/25 transition active:scale-[.98]">
             اطلب الآن
           </button>
         </div>
@@ -344,27 +267,27 @@ function RewardsPage({ catalog, myData, session, onRedeem }: any) {
   if (!session) return <NeedLogin />;
   return (
     <div className="anim-rise">
-      <div className="mb-5 rounded-3xl bg-gradient-to-l from-fresh-600 to-fresh-900 p-5 text-center text-cream shadow-lg">
-        <p className="flex items-center justify-center gap-1.5 text-xs font-bold text-white"><Icon name="star" size={13} filled /> رصيد نقاطك</p>
-        <p className="mt-1 text-4xl font-black">{myData?.customer?.points ?? session.customer.points}</p>
-        <p className="mt-1 text-[11px] text-cream/60">استبدل نقاطك بمشروبات وحلويات مجانية</p>
+      <div className="rounded-[2rem] bg-gradient-to-bl from-fresh-600 via-fresh-700 to-fresh-900 p-6 text-center text-white shadow-xl shadow-fresh-900/20">
+        <p className="flex items-center justify-center gap-1.5 text-xs font-bold text-fresh-200"><Icon name="star" size={13} filled /> رصيد نقاطك</p>
+        <p className="mt-1 text-5xl font-black">{myData?.customer?.points ?? session.customer.points}</p>
+        <p className="mt-1 text-[11px] text-white/70">استبدل نقاطك بمشروبات وحلويات مجانية</p>
       </div>
-      <div className="grid grid-cols-2 gap-3 pb-4 sm:grid-cols-3">
+      <div className="mt-5 space-y-3">
         {catalog?.rewards?.map((r: any, i: number) => {
           const can = (myData?.customer?.points ?? session.customer.points) >= r.points_cost;
           return (
-            <div key={r.id} className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-fresh-100 anim-rise" style={{ animationDelay: `${i * 30}ms` }}>
-              <img src={r.image_url} alt={r.name_ar} loading="lazy" className="h-28 w-full object-cover" />
-              <div className="p-3 text-center">
-                <h3 className="text-sm font-extrabold text-coffee-900">{r.name_ar}</h3>
-                <p className="mt-1 flex items-center justify-center gap-1 text-sm font-black text-fresh-700">
+            <div key={r.id} className="flex items-center gap-4 py-2 anim-rise" style={{ animationDelay: `${i * 30}ms` }}>
+              <img src={r.image_url} alt={r.name_ar} loading="lazy" className="size-[72px] flex-none rounded-[1.3rem] object-cover shadow-md shadow-fresh-900/10" />
+              <div className="min-w-0 flex-1">
+                <h3 className="text-[15px] font-extrabold text-fresh-ink">{r.name_ar}</h3>
+                <p className="mt-0.5 flex items-center gap-1 text-sm font-black text-amber-500">
                   <Icon name="star" size={13} filled /> {r.points_cost} نقطة
                 </p>
-                <button disabled={!can || busy} onClick={() => setConfirming(r)}
-                  className="mt-3 w-full rounded-xl bg-coffee-900 py-2.5 text-sm font-extrabold text-cream transition active:scale-95 disabled:opacity-35">
-                  {can ? 'استبدال' : 'نقاطك غير كافية'}
-                </button>
               </div>
+              <button disabled={!can || busy} onClick={() => setConfirming(r)}
+                className={`rounded-full px-5 py-2.5 text-sm font-black transition active:scale-95 ${can ? 'bg-fresh-500 text-white shadow-lg shadow-fresh-900/20' : 'bg-fresh-50 text-neutral-400'}`}>
+                {can ? 'استبدال' : 'غير كافية'}
+              </button>
             </div>
           );
         })}
@@ -372,13 +295,13 @@ function RewardsPage({ catalog, myData, session, onRedeem }: any) {
 
       {confirming && (
         <div className="fixed inset-0 z-[110] grid place-items-center bg-black/50 p-4 backdrop-blur-sm anim-fade" onClick={() => setConfirming(null)}>
-          <div className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
-            <img src={confirming.image_url} alt="" className="mx-auto size-20 rounded-2xl object-cover" />
-            <h3 className="mt-3 text-base font-extrabold leading-relaxed text-coffee-900">هل تريد استبدال {confirming.points_cost} نقطة مقابل {confirming.name_ar}؟</h3>
+          <div className="w-full max-w-sm rounded-[2rem] bg-white p-6 text-center shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
+            <img src={confirming.image_url} alt="" className="mx-auto size-24 rounded-[1.5rem] object-cover shadow-lg" />
+            <h3 className="mt-4 text-base font-extrabold leading-relaxed text-fresh-ink">هل تريد استبدال {confirming.points_cost} نقطة مقابل {confirming.name_ar}؟</h3>
             <div className="mt-5 grid grid-cols-2 gap-3">
               <button disabled={busy} onClick={async () => { setBusy(true); await onRedeem(confirming); setBusy(false); setConfirming(null); }}
-                className="rounded-2xl bg-gradient-to-l from-fresh-500 to-fresh-700 py-3 text-sm font-extrabold text-white shadow active:scale-95 disabled:opacity-50">تأكيد الاستبدال</button>
-              <button onClick={() => setConfirming(null)} className="rounded-2xl bg-neutral-100 py-3 text-sm font-extrabold text-neutral-600 active:scale-95">إلغاء</button>
+                className="rounded-full bg-gradient-to-l from-fresh-500 to-fresh-700 py-3 text-sm font-black text-white shadow-lg active:scale-95 disabled:opacity-50">تأكيد الاستبدال</button>
+              <button onClick={() => setConfirming(null)} className="rounded-full bg-neutral-100 py-3 text-sm font-black text-neutral-600 active:scale-95">إلغاء</button>
             </div>
           </div>
         </div>
@@ -389,10 +312,10 @@ function RewardsPage({ catalog, myData, session, onRedeem }: any) {
 
 const NeedLogin = () => (
   <div className="grid place-items-center py-20 text-center anim-rise">
-    <span className="mx-auto grid size-16 place-items-center rounded-full bg-gold/15 text-fresh-700"><Icon name="lock" size={28} /></span>
-    <h3 className="mt-4 text-base font-extrabold text-coffee-900">سجّل دخولك للمتابعة</h3>
+    <span className="mx-auto grid size-16 place-items-center rounded-[1.4rem] bg-fresh-100 text-fresh-700"><Icon name="lock" size={26} /></span>
+    <h3 className="mt-4 text-base font-extrabold text-fresh-ink">سجّل دخولك للمتابعة</h3>
     <p className="mt-1 text-xs text-neutral-500">برقم هاتفك ورمز PIN</p>
-    <Link to="/login" className="mt-5 rounded-2xl bg-coffee-900 px-8 py-3 text-sm font-extrabold text-cream shadow active:scale-95">تسجيل الدخول</Link>
+    <Link to="/login" className="mt-5 rounded-full bg-fresh-600 px-9 py-3 text-sm font-black text-white shadow-lg shadow-fresh-900/25 active:scale-95">تسجيل الدخول</Link>
   </div>
 );
 
@@ -416,14 +339,14 @@ function OrdersPage({ myData, session }: { myData: MyData | null; session: Sessi
     <div className="space-y-3 pb-4 anim-rise">
       {orders.length === 0 && (
         <div className="py-20 text-center">
-          <span className="mx-auto grid size-16 place-items-center rounded-full bg-beige/50 text-neutral-400"><Icon name="receipt" size={28} /></span>
+          <span className="mx-auto grid size-16 place-items-center rounded-[1.4rem] bg-fresh-100 text-fresh-700"><Icon name="receipt" size={26} /></span>
           <p className="mt-4 text-sm font-bold text-neutral-500">لا توجد طلبات بعد</p>
         </div>
       )}
       {orders.map((o) => (
-        <div key={o.id} className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-fresh-100">
+        <div key={o.id} className="rounded-[1.75rem] bg-white p-4 shadow-sm ring-1 ring-fresh-100">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-black text-coffee-900">طلب #{o.order_number}</span>
+            <span className="text-sm font-black text-fresh-ink">طلب #{o.order_number}</span>
             <span className={`rounded-full px-2.5 py-1 text-[11px] font-extrabold ${statusInfo(o.status).color}`}>{statusInfo(o.status).label}</span>
           </div>
           <div className="mt-2 space-y-1">
@@ -436,7 +359,7 @@ function OrdersPage({ myData, session }: { myData: MyData | null; session: Sessi
               <Icon name={o.fulfillment_type === 'delivery' ? 'pin' : 'home'} size={12} />
               {o.fulfillment_type === 'delivery' ? 'توصيل' : 'استلام'} · {fmtDateTime(o.created_at)}
             </span>
-            <span className="font-black text-fresh-700">{eur(o.total_cents)} · ★{o.total_points}</span>
+            <span className="font-black text-fresh-700">{eur(o.total_cents)}</span>
           </div>
         </div>
       ))}
@@ -453,15 +376,15 @@ function NotificationsPage({ myData, session, onSeen }: { myData: MyData | null;
     <div className="space-y-2.5 pb-4 anim-rise">
       {items.length === 0 && (
         <div className="py-20 text-center">
-          <span className="mx-auto grid size-16 place-items-center rounded-full bg-beige/50 text-neutral-400"><Icon name="bell" size={28} /></span>
+          <span className="mx-auto grid size-16 place-items-center rounded-[1.4rem] bg-fresh-100 text-fresh-700"><Icon name="bell" size={26} /></span>
           <p className="mt-4 text-sm font-bold text-neutral-500">لا توجد إشعارات حاليًا</p>
         </div>
       )}
       {items.map((n) => (
-        <div key={n.id} className={`rounded-2xl p-4 shadow-sm ring-1 ${n.is_read ? 'bg-white ring-beige' : 'bg-gold/10 ring-fresh-300'}`}>
+        <div key={n.id} className={`rounded-[1.5rem] p-4 shadow-sm ring-1 ${n.is_read ? 'bg-white ring-fresh-100' : 'bg-fresh-50 ring-fresh-300'}`}>
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-extrabold text-coffee-900">{n.title}</p>
+              <p className="text-sm font-extrabold text-fresh-ink">{n.title}</p>
               {n.body && <p className="mt-1 text-xs leading-relaxed text-neutral-600">{n.body}</p>}
             </div>
             <span className="flex-none text-[10px] font-bold text-neutral-400">{fmtDateTime(n.created_at)}</span>
@@ -473,15 +396,15 @@ function NotificationsPage({ myData, session, onSeen }: { myData: MyData | null;
 }
 
 /* ============================ حسابي ============================ */
-const AccountRow = ({ icon, label, onClick, badge }: { icon: IconName; label: string; onClick: () => void; badge?: number }) => (
-  <button onClick={onClick} className="flex w-full items-center justify-between rounded-2xl bg-white p-4 shadow-sm ring-1 ring-fresh-100 transition active:scale-[.98]">
-    <span className="flex items-center gap-3 text-sm font-extrabold text-coffee-900">
-      <span className="grid size-9 place-items-center rounded-xl bg-fresh-50 text-fresh-700"><Icon name={icon} size={18} /></span>
+const AccountRow = ({ icon, label, onClick, badge, danger }: { icon: IconName; label: string; onClick: () => void; badge?: number; danger?: boolean }) => (
+  <button onClick={onClick} className="flex w-full items-center justify-between rounded-[1.4rem] bg-white p-4 shadow-sm ring-1 ring-fresh-100 transition active:scale-[.98]">
+    <span className={`flex items-center gap-3 text-sm font-extrabold ${danger ? 'text-red-500' : 'text-fresh-ink'}`}>
+      <span className={`grid size-10 place-items-center rounded-2xl ${danger ? 'bg-red-50 text-red-500' : 'bg-fresh-50 text-fresh-700'}`}><Icon name={icon} size={18} /></span>
       {label}
     </span>
     <span className="flex items-center gap-2">
-      {badge ? <span className="rounded-full bg-fresh-600 px-2 py-0.5 text-[10px] font-black text-white">{badge}</span> : null}
-      <span className="text-neutral-300"><Icon name="chevron" size={16} /></span>
+      {badge ? <span className="rounded-full bg-fresh-500 px-2 py-0.5 text-[10px] font-black text-white">{badge}</span> : null}
+      <span className="text-fresh-200"><Icon name="chevron" size={16} /></span>
     </span>
   </button>
 );
@@ -489,18 +412,18 @@ const AccountRow = ({ icon, label, onClick, badge }: { icon: IconName; label: st
 function MyCodes({ redemptions }: { redemptions: Redemption[] }) {
   return (
     <div className="mt-6 anim-rise">
-      <h3 className="mb-3 text-base font-extrabold text-coffee-900">أكواد مكافآتك</h3>
-      {redemptions.length === 0 && <p className="rounded-2xl bg-white p-6 text-center text-xs font-bold text-neutral-400 ring-1 ring-fresh-100">لا توجد استبدالات بعد — اجمع النقاط واستبدلها من «استبدل نقاطك»</p>}
+      <h3 className="mb-3 text-base font-black text-fresh-ink">أكواد مكافآتك</h3>
+      {redemptions.length === 0 && <p className="rounded-[1.5rem] bg-white p-6 text-center text-xs font-bold text-neutral-400 ring-1 ring-fresh-100">لا توجد استبدالات بعد — اجمع النقاط واستبدلها من «استبدل نقاطك»</p>}
       <div className="space-y-2.5">
         {redemptions.map((r) => (
-          <div key={r.code} className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm ring-1 ring-fresh-100">
+          <div key={r.code} className="flex items-center justify-between rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-fresh-100">
             <div>
-              <p className="text-sm font-extrabold text-coffee-900">{r.reward_name}</p>
-              <p className="mt-0.5 text-[11px] text-neutral-400"> {r.points_cost} نقطة · {fmtDateTime(r.created_at)}</p>
+              <p className="text-sm font-extrabold text-fresh-ink">{r.reward_name}</p>
+              <p className="mt-0.5 text-[11px] text-neutral-400">{fmtDateTime(r.created_at)}</p>
             </div>
             <div className="text-center">
-              <p className="rounded-xl bg-fresh-900 px-3 py-1.5 font-mono text-base font-black tracking-widest text-white" dir="ltr">{r.code}</p>
-              <p className={`mt-1 text-[10px] font-extrabold ${r.status === 'unused' ? 'text-emerald-600' : 'text-neutral-400'}`}>
+              <p className="rounded-2xl bg-fresh-900 px-3.5 py-2 font-mono text-base font-black tracking-widest text-[#7FE7B0]" dir="ltr">{r.code}</p>
+              <p className={`mt-1 text-[10px] font-extrabold ${r.status === 'unused' ? 'text-fresh-600' : 'text-neutral-400'}`}>
                 {r.status === 'unused' ? 'غير مستخدم' : r.status === 'used' ? 'مستخدم' : 'منتهي'}
               </p>
             </div>
@@ -519,15 +442,15 @@ function AccountPage({ session, myData, waNumber, onLogout }: {
   const redemptions = myData?.redemptions ?? [];
   return (
     <div className="anim-rise">
-      <div className="rounded-3xl bg-gradient-to-l from-fresh-600 to-fresh-900 p-6 text-center text-cream shadow-lg">
-        <span className="mx-auto grid size-16 place-items-center rounded-full bg-gradient-to-br from-fresh-500 to-fresh-700 text-2xl font-black text-white">
+      <div className="rounded-[2rem] bg-gradient-to-bl from-fresh-600 via-fresh-700 to-fresh-900 p-6 text-center text-white shadow-xl shadow-fresh-900/20">
+        <span className="mx-auto grid size-16 place-items-center rounded-full bg-white/15 text-2xl font-black backdrop-blur">
           {c.full_name.trim().charAt(0)}
         </span>
         <h2 className="mt-3 text-lg font-black">{c.full_name}</h2>
-        <p className="mt-0.5 text-xs text-cream/60" dir="ltr">{c.phone}</p>
+        <p className="mt-0.5 text-xs text-white/70" dir="ltr">{c.phone}</p>
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-2xl bg-white/10 py-3"><p className="text-xl font-black text-white">{c.points}</p><p className="text-[10px] font-bold text-cream/60">نقطة</p></div>
-          <div className="rounded-2xl bg-white/10 py-3"><p className="text-xl font-black text-white">{c.orders_count}</p><p className="text-[10px] font-bold text-cream/60">طلب</p></div>
+          <div className="rounded-3xl bg-white/10 py-3"><p className="text-xl font-black text-[#7FE7B0]">{c.points}</p><p className="text-[10px] font-bold text-white/70">نقطة</p></div>
+          <div className="rounded-3xl bg-white/10 py-3"><p className="text-xl font-black text-[#7FE7B0]">{c.orders_count}</p><p className="text-[10px] font-bold text-white/70">طلب</p></div>
         </div>
       </div>
 
@@ -535,20 +458,20 @@ function AccountPage({ session, myData, waNumber, onLogout }: {
         <AccountRow icon="receipt" label="الطلبات" onClick={() => _navRef?.('/orders')} />
         <AccountRow icon="gift" label="المكافأة" onClick={() => setShowCodes(true)} badge={redemptions.filter((r) => r.status === 'unused').length || undefined} />
         <a href={waChatLink(waNumber, 'مرحبًا، أحتاج مساعدة من Dose Coffee & More')} target="_blank" rel="noopener"
-          className="flex w-full items-center justify-between rounded-2xl bg-white p-4 shadow-sm ring-1 ring-fresh-100 transition active:scale-[.98]">
-          <span className="flex items-center gap-3 text-sm font-extrabold text-coffee-900">
-            <span className="grid size-9 place-items-center rounded-xl bg-fresh-50 text-fresh-700"><Icon name="headset" size={18} /></span>
+          className="flex w-full items-center justify-between rounded-[1.4rem] bg-white p-4 shadow-sm ring-1 ring-fresh-100 transition active:scale-[.98]">
+          <span className="flex items-center gap-3 text-sm font-extrabold text-fresh-ink">
+            <span className="grid size-10 place-items-center rounded-2xl bg-fresh-50 text-fresh-700"><Icon name="headset" size={18} /></span>
             المساعدة والدعم
           </span>
-          <span className="text-neutral-300"><Icon name="chevron" size={16} /></span>
+          <span className="text-fresh-200"><Icon name="chevron" size={16} /></span>
         </a>
         <button onClick={onLogout}
-          className="flex w-full items-center justify-between rounded-2xl bg-red-50 p-4 shadow-sm ring-1 ring-red-100 transition active:scale-[.98]">
-          <span className="flex items-center gap-3 text-sm font-extrabold text-red-600">
-            <span className="grid size-9 place-items-center rounded-xl bg-red-100 text-red-500"><Icon name="logout" size={18} /></span>
+          className="flex w-full items-center justify-between rounded-[1.4rem] bg-white p-4 shadow-sm ring-1 ring-red-100 transition active:scale-[.98]">
+          <span className="flex items-center gap-3 text-sm font-extrabold text-red-500">
+            <span className="grid size-10 place-items-center rounded-2xl bg-red-50 text-red-500"><Icon name="logout" size={18} /></span>
             تسجيل الخروج
           </span>
-          <span className="text-red-300"><Icon name="chevron" size={16} /></span>
+          <span className="text-red-200"><Icon name="chevron" size={16} /></span>
         </button>
       </div>
 
@@ -576,20 +499,20 @@ function LoginPage({ onLogged }: { onLogged: (s: Session) => void }) {
   };
   return (
     <div className="mx-auto max-w-sm py-10 anim-rise">
-      <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-fresh-100">
-        <div className="text-center"><Logo size={56} /></div>
-        <h2 className="mt-4 text-center text-lg font-black text-coffee-900">تسجيل الدخول</h2>
+      <div className="rounded-[2rem] bg-white p-7 shadow-xl shadow-fresh-900/10">
+        <div className="text-center"><Logo size={60} /></div>
+        <h2 className="mt-4 text-center text-xl font-black text-fresh-ink">تسجيل الدخول</h2>
         <p className="mt-1 text-center text-xs text-neutral-500">برقم هاتفك ورمز PIN الخاص بك</p>
         <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="numeric" dir="ltr" placeholder="09XXXXXXXX"
-          className="mt-5 h-12 w-full rounded-2xl border-2 border-fresh-100 bg-fresh-50 px-4 text-center text-base font-bold tracking-widest text-coffee-900 outline-none focus:border-fresh-500" />
+          className="mt-5 h-12 w-full rounded-2xl border-2 border-fresh-100 bg-fresh-50 px-4 text-center text-base font-bold tracking-widest text-fresh-ink outline-none focus:border-fresh-500" />
         <input value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" type="password" dir="ltr" placeholder="PIN ••••"
           className="mt-3 h-12 w-full rounded-2xl border-2 border-fresh-100 bg-fresh-50 px-4 text-center text-lg font-black tracking-[.5em] outline-none focus:border-fresh-500" />
-        {err && <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-center text-xs font-bold text-red-600">{err}</p>}
+        {err && <p className="mt-3 rounded-2xl bg-red-50 px-3 py-2 text-center text-xs font-bold text-red-600">{err}</p>}
         <button onClick={submit} disabled={busy || pin.length !== 4 || phone.replace(/\D/g, '').length < 8}
-          className="mt-5 w-full rounded-2xl bg-gradient-to-l from-fresh-500 to-fresh-700 py-3.5 text-base font-extrabold text-white shadow-lg shadow-fresh-900/25 active:scale-[.98] disabled:opacity-40">
+          className="mt-5 w-full rounded-full bg-gradient-to-l from-fresh-500 to-fresh-700 py-3.5 text-base font-black text-white shadow-lg shadow-fresh-900/25 active:scale-[.98] disabled:opacity-40">
           {busy ? 'جارٍ الدخول…' : 'دخول'}
         </button>
-        <button onClick={() => nav('/signup')} className="mt-3 w-full py-2 text-center text-sm font-bold text-fresh-700">ليس لديك حساب؟ أنشئ حسابك الآن</button>
+        <button onClick={() => nav('/signup')} className="mt-3 w-full py-2 text-center text-sm font-bold text-fresh-600">ليس لديك حساب؟ أنشئ حسابك الآن</button>
       </div>
     </div>
   );
@@ -619,8 +542,8 @@ function SignupPage({ onLogged }: { onLogged: (s: Session) => void }) {
   };
   return (
     <div className="mx-auto max-w-sm py-8 anim-rise">
-      <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-fresh-100">
-        <h2 className="text-center text-lg font-black text-coffee-900">مرحبًا بك في <span className="font-serif text-fresh-700">Dose</span></h2>
+      <div className="rounded-[2rem] bg-white p-7 shadow-xl shadow-fresh-900/10">
+        <h2 className="text-center text-xl font-black text-fresh-ink">مرحبًا بك في <span className="text-fresh-600">Dose</span></h2>
         <p className="mt-1 text-center text-xs text-neutral-500">أنشئ حسابك الآن واستمتع بالنقاط والمكافآت</p>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="الاسم الكامل"
           className="mt-4 h-12 w-full rounded-2xl border-2 border-fresh-100 bg-fresh-50 px-4 text-sm font-bold outline-none focus:border-fresh-500" />
@@ -632,12 +555,12 @@ function SignupPage({ onLogged }: { onLogged: (s: Session) => void }) {
           <input value={pin2} onChange={(e) => setPin2(e.target.value.replace(/\D/g, '').slice(0, 4))} type="password" inputMode="numeric" dir="ltr" placeholder="تأكيد PIN"
             className="h-12 w-full rounded-2xl border-2 border-fresh-100 bg-fresh-50 text-center text-base font-black tracking-widest outline-none focus:border-fresh-500" />
         </div>
-        <p className="mt-3 rounded-xl bg-fresh-50 px-3 py-2.5 text-[11px] leading-relaxed text-neutral-500 ring-1 ring-fresh-100">
-          🔒 يُستخدم رمز PIN للتحقق من هويتك عند الطلب — يُخزَّن مشفّرًا ولا يمكن لأحد رؤيته
+        <p className="mt-3 rounded-2xl bg-fresh-50 px-3 py-2.5 text-[11px] leading-relaxed text-neutral-500">
+          يُستخدم رمز PIN للتحقق من هويتك عند الطلب — يُخزَّن مشفّرًا ولا يمكن لأحد رؤيته
         </p>
-        {err && <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-center text-xs font-bold text-red-600">{err}</p>}
+        {err && <p className="mt-3 rounded-2xl bg-red-50 px-3 py-2 text-center text-xs font-bold text-red-600">{err}</p>}
         <button onClick={submit} disabled={busy}
-          className="mt-4 w-full rounded-2xl bg-gradient-to-l from-fresh-500 to-fresh-700 py-3.5 text-base font-extrabold text-white shadow-lg shadow-fresh-900/25 active:scale-[.98] disabled:opacity-50">
+          className="mt-4 w-full rounded-full bg-gradient-to-l from-fresh-500 to-fresh-700 py-3.5 text-base font-black text-white shadow-lg shadow-fresh-900/25 active:scale-[.98] disabled:opacity-50">
           {busy ? 'جارٍ الإنشاء…' : 'إنشاء الحساب والمتابعة'}
         </button>
         <button onClick={() => nav('/login')} className="mt-3 w-full py-2 text-center text-sm font-bold text-neutral-500">إلغاء والعودة</button>
@@ -704,53 +627,57 @@ export default function CustomerApp() {
     if (!session) return;
     try {
       const res = await rpc<any>('redeem_reward', { p_token: session.token, p_reward_id: reward.id });
-      show(`🎉 تم الاستبدال — كودك: ${res.code}`, 'ok');
+      show(`تم الاستبدال — كودك: ${res.code}`, 'ok');
       refresh();
     } catch (e: any) { show(e.message, 'err'); }
   };
 
   const navItems: { to: string; icon: IconName; label: string; end?: boolean }[] = [
     { to: '/', icon: 'home', label: 'الرئيسية', end: true },
-    { to: '/rewards', icon: 'star', label: 'استبدل نقاطك' },
+    { to: '/rewards', icon: 'star', label: 'النقاط' },
     { to: '/orders', icon: 'receipt', label: 'الطلبات' },
     { to: '/notifications', icon: 'bell', label: 'الإشعارات' },
     { to: '/account', icon: 'user', label: 'حسابي' },
   ];
 
   return (
-    <div className="mx-auto flex min-h-full max-w-lg flex-col bg-[#F3F9F4]">
-      <header className="sticky top-0 z-40 flex items-center justify-between gap-3 bg-white/95 px-4 py-3 text-cream shadow-lg backdrop-blur">
-        <div className="flex items-center gap-2.5">
-          <Logo size={38} />
-          <div className="leading-tight">
-            <p className="font-serif text-base font-bold">Dose</p>
-            <p className="text-[8px] font-bold uppercase tracking-[.2em] text-fresh-600">Coffee & More</p>
+    <div className="mx-auto flex min-h-full max-w-lg flex-col bg-gradient-to-b from-[#F2FAF5] to-[#EAF6EE]">
+      <header className="sticky top-0 z-40 border-b border-fresh-100/80 bg-white/85 px-4 py-2.5 backdrop-blur-xl">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Logo size={44} />
+            <div className="leading-none">
+              <p className="text-[19px] font-black tracking-tight text-fresh-ink">Dose</p>
+              <span className="mt-1 inline-block rounded-full bg-fresh-100 px-2 py-0.5 text-[8px] font-black tracking-[.16em] text-fresh-600">COFFEE &amp; MORE</span>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {session ? (
-            <>
-              <span className="flex items-center gap-1 rounded-full bg-fresh-100 px-3 py-1.5 text-xs font-extrabold text-fresh-700 ring-1 ring-fresh-200">
-                <Icon name="star" size={12} filled /> {myData?.customer?.points ?? session.customer.points}
-              </span>
-              <Link to="/notifications" className="relative grid size-10 place-items-center rounded-full bg-white/10 ring-1 ring-white/15" aria-label="الإشعارات">
-                <Icon name="bell" size={18} />
-                {unread > 0 && <span className="absolute -top-0.5 -left-0.5 grid size-5 place-items-center rounded-full bg-red-500 text-[10px] font-black">{unread}</span>}
-              </Link>
-              <Link to="/account" className="grid size-10 place-items-center rounded-full bg-gradient-to-br from-fresh-500 to-fresh-700 text-sm font-black text-white">
-                {session.customer.full_name.trim().charAt(0)}
-              </Link>
-            </>
-          ) : (
-            <Link to="/login" className="rounded-full border border-fresh-200 bg-fresh-50 px-4 py-2 text-xs font-extrabold text-fresh-700">تسجيل الدخول</Link>
-          )}
+          <div className="flex items-center gap-2">
+            {session ? (
+              <>
+                <span className="flex items-center gap-1 rounded-full bg-fresh-100 px-3 py-1.5 text-xs font-extrabold text-fresh-700">
+                  <Icon name="star" size={12} filled /> {myData?.customer?.points ?? session.customer.points}
+                </span>
+                <Link to="/notifications" className="relative grid size-10 place-items-center rounded-2xl bg-fresh-50 text-fresh-700 ring-1 ring-fresh-100" aria-label="الإشعارات">
+                  <Icon name="bell" size={18} />
+                  {unread > 0 && <span className="absolute -top-1 -left-1 grid size-5 place-items-center rounded-full bg-red-500 text-[10px] font-black text-white">{unread}</span>}
+                </Link>
+                <Link to="/account" className="grid size-10 place-items-center rounded-2xl bg-gradient-to-br from-fresh-500 to-fresh-700 text-sm font-black text-white shadow-md shadow-fresh-900/20">
+                  {session.customer.full_name.trim().charAt(0)}
+                </Link>
+              </>
+            ) : (
+              <Link to="/login" className="rounded-full bg-fresh-600 px-5 py-2.5 text-xs font-black text-white shadow-md shadow-fresh-900/20 active:scale-95">تسجيل الدخول</Link>
+            )}
+          </div>
         </div>
       </header>
 
-      {/* بانر العروض — متصل بالشريط العلوي */}
-      <div className="px-4 pt-3"><OfferBanners ads={tickerAds} cur={cur} onOpen={(a) => setAdOpen(a)} /></div>
+      {/* بانر العروض — متصل بالهيدر */}
+      <div className="px-4 pt-3">
+        <OfferBanners ads={tickerAds} cur={cur} onOpen={(a) => setAdOpen(a)} />
+      </div>
 
-      <main className="flex-1 px-4 pb-28 pt-2">
+      <main className="flex-1 px-4 pb-36 pt-2">
         <Routes>
           <Route path="/" element={<Home catalog={catalog} openProduct={setProduct} />} />
           <Route path="/rewards" element={<RewardsPage catalog={catalog} myData={myData} session={session} onRedeem={redeem} />} />
@@ -768,43 +695,25 @@ export default function CustomerApp() {
         </Routes>
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-lg items-center justify-around border-t border-fresh-100 bg-white/95 px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-8px_24px_-12px_rgba(0,0,0,.15)] backdrop-blur">
-        {navItems.map((t) => (
-          <NavLink key={t.to} to={t.to} end={t.end}
-            className={({ isActive }) => `flex flex-col items-center gap-1 rounded-2xl px-2.5 py-1.5 text-[10px] font-extrabold transition ${isActive ? 'text-fresh-700' : 'text-neutral-400'}`}>
-            {({ isActive }) => (<>
-              <span className={`grid size-8 place-items-center rounded-xl transition ${isActive ? 'bg-gold/15' : ''}`}><Icon name={t.icon} size={19} filled={isActive && t.icon === 'star'} /></span>
-              {t.label}
-            </>)}
-          </NavLink>
-        ))}
+      {/* شريط تنقل عائم */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-md items-center justify-around px-4"
+        style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
+        <div className="flex w-full items-center justify-around rounded-[1.9rem] border border-white bg-white/90 px-2 py-2 shadow-[0_18px_40px_-14px_rgba(11,59,44,.4)] backdrop-blur-xl">
+          {navItems.map((t) => (
+            <NavLink key={t.to} to={t.to} end={t.end}
+              className={({ isActive }) => `flex flex-col items-center gap-0.5 rounded-2xl px-2.5 py-1 text-[9.5px] font-extrabold transition ${isActive ? 'text-fresh-700' : 'text-neutral-400'}`}>
+              {({ isActive }) => (<>
+                <span className={`grid size-9 place-items-center rounded-2xl transition-all ${isActive ? 'bg-fresh-500 text-white shadow-md shadow-fresh-900/25' : ''}`}>
+                  <Icon name={t.icon} size={18} filled={isActive && t.icon === 'star'} />
+                </span>
+                {t.label}
+              </>)}
+            </NavLink>
+          ))}
+        </div>
       </nav>
 
       {product && <ProductSheet product={product} catalog={catalog} onClose={() => setProduct(null)} onOrder={startOrder} />}
-
-      {/* نافذة تفاصيل الإعلان من الشريط */}
-      {adOpen && (
-        <div className="fixed inset-0 z-[120] grid place-items-center bg-black/60 p-4 backdrop-blur-sm anim-fade" onClick={() => setAdOpen(null)}>
-          <div className="w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
-            <img src={adOpen.image_url} alt={adOpen.title} className="h-56 w-full object-cover" />
-            <div className="p-5 text-center">
-              <h3 className="text-lg font-black text-coffee-900">{adOpen.title}</h3>
-              <p className="mt-1 text-sm text-neutral-500">{adOpen.description_ar}</p>
-              {adOpen.new_price_cents != null && (
-                <div className="mt-3 flex items-center justify-center gap-3">
-                  {adOpen.old_price_cents != null && <span className="text-sm font-bold text-neutral-400 line-through">{eur(adOpen.old_price_cents, cur)}</span>}
-                  <span className="text-2xl font-black text-fresh-700">{eur(adOpen.new_price_cents, cur)}</span>
-                </div>
-              )}
-              <button onClick={() => setAdOpen(null)} className="mt-4 w-full rounded-2xl bg-gradient-to-l from-fresh-500 to-fresh-700 py-3 text-sm font-extrabold text-white shadow active:scale-[.98]">تصفح القائمة</button>
-            </div>
-            <button onClick={() => setAdOpen(null)} className="absolute top-3 left-3 grid size-9 place-items-center rounded-full bg-black/50 text-white" aria-label="إغلاق"><Icon name="x" size={16} /></button>
-          </div>
-        </div>
-      )}
-
-      {/* الإعلان الحصري عند الدخول */}
-      {fsAd && !splashDone && <SplashAd ad={fsAd} cur={cur} onClose={() => setSplashDone(true)} />}
 
       {flow.step === 'fulfillment' && (
         <FulfillmentModal
@@ -827,6 +736,81 @@ export default function CustomerApp() {
       )}
       {success && <OrderSuccessModal {...success} waNumber={waNumber} onClose={() => setSuccess(null)} />}
       {toastNode}
+    </div>
+  );
+}
+
+/* ============================ نوافذ تدفق الطلب ============================ */
+function FulfillmentModal({ onPick, onClose }: { onPick: (f: Fulfillment) => void; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[110] grid place-items-center bg-black/50 p-4 backdrop-blur-sm anim-fade" onClick={onClose}>
+      <div className="w-full max-w-md rounded-[2rem] bg-white p-6 shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-center text-lg font-black text-fresh-ink">كيف تستلم طلبك؟</h3>
+        <p className="mt-1 text-center text-xs text-neutral-500">اختر طريقة الاستلام قبل إرسال الطلب</p>
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <button className="rounded-[1.6rem] border-2 border-fresh-100 bg-fresh-50 p-5 transition hover:border-fresh-500 active:scale-95"
+            onClick={() => onPick('pickup')}>
+            <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-white text-fresh-700 shadow"><Icon name="check" size={24} /></span>
+            <span className="mt-3 block text-base font-black text-fresh-ink">استلام من المحل</span>
+            <span className="mt-1 block text-[11px] text-neutral-500">جهّز طلبك وتفضل بالاستلام</span>
+          </button>
+          <button className="rounded-[1.6rem] border-2 border-fresh-100 bg-fresh-50 p-5 transition hover:border-fresh-500 active:scale-95"
+            onClick={() => onPick('delivery')}>
+            <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-white text-fresh-700 shadow"><Icon name="pin" size={24} /></span>
+            <span className="mt-3 block text-base font-black text-fresh-ink">توصيل</span>
+            <span className="mt-1 block text-[11px] text-neutral-500">سنطلب موقعك للتوصيل</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LocationModal({ onDone, onClose, onBack }: { onDone: (loc: { lat: number; lng: number; mapUrl: string }) => void; onClose: () => void; onBack: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const share = async () => {
+    setBusy(true); setErr('');
+    try { onDone(await getCurrentLocation()); } catch (e: any) { setErr(e.message); setBusy(false); }
+  };
+  return (
+    <div className="fixed inset-0 z-[110] grid place-items-center bg-black/50 p-4 backdrop-blur-sm anim-fade" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-[2rem] bg-white p-6 text-center shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
+        <span className="mx-auto grid size-16 place-items-center rounded-[1.4rem] bg-fresh-100 text-fresh-700"><Icon name="pin" size={30} /></span>
+        <h3 className="mt-3 text-lg font-black text-fresh-ink">مشاركة موقعك</h3>
+        <p className="mt-2 text-xs leading-relaxed text-neutral-500">نحتاج إلى موقعك لتوصيل الطلب إلى المكان الصحيح.</p>
+        {err && <p className="mt-3 rounded-2xl bg-red-50 px-3 py-2 text-xs font-bold text-red-600">{err}</p>}
+        <button disabled={busy} onClick={share}
+          className="mt-5 w-full rounded-full bg-gradient-to-l from-fresh-500 to-fresh-700 py-3.5 text-base font-black text-white shadow-lg shadow-fresh-900/25 transition active:scale-[.98] disabled:opacity-50">
+          {busy ? 'جارٍ تحديد موقعك…' : 'مشاركة موقعي'}
+        </button>
+        <button onClick={onBack} className="mt-3 w-full rounded-2xl py-2.5 text-sm font-bold text-neutral-500 hover:text-neutral-800">إلغاء</button>
+      </div>
+    </div>
+  );
+}
+
+function OrderSuccessModal({ orderNumber, points, waNumber, message, onClose }: {
+  orderNumber: number; points: number; waNumber: string; message: string; onClose: () => void;
+}) {
+  const [opened, setOpened] = useState(false);
+  const send = () => { whatsapp.send(waNumber, message); setOpened(true); };
+  return (
+    <div className="fixed inset-0 z-[130] grid place-items-center bg-black/50 p-4 backdrop-blur-sm anim-fade">
+      <div className="w-full max-w-sm rounded-[2rem] bg-white p-6 text-center shadow-2xl anim-pop">
+        <span className="mx-auto grid size-16 place-items-center rounded-full bg-gradient-to-br from-fresh-500 to-fresh-700 text-white shadow-lg shadow-fresh-900/30">
+          <Icon name="check" size={30} strokeWidth={2.4} />
+        </span>
+        <h3 className="mt-3 text-lg font-black text-fresh-ink">تم تسجيل طلبك بنجاح</h3>
+        <p className="mt-1 text-sm font-bold text-neutral-500">طلب رقم #{orderNumber}</p>
+        <p className="mt-2 text-xs leading-relaxed text-neutral-500">ستكسب <b className="text-fresh-600">{points} نقطة</b> عند إكمال الطلب. أرسل الطلب الآن إلى المحل عبر WhatsApp:</p>
+        <button onClick={send}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#25D366] py-3.5 text-base font-black text-white shadow-lg shadow-green-500/30 transition active:scale-[.98]">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Zm5.5 14.1c-.2.7-1.3 1.3-1.9 1.4-.5.1-1.1.1-1.8-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.7-4-4.8-4.2-.1-.2-1.2-1.6-1.2-3s.7-2.1 1-2.4c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.4.2.5.7 1.8.8 1.9.1.1.1.3 0 .5-.1.2-.1.3-.3.5l-.4.5c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1.1 2.2 1.4 2.5 1.5.3.1.5.1.6-.1.2-.2.7-.8.9-1.1.2-.3.4-.2.6-.1l1.8.9c.3.1.5.2.5.3.1.1.1.7-.1 1.3Z"/></svg>
+          {opened ? 'إعادة الإرسال عبر WhatsApp' : 'إرسال الطلب عبر WhatsApp'}
+        </button>
+        <button onClick={onClose} className="mt-3 w-full rounded-full py-2.5 text-sm font-bold text-neutral-500 hover:text-neutral-800">تم</button>
+      </div>
     </div>
   );
 }
