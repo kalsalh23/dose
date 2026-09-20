@@ -52,11 +52,11 @@ export default function PinPad({
             <span
               key={i}
               className={`grid size-13 place-items-center rounded-2xl border-2 transition-all ${
-                pin.length === i ? 'border-gold bg-gold/5 shadow-[0_0_0_3px_rgba(217,167,108,.15)]' : 'border-beige bg-[#FAF5EA]'
+                pin.length === i ? 'border-fresh-500 bg-fresh-50 shadow-[0_0_0_3px_rgba(52,169,113,.18)]' : 'border-beige bg-[#FAF5EA]'
               }`}
               style={{ width: 52, height: 60 }}
             >
-              <i className={`block size-3.5 rounded-full bg-gradient-to-br from-gold to-gold-deep transition-all ${i < pin.length ? 'scale-100 opacity-100' : 'scale-50 opacity-0'}`} />
+              <i className={`block size-3.5 rounded-full bg-gradient-to-br from-fresh-500 to-fresh-700 transition-all ${i < pin.length ? 'scale-100 opacity-100' : 'scale-50 opacity-0'}`} />
             </span>
           ))}
         </div>
@@ -65,21 +65,21 @@ export default function PinPad({
 
         <div className="grid grid-cols-3 gap-2.5">
           {['1','2','3','4','5','6','7','8','9'].map((n) => (
-            <button key={n} className="h-14 rounded-2xl border border-beige bg-white text-xl font-extrabold text-coffee-900 transition hover:border-gold/60 hover:bg-gold/10 active:scale-95"
+            <button key={n} className="h-14 rounded-2xl border border-beige bg-white text-xl font-extrabold text-coffee-900 transition hover:border-fresh-300 hover:bg-fresh-50 active:scale-95"
               onClick={() => push(n)}>{n}</button>
           ))}
           <button className="grid h-14 place-items-center rounded-2xl border border-beige bg-white text-neutral-500 transition hover:bg-neutral-50 active:scale-95"
             onClick={() => push('back')} aria-label="حذف">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-6-7 6-7Z"/><path d="m12.5 9.5 5 5m0-5-5 5"/></svg>
           </button>
-          <button className="h-14 rounded-2xl border border-beige bg-white text-xl font-extrabold text-coffee-900 transition hover:border-gold/60 hover:bg-gold/10 active:scale-95"
+          <button className="h-14 rounded-2xl border border-beige bg-white text-xl font-extrabold text-coffee-900 transition hover:border-fresh-300 hover:bg-fresh-50 active:scale-95"
             onClick={() => push('0')}>0</button>
           <button className="h-14 rounded-2xl border border-beige bg-white text-sm font-bold text-neutral-500 transition hover:bg-neutral-50 active:scale-95"
             onClick={() => push('clear')}>مسح</button>
         </div>
 
         <button
-          className="mt-4 h-13 w-full rounded-2xl bg-gradient-to-l from-gold to-gold-deep py-3.5 text-base font-extrabold text-white shadow-lg shadow-gold/40 transition enabled:hover:brightness-105 enabled:active:scale-[.98] disabled:opacity-40"
+          className="mt-4 h-13 w-full rounded-2xl bg-gradient-to-l from-fresh-500 to-fresh-700 py-3.5 text-base font-extrabold text-white shadow-lg shadow-fresh-900/25 transition enabled:hover:brightness-105 enabled:active:scale-[.98] disabled:opacity-40"
           style={{ height: 52 }}
           disabled={pin.length !== 4 || loading}
           onClick={confirm}

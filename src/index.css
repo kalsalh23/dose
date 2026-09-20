@@ -17,6 +17,17 @@
   --color-mauve: #A9907E;
   --color-sage: #ABC4AA;
   --color-taupe: #675D50;
+
+  /* هوية Dose الفريش — أخضر فاتح + أبيض */
+  --color-fresh-50: #F0F9F4;
+  --color-fresh-100: #DFF3E7;
+  --color-fresh-200: #BFE7CF;
+  --color-fresh-300: #8FD6AE;
+  --color-fresh-500: #34A971;
+  --color-fresh-600: #218A5C;
+  --color-fresh-700: #166B4A;
+  --color-fresh-900: #0F3D2C;
+  --color-fresh-ink: #14231C;
 }
 
 html, body, #root { height: 100%; }
