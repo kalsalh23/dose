@@ -211,44 +211,69 @@ function Home({ catalog, openProduct }: { catalog: Catalog | null; openProduct: 
   );
 }
 
-/* ============================ صفحة المنتج — كراميل مثل الصورة ============================ */
+/* ============================ تفاصيل المنتج — ملء الشاشة ============================ */
 function ProductSheet({ product, catalog, onClose, onOrder }: {
   product: Product; catalog: Catalog | null; onClose: () => void; onOrder: (line: CartLine) => void;
 }) {
   const [qty, setQty] = useState(1);
   const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
   return (
-    <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm anim-fade" onClick={onClose}>
-      <div className="absolute inset-x-0 bottom-0 max-h-[94vh] overflow-y-auto bg-white shadow-2xl anim-pop sm:mx-auto sm:max-w-md" onClick={(e) => e.stopPropagation()}>
-        {/* الجزء الكراميل مع صورة المنتج */}
-        <div className="relative bg-[#EAC98F] px-6 pb-14 pt-8">
-          <button onClick={onClose} className="absolute top-4 left-4 grid size-10 place-items-center rounded-full bg-white/80 text-[#221B12] shadow backdrop-blur" aria-label="إغلاق"><Icon name="chevron" size={18} /></button>
-          <h3 className="absolute top-5 right-6 text-base font-black text-[#221B12]">تفاصيل المنتج</h3>
-          <img src={product.image_url} alt={product.name_ar}
-            className="mx-auto h-60 w-full max-w-[240px] rounded-[2rem] object-cover shadow-2xl shadow-[#5c4430]/50" />
+    <div className="fixed inset-0 z-[100] flex flex-col bg-white anim-rise">
+      {/* صورة ملء الشاشة */}
+      <div className="relative h-[46vh] min-h-64 flex-none overflow-hidden">
+        <img src={product.image_url} alt={product.name_ar} className="size-full object-cover" />
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/35 to-transparent" />
+        {/* زر الرجوع */}
+        <button onClick={onClose}
+          className="absolute top-4 right-4 grid size-11 place-items-center rounded-full bg-white shadow-lg transition active:scale-90"
+          style={{ color: '#221B12' }} aria-label="رجوع">
+          <Icon name="chevron" size={20} />
+        </button>
+        {/* شارة السعر */}
+        <span className="absolute bottom-5 left-5 rounded-full bg-[#EAC98F] px-5 py-2.5 text-xl font-black shadow-xl" style={{ color: '#221B12' }}>
+          {eur(product.price_cents, cur)}
+        </span>
+      </div>
+
+      {/* المحتوى */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-4 pt-5">
+        <h2 className="text-[26px] font-black leading-tight" style={{ color: '#221B12' }}>{product.name_ar}</h2>
+        <p className="mt-1 text-xs font-bold uppercase tracking-[.14em]" style={{ color: '#94826A' }}>{product.name_en}</p>
+
+        <div className="mt-4 rounded-[1.4rem] p-4" style={{ background: '#F8EED6' }}>
+          <p className="text-[11px] font-extrabold" style={{ color: '#8A6A48' }}>الوصف</p>
+          <p className="mt-1.5 text-sm leading-relaxed" style={{ color: '#4A3A28' }}>
+            {product.description_ar || 'مشروب مميز من Dose Coffee & More'}
+          </p>
         </div>
-        {/* الجزء الأبيض */}
-        <div className="relative -mt-8 rounded-t-[2.2rem] bg-white px-5 pb-7 pt-6">
-          <h2 className="text-2xl font-black leading-snug text-[#221B12]">{product.name_ar}</h2>
-          <p className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-[#94826A]">{product.name_en}</p>
-          <p className="mt-3 text-sm leading-relaxed text-[#6E6553]">{product.description_ar || 'مميز من Dose Coffee & More'}</p>
 
-          <div className="mt-5 flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-bold text-[#94826A]">السعر</p>
-              <p className="text-2xl font-black text-[#221B12]">{eur(product.price_cents * qty, cur)}</p>
-            </div>
-            <div className="flex items-center gap-3" dir="ltr">
-              <button onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1}
-                className="grid size-11 place-items-center rounded-full border-2 border-[#EAC98F] text-lg font-black text-[#221B12] transition active:scale-90 disabled:opacity-40">−</button>
-              <span className="w-8 text-center text-lg font-black text-[#221B12]">{qty}</span>
-              <button onClick={() => setQty((q) => Math.min(50, q + 1))}
-                className="grid size-11 place-items-center rounded-full bg-[#EAC98F] text-lg font-black text-[#221B12] shadow-md transition active:scale-90">+</button>
-            </div>
+        <div className="mt-4 flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-extrabold" style={{ color: '#8A6A48' }}>الكمية</p>
+            <p className="mt-0.5 text-2xl font-black" style={{ color: '#221B12' }}>{qty}</p>
           </div>
+          <div className="flex items-center gap-3.5" dir="ltr">
+            <button onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1}
+              className="grid size-12 place-items-center rounded-full text-xl font-black shadow-md transition active:scale-90 disabled:opacity-40"
+              style={{ background: '#F1DCB0', color: '#221B12' }}>−</button>
+            <button onClick={() => setQty((q) => Math.min(50, q + 1))}
+              className="grid size-12 place-items-center rounded-full text-xl font-black text-white shadow-md transition active:scale-90"
+              style={{ background: '#221B12' }}>+</button>
+          </div>
+        </div>
+      </div>
 
+      {/* الشريط الثابت بالأسفل */}
+      <div className="flex-none bg-white px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2"
+        style={{ boxShadow: '0 -12px 32px -18px rgba(34,27,18,.35)' }}>
+        <div className="flex items-center gap-3">
+          <div className="flex-none text-right">
+            <p className="text-[10px] font-bold" style={{ color: '#94826A' }}>الإجمالي</p>
+            <p className="text-xl font-black" style={{ color: '#221B12' }}>{eur(product.price_cents * qty, cur)}</p>
+          </div>
           <button onClick={() => onOrder({ product, qty })}
-            className={`mt-6 ${CTA}`}>
+            className="flex-1 rounded-full bg-[#EAC98F] py-4 text-base font-black shadow-lg shadow-[#8a6a48]/35 transition active:scale-[.98]"
+            style={{ color: '#221B12' }}>
             اطلب الآن
           </button>
         </div>
