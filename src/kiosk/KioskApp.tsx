@@ -4,6 +4,7 @@ import type { Catalog, Product } from '../lib/types';
 import { deviceId, getCurrentLocation } from '../lib/utils';
 import { buildOrderMessage, whatsapp } from '../lib/whatsapp';
 import PinPad from '../components/PinPad';
+import { Icon } from '../components/Icons';
 
 /* ============================================================
    منصة المحل الداخلية — Tablet Kiosk
@@ -135,13 +136,17 @@ export default function KioskApp() {
               <p className="mt-0.5 text-[11px]" style={{ color: '#A3967D' }}>اضغط على المنتج لإضافته إلى طلبك</p>
             </div>
             <div className="flex gap-1 rounded-full p-1" style={{ background: '#FAF1DC', border: '1px solid #E7D8B9' }}>
-              {catalog?.categories?.filter((c) => c.slug !== 'extras').map((c) => (
-                <button key={c.id} onClick={() => setCat(c.slug)}
-                  className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-bold transition ${cat === c.slug ? 'shadow' : ''}`}
-                  style={cat === c.slug ? { background: '#675D50', color: '#F3DEBA' } : { color: '#6E6553' }}>
-                  {c.emoji} {c.name_ar}
-                </button>
-              ))}
+              {catalog?.categories?.filter((c) => c.slug !== 'extras').map((c) => {
+                const icon = c.slug === 'hot' ? 'coffee' : c.slug === 'cold' ? 'snow' : 'cake';
+                return (
+                  <button key={c.id} onClick={() => setCat(c.slug)}
+                    className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-bold transition ${cat === c.slug ? 'shadow' : ''}`}
+                    style={cat === c.slug ? { background: '#675D50', color: '#F3DEBA' } : { color: '#6E6553' }}>
+                    <Icon name={icon as any} size={14} />
+                    {c.name_ar}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -254,7 +259,8 @@ export default function KioskApp() {
 
                 <p className="mt-2.5 flex items-start gap-2 rounded-xl px-3 py-2 text-[11px] leading-relaxed"
                   style={{ background: '#F8ECD2', border: '1px solid #E7D8B9', color: '#8A7458' }}>
-                  💡 لست مسجل؟ اضغط «لا أملك حساب» في الشريط العلوي وأنشئ حسابك في ثوانٍ
+                  <Icon name="info" size={13} className="mt-0.5 flex-none" style={{ color: '#A9907E' } as any} />
+                  لست مسجل؟ اضغط «لا أملك حساب» في الشريط العلوي وأنشئ حسابك في ثوانٍ
                 </p>
               </div>
             ) : (
@@ -271,10 +277,12 @@ export default function KioskApp() {
           <span className="font-serif text-[13px] font-bold" style={{ color: '#FBF2DD' }}>Dose <i className="not-italic font-sans text-[8.5px] font-bold tracking-[.2em] uppercase" style={{ color: '#D8C6A4' }}>Coffee & More</i></span>
         </div>
         <div className="flex items-center gap-1">
-          <a href={`tel:${catalog?.settings?.store_phone ?? '0952639157'}`} className="rounded-full px-3 py-1.5 text-[11px] font-bold transition hover:brightness-125" style={{ color: '#E5D9C6' }} dir="ltr">
-            📞 {catalog?.settings?.store_phone ?? '0952639157'}
+          <a href={`tel:${catalog?.settings?.store_phone ?? '0952639157'}`} className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition hover:brightness-125" style={{ color: '#E5D9C6' }} dir="ltr">
+            <Icon name="phone" size={12} /> {catalog?.settings?.store_phone ?? '0952639157'}
           </a>
-          <a href="https://instagram.com/dose.coffee" target="_blank" rel="noopener" className="rounded-full px-3 py-1.5 text-[11px] font-bold transition hover:brightness-125" style={{ color: '#E5D9C6' }} dir="ltr">@dose.coffee</a>
+          <a href="https://instagram.com/dose.coffee" target="_blank" rel="noopener" className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition hover:brightness-125" style={{ color: '#E5D9C6' }} dir="ltr">
+            <Icon name="instagram" size={12} /> @dose.coffee
+          </a>
         </div>
       </footer>
 

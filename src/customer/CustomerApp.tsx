@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom';
 import { rpc } from '../lib/supabase';
-import type { Ad, AppNotification, CartLine, Catalog, MyData, MyOrder, Product, Redemption, Session } from '../lib/types';
+import type { Ad, CartLine, Catalog, MyData, MyOrder, Product, Redemption, Session } from '../lib/types';
 import { eur, fmtDateTime, deviceId, getCurrentLocation } from '../lib/utils';
 import { buildOrderMessage, waChatLink, whatsapp } from '../lib/whatsapp';
 import PinPad from '../components/PinPad';
+import { Icon, type IconName } from '../components/Icons';
 
 const SESSION_KEY = 'dose_app_session_v1';
 
@@ -27,13 +28,8 @@ function useAppSession() {
     if (!cur?.token) return;
     try {
       const d = await rpc<MyData>('get_my_data', { p_token: cur.token });
-      if (d?.customer) {
-        setMyData(d);
-        setSession({ token: cur.token, customer: d.customer });
-      } else {
-        localStorage.removeItem(SESSION_KEY);
-        setSession(null); setMyData(null);
-      }
+      if (d?.customer) { setMyData(d); setSession({ token: cur.token, customer: d.customer }); }
+      else { localStorage.removeItem(SESSION_KEY); setSession(null); setMyData(null); }
     } catch { /* شبكة */ }
   }, []);
 
@@ -71,6 +67,80 @@ function useToast() {
 type Fulfillment = 'pickup' | 'delivery';
 interface OrderFlow { step: 'fulfillment' | 'location' | 'pin' | null; lines: CartLine[]; fulfillment?: Fulfillment; loc?: { lat: number; lng: number; mapUrl: string } }
 
+/* ============================ الإعلان الحصري (5 ثوانٍ) ============================ */
+function SplashAd({ ad, cur, onClose }: { ad: Ad; cur: string; onClose: () => void }) {
+  const [left, setLeft] = useState(5);
+  useEffect(() => {
+    const t = setInterval(() => setLeft((s) => s - 1), 1000);
+    const end = setTimeout(onClose, 5000);
+    return () => { clearInterval(t); clearTimeout(end); };
+  }, []);
+  return (
+    <div className="fixed inset-0 z-[200] bg-black/85 p-5 backdrop-blur-md anim-fade">
+      <div className="relative mx-auto mt-8 max-w-sm overflow-hidden rounded-[2rem] bg-white shadow-2xl anim-pop">
+        <div className="relative">
+          <img src={ad.image_url} alt={ad.title} className="h-72 w-full object-cover" />
+          <span className="absolute top-3 right-3 rounded-full bg-gold px-3 py-1 text-[11px] font-black text-white shadow-lg">عرض حصري</span>
+          {/* حلقة العد التنازلي */}
+          <button onClick={onClose} className="absolute top-3 left-3 grid size-11 place-items-center" aria-label="تخطي">
+            <svg viewBox="0 0 44 44" className="absolute inset-0 size-full -rotate-90">
+              <circle cx="22" cy="22" r="19" fill="rgba(0,0,0,.45)" stroke="rgba(255,255,255,.3)" strokeWidth="3" />
+              <circle cx="22" cy="22" r="19" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round"
+                strokeDasharray={2 * Math.PI * 19}
+                strokeDashoffset={2 * Math.PI * 19 * (1 - left / 5)}
+                style={{ transition: 'stroke-dashoffset 1s linear' }} />
+            </svg>
+            <span className="relative text-sm font-black text-white">{Math.max(0, left)}</span>
+          </button>
+        </div>
+        <div className="p-5 text-center">
+          <h3 className="text-xl font-black text-coffee-900">{ad.title}</h3>
+          <p className="mt-1 text-sm text-neutral-500">{ad.description_ar}</p>
+          {ad.new_price_cents != null && (
+            <div className="mt-3 flex items-center justify-center gap-3">
+              {ad.old_price_cents != null && <span className="text-sm font-bold text-neutral-400 line-through">{eur(ad.old_price_cents, cur)}</span>}
+              <span className="text-2xl font-black text-gold-deep">{eur(ad.new_price_cents, cur)}</span>
+            </div>
+          )}
+          <button onClick={onClose} className="mt-4 w-full rounded-2xl bg-gradient-to-l from-gold to-gold-deep py-3 text-base font-extrabold text-white shadow-lg shadow-gold/40 active:scale-[.98]">
+            اطلب الآن
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================ شريط العروض المتحرك (ميلان) ============================ */
+function OffersTicker({ ads, cur, onOpen }: { ads: Ad[]; cur: string; onOpen: (a: Ad) => void }) {
+  if (!ads.length) return null;
+  const content = [...ads, ...ads, ...ads];
+  return (
+    <div className="relative z-30 -rotate-[1.1deg] scale-[1.02] overflow-hidden border-y-2 border-coffee-950/20 bg-gradient-to-l from-gold via-gold-deep to-gold shadow-lg" style={{ marginTop: -6 }}>
+      <div className="flex w-max animate-[marquee_18s_linear_infinite] py-2">
+        {[0, 1].map((half) => (
+          <div key={half} className="flex w-max items-center">
+            {content.map((a, i) => (
+              <button key={half + '-' + i} onClick={() => onOpen(a)}
+                className="mx-6 flex flex-none items-center gap-2 text-[13px] font-extrabold text-white drop-shadow">
+                <Icon name="flame" size={15} filled />
+                <span>{a.title}</span>
+                {a.new_price_cents != null && (
+                  <span className="flex items-baseline gap-1.5">
+                    {a.old_price_cents != null && <span className="text-[11px] font-bold text-white/70 line-through">{eur(a.old_price_cents, cur)}</span>}
+                    <span className="text-[14px] font-black">{eur(a.new_price_cents, cur)}</span>
+                  </span>
+                )}
+                <span className="text-white/60">•</span>
+              </button>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ============================ نوافذ تدفق الطلب ============================ */
 function FulfillmentModal({ onPick, onClose }: { onPick: (f: Fulfillment) => void; onClose: () => void }) {
   return (
@@ -81,13 +151,13 @@ function FulfillmentModal({ onPick, onClose }: { onPick: (f: Fulfillment) => voi
         <div className="mt-5 grid grid-cols-2 gap-3">
           <button className="rounded-3xl border-2 border-beige bg-[#FAF5EA] p-5 transition hover:border-sage hover:bg-sage/10 active:scale-95"
             onClick={() => onPick('pickup')}>
-            <span className="block text-4xl">🏪</span>
+            <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-sage/20 text-sage"><Icon name="check" size={24} /></span>
             <span className="mt-3 block text-base font-extrabold text-coffee-900">استلام من المحل</span>
             <span className="mt-1 block text-[11px] text-neutral-500">جهّز طلبك وتفضل بالاستلام</span>
           </button>
           <button className="rounded-3xl border-2 border-beige bg-[#FAF5EA] p-5 transition hover:border-gold hover:bg-gold/10 active:scale-95"
             onClick={() => onPick('delivery')}>
-            <span className="block text-4xl">🚚</span>
+            <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-gold/15 text-gold-deep"><Icon name="pin" size={24} /></span>
             <span className="mt-3 block text-base font-extrabold text-coffee-900">توصيل</span>
             <span className="mt-1 block text-[11px] text-neutral-500">سنطلب موقعك للتوصيل</span>
           </button>
@@ -107,7 +177,7 @@ function LocationModal({ onDone, onClose, onBack }: { onDone: (loc: { lat: numbe
   return (
     <div className="fixed inset-0 z-[110] grid place-items-center bg-black/50 p-4 backdrop-blur-sm anim-fade" onClick={onClose}>
       <div className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
-        <span className="mx-auto grid size-16 place-items-center rounded-full bg-gold/15 text-3xl">📍</span>
+        <span className="mx-auto grid size-16 place-items-center rounded-full bg-gold/15 text-gold-deep"><Icon name="pin" size={30} /></span>
         <h3 className="mt-3 text-lg font-extrabold text-coffee-900">مشاركة موقعك</h3>
         <p className="mt-2 text-xs leading-relaxed text-neutral-500">نحتاج إلى موقعك لتوصيل الطلب إلى المكان الصحيح.</p>
         {err && <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-600">{err}</p>}
@@ -130,7 +200,7 @@ function OrderSuccessModal({ orderNumber, points, waNumber, message, onClose }: 
     <div className="fixed inset-0 z-[130] grid place-items-center bg-black/50 p-4 backdrop-blur-sm anim-fade">
       <div className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-2xl anim-pop">
         <span className="mx-auto grid size-16 place-items-center rounded-full bg-gradient-to-br from-gold to-gold-deep text-white shadow-lg shadow-gold/40">
-          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4.2 4.2L19 7.5"/></svg>
+          <Icon name="check" size={30} strokeWidth={2.4} />
         </span>
         <h3 className="mt-3 text-lg font-extrabold text-coffee-900">تم تسجيل طلبك بنجاح</h3>
         <p className="mt-1 text-sm font-bold text-neutral-500">طلب رقم #{orderNumber}</p>
@@ -149,71 +219,20 @@ function OrderSuccessModal({ orderNumber, points, waNumber, message, onClose }: 
 /* ============================ الرئيسية ============================ */
 function Home({ catalog, openProduct }: { catalog: Catalog | null; openProduct: (p: Product) => void }) {
   const [cat, setCat] = useState('all');
-  const [fsAdShown, setFsAdShown] = useState(false);
-  const fsAd: Ad | undefined = useMemo(() => catalog?.ads?.find((a) => a.full_screen), [catalog]);
   const products = catalog?.products ?? [];
   const shown = cat === 'all' ? products : products.filter((p) => p.category === cat);
-  const cur = catalog?.settings?.currency_symbol ?? '€';
+  const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
+  const catIcons: Record<string, IconName> = { hot: 'coffee', cold: 'snow', dessert: 'cake', extras: 'plus' };
 
   return (
     <div className="anim-rise">
-      {fsAd && !fsAdShown && (
-        <div className="fixed inset-0 z-[140] grid place-items-center bg-black/80 p-4 backdrop-blur-sm anim-fade">
-          <div className="relative w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-2xl anim-pop">
-            <img src={fsAd.image_url} alt={fsAd.title} className="h-64 w-full object-cover" />
-            <div className="p-5 text-center">
-              <h3 className="text-xl font-extrabold text-coffee-900">{fsAd.title}</h3>
-              <p className="mt-1 text-sm text-neutral-500">{fsAd.description_ar}</p>
-              {fsAd.new_price_cents != null && (
-                <div className="mt-3 flex items-center justify-center gap-3">
-                  {fsAd.old_price_cents != null && <span className="text-sm font-bold text-neutral-400 line-through">{eur(fsAd.old_price_cents, cur)}</span>}
-                  <span className="text-2xl font-black text-gold-deep">{eur(fsAd.new_price_cents, cur)}</span>
-                </div>
-              )}
-              <button onClick={() => setFsAdShown(true)} className="mt-4 w-full rounded-2xl bg-gradient-to-l from-gold to-gold-deep py-3 text-base font-extrabold text-white shadow-lg shadow-gold/40 active:scale-[.98]">
-                تصفح القائمة
-              </button>
-            </div>
-            <button onClick={() => setFsAdShown(true)} className="absolute top-3 left-3 grid size-9 place-items-center rounded-full bg-black/50 text-white" aria-label="إغلاق">✕</button>
-          </div>
-        </div>
-      )}
-
-      {catalog && catalog.ads.length > 0 && (
-        <section className="mb-6">
-          <h2 className="mb-3 text-base font-extrabold text-coffee-900">🔥 عروض اليوم</h2>
-          <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
-            {catalog.ads.map((a) => (
-              <div key={a.id} className="w-56 flex-none overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-beige anim-rise">
-                <div className="relative">
-                  <img src={a.image_url} alt={a.title} className="h-28 w-full object-cover" loading="lazy" />
-                  {a.discount_percent != null && (
-                    <span className="absolute top-2 left-2 rounded-full bg-red-500 px-2.5 py-1 text-[11px] font-black text-white">-{a.discount_percent}%</span>
-                  )}
-                </div>
-                <div className="p-3">
-                  <h3 className="text-sm font-extrabold text-coffee-900">{a.title}</h3>
-                  <p className="mt-0.5 text-[11px] leading-relaxed text-neutral-500">{a.description_ar}</p>
-                  {a.new_price_cents != null && (
-                    <div className="mt-2 flex items-baseline gap-2">
-                      <span className="text-lg font-black text-gold-deep">{eur(a.new_price_cents, cur)}</span>
-                      {a.old_price_cents != null && <span className="text-xs font-bold text-neutral-400 line-through">{eur(a.old_price_cents, cur)}</span>}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
       <div className="no-scrollbar -mx-4 mb-4 flex gap-2 overflow-x-auto px-4">
         <button onClick={() => setCat('all')}
           className={`flex-none rounded-full px-4 py-2 text-sm font-bold transition ${cat === 'all' ? 'bg-coffee-900 text-cream shadow' : 'bg-white text-neutral-600 ring-1 ring-beige'}`}>الكل</button>
         {catalog?.categories?.map((c) => (
           <button key={c.id} onClick={() => setCat(c.slug)}
             className={`flex-none rounded-full px-4 py-2 text-sm font-bold transition ${cat === c.slug ? 'bg-coffee-900 text-cream shadow' : 'bg-white text-neutral-600 ring-1 ring-beige'}`}>
-            {c.emoji} {c.name_ar}
+            {c.name_ar}
           </button>
         ))}
       </div>
@@ -242,13 +261,13 @@ function ProductSheet({ product, catalog, onClose, onOrder }: {
   product: Product; catalog: Catalog | null; onClose: () => void; onOrder: (line: CartLine) => void;
 }) {
   const [qty, setQty] = useState(1);
-  const cur = catalog?.settings?.currency_symbol ?? '€';
+  const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
   return (
     <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm anim-fade" onClick={onClose}>
       <div className="absolute inset-x-0 bottom-0 max-h-[92vh] overflow-y-auto rounded-t-[2rem] bg-white pb-6 shadow-2xl anim-pop sm:mx-auto sm:max-w-md sm:rounded-[2rem] sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2" onClick={(e) => e.stopPropagation()}>
         <div className="relative">
           <img src={product.image_url} alt={product.name_ar} className="h-56 w-full object-cover" />
-          <button onClick={onClose} className="absolute top-3 left-3 grid size-9 place-items-center rounded-full bg-black/50 text-white" aria-label="إغلاق">✕</button>
+          <button onClick={onClose} className="absolute top-3 left-3 grid size-9 place-items-center rounded-full bg-black/50 text-white" aria-label="إغلاق"><Icon name="x" size={16} /></button>
         </div>
         <div className="p-5">
           <h2 className="text-xl font-black text-coffee-900">{product.name_ar}</h2>
@@ -276,11 +295,11 @@ function ProductSheet({ product, catalog, onClose, onOrder }: {
 function RewardsPage({ catalog, myData, session, onRedeem }: any) {
   const [confirming, setConfirming] = useState<any>(null);
   const [busy, setBusy] = useState(false);
-  if (!session) return <NeedLogin title="سجّل دخولك لاستبدال نقاطك" />;
+  if (!session) return <NeedLogin />;
   return (
     <div className="anim-rise">
       <div className="mb-5 rounded-3xl bg-gradient-to-l from-coffee-800 to-coffee-950 p-5 text-center text-cream shadow-lg">
-        <p className="text-xs font-bold text-gold">رصيد نقاطك</p>
+        <p className="flex items-center justify-center gap-1.5 text-xs font-bold text-gold"><Icon name="star" size={13} filled /> رصيد نقاطك</p>
         <p className="mt-1 text-4xl font-black">{myData?.customer?.points ?? session.customer.points}</p>
         <p className="mt-1 text-[11px] text-cream/60">استبدل نقاطك بمشروبات وحلويات مجانية</p>
       </div>
@@ -292,7 +311,9 @@ function RewardsPage({ catalog, myData, session, onRedeem }: any) {
               <img src={r.image_url} alt={r.name_ar} loading="lazy" className="h-28 w-full object-cover" />
               <div className="p-3 text-center">
                 <h3 className="text-sm font-extrabold text-coffee-900">{r.name_ar}</h3>
-                <p className="mt-1 flex items-center justify-center gap-1 text-sm font-black text-gold-deep">⭐ {r.points_cost} نقطة</p>
+                <p className="mt-1 flex items-center justify-center gap-1 text-sm font-black text-gold-deep">
+                  <Icon name="star" size={13} filled /> {r.points_cost} نقطة
+                </p>
                 <button disabled={!can || busy} onClick={() => setConfirming(r)}
                   className="mt-3 w-full rounded-xl bg-coffee-900 py-2.5 text-sm font-extrabold text-cream transition active:scale-95 disabled:opacity-35">
                   {can ? 'استبدال' : 'نقاطك غير كافية'}
@@ -322,7 +343,7 @@ function RewardsPage({ catalog, myData, session, onRedeem }: any) {
 
 const NeedLogin = () => (
   <div className="grid place-items-center py-20 text-center anim-rise">
-    <span className="grid size-16 place-items-center rounded-full bg-gold/15 text-3xl">🔐</span>
+    <span className="mx-auto grid size-16 place-items-center rounded-full bg-gold/15 text-gold-deep"><Icon name="lock" size={28} /></span>
     <h3 className="mt-4 text-base font-extrabold text-coffee-900">سجّل دخولك للمتابعة</h3>
     <p className="mt-1 text-xs text-neutral-500">برقم هاتفك ورمز PIN</p>
     <Link to="/login" className="mt-5 rounded-2xl bg-coffee-900 px-8 py-3 text-sm font-extrabold text-cream shadow active:scale-95">تسجيل الدخول</Link>
@@ -348,7 +369,10 @@ function OrdersPage({ myData, session }: { myData: MyData | null; session: Sessi
   return (
     <div className="space-y-3 pb-4 anim-rise">
       {orders.length === 0 && (
-        <div className="py-20 text-center"><span className="text-5xl">🧾</span><p className="mt-4 text-sm font-bold text-neutral-500">لا توجد طلبات بعد</p></div>
+        <div className="py-20 text-center">
+          <span className="mx-auto grid size-16 place-items-center rounded-full bg-beige/50 text-neutral-400"><Icon name="receipt" size={28} /></span>
+          <p className="mt-4 text-sm font-bold text-neutral-500">لا توجد طلبات بعد</p>
+        </div>
       )}
       {orders.map((o) => (
         <div key={o.id} className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-beige">
@@ -362,7 +386,10 @@ function OrdersPage({ myData, session }: { myData: MyData | null; session: Sessi
             ))}
           </div>
           <div className="mt-3 flex items-center justify-between border-t border-dashed border-beige pt-3 text-xs">
-            <span className="text-neutral-500">{o.fulfillment_type === 'delivery' ? '🚚 توصيل' : '🏪 استلام'} · {fmtDateTime(o.created_at)}</span>
+            <span className="flex items-center gap-1 text-neutral-500">
+              <Icon name={o.fulfillment_type === 'delivery' ? 'pin' : 'home'} size={12} />
+              {o.fulfillment_type === 'delivery' ? 'توصيل' : 'استلام'} · {fmtDateTime(o.created_at)}
+            </span>
             <span className="font-black text-gold-deep">{eur(o.total_cents)} · ⭐{o.total_points}</span>
           </div>
         </div>
@@ -379,7 +406,10 @@ function NotificationsPage({ myData, session, onSeen }: { myData: MyData | null;
   return (
     <div className="space-y-2.5 pb-4 anim-rise">
       {items.length === 0 && (
-        <div className="py-20 text-center"><span className="text-5xl">🔔</span><p className="mt-4 text-sm font-bold text-neutral-500">لا توجد إشعارات حاليًا</p></div>
+        <div className="py-20 text-center">
+          <span className="mx-auto grid size-16 place-items-center rounded-full bg-beige/50 text-neutral-400"><Icon name="bell" size={28} /></span>
+          <p className="mt-4 text-sm font-bold text-neutral-500">لا توجد إشعارات حاليًا</p>
+        </div>
       )}
       {items.map((n) => (
         <div key={n.id} className={`rounded-2xl p-4 shadow-sm ring-1 ${n.is_read ? 'bg-white ring-beige' : 'bg-gold/10 ring-gold/40'}`}>
@@ -397,12 +427,15 @@ function NotificationsPage({ myData, session, onSeen }: { myData: MyData | null;
 }
 
 /* ============================ حسابي ============================ */
-const AccountRow = ({ icon, label, onClick, badge }: { icon: string; label: string; onClick: () => void; badge?: number }) => (
+const AccountRow = ({ icon, label, onClick, badge }: { icon: IconName; label: string; onClick: () => void; badge?: number }) => (
   <button onClick={onClick} className="flex w-full items-center justify-between rounded-2xl bg-white p-4 shadow-sm ring-1 ring-beige transition active:scale-[.98]">
-    <span className="flex items-center gap-3 text-sm font-extrabold text-coffee-900">{icon} {label}</span>
+    <span className="flex items-center gap-3 text-sm font-extrabold text-coffee-900">
+      <span className="grid size-9 place-items-center rounded-xl bg-[#FAF5EA] text-gold-deep"><Icon name={icon} size={18} /></span>
+      {label}
+    </span>
     <span className="flex items-center gap-2">
       {badge ? <span className="rounded-full bg-gold px-2 py-0.5 text-[10px] font-black text-white">{badge}</span> : null}
-      <span className="text-neutral-300">←</span>
+      <span className="text-neutral-300"><Icon name="chevron" size={16} /></span>
     </span>
   </button>
 );
@@ -453,17 +486,23 @@ function AccountPage({ session, myData, waNumber, onLogout }: {
       </div>
 
       <div className="mt-5 space-y-2.5">
-        <AccountRow icon="🧾" label="الطلبات" onClick={() => useNavGo('/orders')} />
-        <AccountRow icon="🎁" label="المكافأة" onClick={() => setShowCodes(true)} badge={redemptions.filter((r) => r.status === 'unused').length || undefined} />
+        <AccountRow icon="receipt" label="الطلبات" onClick={() => _navRef?.('/orders')} />
+        <AccountRow icon="gift" label="المكافأة" onClick={() => setShowCodes(true)} badge={redemptions.filter((r) => r.status === 'unused').length || undefined} />
         <a href={waChatLink(waNumber, 'مرحبًا، أحتاج مساعدة من Dose Coffee & More')} target="_blank" rel="noopener"
-          className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm ring-1 ring-beige transition active:scale-[.98]">
-          <span className="flex items-center gap-3 text-sm font-extrabold text-coffee-900">💬 المساعدة والدعم</span>
-          <span className="text-neutral-300">←</span>
+          className="flex w-full items-center justify-between rounded-2xl bg-white p-4 shadow-sm ring-1 ring-beige transition active:scale-[.98]">
+          <span className="flex items-center gap-3 text-sm font-extrabold text-coffee-900">
+            <span className="grid size-9 place-items-center rounded-xl bg-[#FAF5EA] text-gold-deep"><Icon name="headset" size={18} /></span>
+            المساعدة والدعم
+          </span>
+          <span className="text-neutral-300"><Icon name="chevron" size={16} /></span>
         </a>
         <button onClick={onLogout}
           className="flex w-full items-center justify-between rounded-2xl bg-red-50 p-4 shadow-sm ring-1 ring-red-100 transition active:scale-[.98]">
-          <span className="flex items-center gap-3 text-sm font-extrabold text-red-600">🚪 تسجيل الخروج</span>
-          <span className="text-red-300">←</span>
+          <span className="flex items-center gap-3 text-sm font-extrabold text-red-600">
+            <span className="grid size-9 place-items-center rounded-xl bg-red-100 text-red-500"><Icon name="logout" size={18} /></span>
+            تسجيل الخروج
+          </span>
+          <span className="text-red-300"><Icon name="chevron" size={16} /></span>
         </button>
       </div>
 
@@ -472,9 +511,7 @@ function AccountPage({ session, myData, waNumber, onLogout }: {
   );
 }
 
-// مخرج تنقل بسيط من داخل الصفحة
 let _navRef: ((to: string) => void) | null = null;
-const useNavGo = (to: string) => { _navRef?.(to); };
 
 /* ============================ الدخول / التسجيل ============================ */
 function LoginPage({ onLogged }: { onLogged: (s: Session) => void }) {
@@ -575,8 +612,13 @@ export default function CustomerApp() {
   const [pinErr, setPinErr] = useState('');
   const [pinBusy, setPinBusy] = useState(false);
   const [success, setSuccess] = useState<{ orderNumber: number; points: number; message: string } | null>(null);
+  const [adOpen, setAdOpen] = useState<Ad | null>(null);
+  const [splashDone, setSplashDone] = useState(false);
   const waNumber = catalog?.settings?.whatsapp_number ?? '963952639157';
+  const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
 
+  const fsAd = useMemo(() => catalog?.ads?.find((a) => a.full_screen), [catalog]);
+  const tickerAds = useMemo(() => (catalog?.ads ?? []).filter((a) => !a.full_screen), [catalog]);
   const unread = (myData?.notifications ?? []).filter((n) => !n.is_read).length;
 
   const startOrder = (line: CartLine) => {
@@ -602,7 +644,7 @@ export default function CustomerApp() {
         items: flow.lines.map((l) => ({ name: l.product.name_ar, qty: l.qty, unitPriceCents: l.product.price_cents })),
         totalCents: res.total_cents, totalPoints: res.total_points,
         mapUrl: flow.loc?.mapUrl, createdAt: res.created_at,
-        currencySymbol: catalog?.settings?.currency_symbol,
+        currencySymbol: cur,
       });
       setFlow({ step: null, lines: [] });
       setSuccess({ orderNumber: res.order_number, points: res.total_points, message: msg });
@@ -621,12 +663,12 @@ export default function CustomerApp() {
     } catch (e: any) { show(e.message, 'err'); }
   };
 
-  const navItems = [
-    { to: '/', icon: '🏠', label: 'الرئيسية', end: true },
-    { to: '/rewards', icon: '⭐', label: 'استبدل نقاطك' },
-    { to: '/orders', icon: '🧾', label: 'الطلبات' },
-    { to: '/notifications', icon: '🔔', label: 'الإشعارات' },
-    { to: '/account', icon: '👤', label: 'حسابي' },
+  const navItems: { to: string; icon: IconName; label: string; end?: boolean }[] = [
+    { to: '/', icon: 'home', label: 'الرئيسية', end: true },
+    { to: '/rewards', icon: 'star', label: 'استبدل نقاطك' },
+    { to: '/orders', icon: 'receipt', label: 'الطلبات' },
+    { to: '/notifications', icon: 'bell', label: 'الإشعارات' },
+    { to: '/account', icon: 'user', label: 'حسابي' },
   ];
 
   return (
@@ -642,9 +684,11 @@ export default function CustomerApp() {
         <div className="flex items-center gap-2">
           {session ? (
             <>
-              <span className="rounded-full bg-gold/15 px-3 py-1.5 text-xs font-extrabold text-gold ring-1 ring-gold/30">⭐ {myData?.customer?.points ?? session.customer.points}</span>
+              <span className="flex items-center gap-1 rounded-full bg-gold/15 px-3 py-1.5 text-xs font-extrabold text-gold ring-1 ring-gold/30">
+                <Icon name="star" size={12} filled /> {myData?.customer?.points ?? session.customer.points}
+              </span>
               <Link to="/notifications" className="relative grid size-10 place-items-center rounded-full bg-white/10 ring-1 ring-white/15" aria-label="الإشعارات">
-                <span className="text-lg">🔔</span>
+                <Icon name="bell" size={18} />
                 {unread > 0 && <span className="absolute -top-0.5 -left-0.5 grid size-5 place-items-center rounded-full bg-red-500 text-[10px] font-black">{unread}</span>}
               </Link>
               <Link to="/account" className="grid size-10 place-items-center rounded-full bg-gradient-to-br from-gold to-gold-deep text-sm font-black text-white">
@@ -656,6 +700,9 @@ export default function CustomerApp() {
           )}
         </div>
       </header>
+
+      {/* شريط العروض المتحرك — متصل بالشريط العلوي */}
+      <OffersTicker ads={tickerAds} cur={cur} onOpen={(a) => setAdOpen(a)} />
 
       <main className="flex-1 px-4 pb-28 pt-5">
         <Routes>
@@ -669,22 +716,49 @@ export default function CustomerApp() {
             <AccountPage session={session} myData={myData} waNumber={waNumber}
               onLogout={async () => { if (session) await rpc('customer_logout', { p_token: session.token }).catch(() => {}); save(null); nav('/'); }} />
           ) : <NeedLogin />} />
-          <Route path="/login" element={<LoginPage onLogged={(s) => { save(s); nav('/'); }} />} />
-          <Route path="/signup" element={<SignupPage onLogged={(s) => { save(s); nav('/'); show('تم إنشاء حسابك بنجاح 🎉', 'ok'); }} />} />
+          <Route path="/login" element={<LoginPage onLogged={(s) => { save(s); nav('/'); show('أهلًا بك ' + s.customer.full_name, 'ok'); }} />} />
+          <Route path="/signup" element={<SignupPage onLogged={(s) => { save(s); nav('/'); show('تم إنشاء حسابك بنجاح', 'ok'); }} />} />
+          <Route path="*" element={<div className="py-20 text-center text-sm font-bold text-neutral-400">الصفحة غير موجودة</div>} />
         </Routes>
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-lg items-center justify-around border-t border-beige bg-white/95 px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-8px_24px_-12px_rgba(0,0,0,.15)] backdrop-blur">
         {navItems.map((t) => (
-          <NavLink key={t.to} to={t.to} end={'end' in t ? (t as any).end : false}
-            className={({ isActive }) => `flex flex-col items-center gap-0.5 rounded-2xl px-3 py-1.5 text-[10px] font-extrabold transition ${isActive ? 'text-gold-deep' : 'text-neutral-400'}`}>
-            <span className="text-xl">{t.icon}</span>
-            {t.label}
+          <NavLink key={t.to} to={t.to} end={t.end}
+            className={({ isActive }) => `flex flex-col items-center gap-1 rounded-2xl px-2.5 py-1.5 text-[10px] font-extrabold transition ${isActive ? 'text-gold-deep' : 'text-neutral-400'}`}>
+            {({ isActive }) => (<>
+              <span className={`grid size-8 place-items-center rounded-xl transition ${isActive ? 'bg-gold/15' : ''}`}><Icon name={t.icon} size={19} filled={isActive && t.icon === 'star'} /></span>
+              {t.label}
+            </>)}
           </NavLink>
         ))}
       </nav>
 
       {product && <ProductSheet product={product} catalog={catalog} onClose={() => setProduct(null)} onOrder={startOrder} />}
+
+      {/* نافذة تفاصيل الإعلان من الشريط */}
+      {adOpen && (
+        <div className="fixed inset-0 z-[120] grid place-items-center bg-black/60 p-4 backdrop-blur-sm anim-fade" onClick={() => setAdOpen(null)}>
+          <div className="w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
+            <img src={adOpen.image_url} alt={adOpen.title} className="h-56 w-full object-cover" />
+            <div className="p-5 text-center">
+              <h3 className="text-lg font-black text-coffee-900">{adOpen.title}</h3>
+              <p className="mt-1 text-sm text-neutral-500">{adOpen.description_ar}</p>
+              {adOpen.new_price_cents != null && (
+                <div className="mt-3 flex items-center justify-center gap-3">
+                  {adOpen.old_price_cents != null && <span className="text-sm font-bold text-neutral-400 line-through">{eur(adOpen.old_price_cents, cur)}</span>}
+                  <span className="text-2xl font-black text-gold-deep">{eur(adOpen.new_price_cents, cur)}</span>
+                </div>
+              )}
+              <button onClick={() => setAdOpen(null)} className="mt-4 w-full rounded-2xl bg-gradient-to-l from-gold to-gold-deep py-3 text-sm font-extrabold text-white shadow active:scale-[.98]">تصفح القائمة</button>
+            </div>
+            <button onClick={() => setAdOpen(null)} className="absolute top-3 left-3 grid size-9 place-items-center rounded-full bg-black/50 text-white" aria-label="إغلاق"><Icon name="x" size={16} /></button>
+          </div>
+        </div>
+      )}
+
+      {/* الإعلان الحصري عند الدخول */}
+      {fsAd && !splashDone && <SplashAd ad={fsAd} cur={cur} onClose={() => setSplashDone(true)} />}
 
       {flow.step === 'fulfillment' && (
         <FulfillmentModal

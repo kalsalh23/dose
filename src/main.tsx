@@ -15,10 +15,10 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<CustomerApp />} />
+        {/* /* حتى تطابق جميع مسارات منصة العميل (/login, /signup, /account …) */}
+        <Route path="/*" element={<CustomerApp />} />
         <Route path="/kiosk" element={<KioskApp />} />
         <Route path="/admin" element={<AdminApp />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>

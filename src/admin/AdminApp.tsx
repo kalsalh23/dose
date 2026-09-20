@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { rpc } from '../lib/supabase';
 import { eur, fmtDateTime } from '../lib/utils';
+import { Icon, type IconName } from '../components/Icons';
 
 /* ============================================================
    لوحة الإدارة — /admin
@@ -8,17 +9,17 @@ import { eur, fmtDateTime } from '../lib/utils';
    ============================================================ */
 
 const ADMIN_KEY = 'dose_admin_token_v1';
-const TABS = [
-  { id: 'dashboard', label: 'الرئيسية', icon: '📊' },
-  { id: 'orders', label: 'الطلبات', icon: '🧾' },
-  { id: 'products', label: 'المنتجات', icon: '☕' },
-  { id: 'customers', label: 'العملاء', icon: '👥' },
-  { id: 'rewards', label: 'المكافآت', icon: '🎁' },
-  { id: 'ads', label: 'الإعلانات', icon: '📣' },
-  { id: 'notify', label: 'إشعار', icon: '🔔' },
-  { id: 'settings', label: 'الإعدادات', icon: '⚙️' },
-] as const;
-type TabId = (typeof TABS)[number]['id'];
+const TABS: { id: TabId; label: string; icon: IconName }[] = [
+  { id: 'dashboard', label: 'الرئيسية', icon: 'chart' },
+  { id: 'orders', label: 'الطلبات', icon: 'clipboard' },
+  { id: 'products', label: 'المنتجات', icon: 'package' },
+  { id: 'customers', label: 'العملاء', icon: 'users' },
+  { id: 'rewards', label: 'المكافآت', icon: 'gift' },
+  { id: 'ads', label: 'الإعلانات', icon: 'megaphone' },
+  { id: 'notify', label: 'إشعار', icon: 'bell' },
+  { id: 'settings', label: 'الإعدادات', icon: 'settings' },
+];
+type TabId = 'dashboard' | 'orders' | 'products' | 'customers' | 'rewards' | 'ads' | 'notify' | 'settings';
 
 export default function AdminApp() {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(ADMIN_KEY));
@@ -44,8 +45,8 @@ export default function AdminApp() {
       <nav className="no-scrollbar sticky top-[68px] z-30 flex gap-2 overflow-x-auto border-b border-beige bg-white/90 px-4 py-2.5 backdrop-blur">
         {TABS.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            className={`flex-none rounded-full px-4 py-2 text-xs font-extrabold transition ${tab === t.id ? 'bg-coffee-900 text-cream shadow' : 'bg-[#F3EDE0] text-neutral-500 hover:text-neutral-800'}`}>
-            {t.icon} {t.label}
+            className={`flex flex-none items-center gap-1.5 rounded-full px-4 py-2 text-xs font-extrabold transition ${tab === t.id ? 'bg-coffee-900 text-cream shadow' : 'bg-[#F3EDE0] text-neutral-500 hover:text-neutral-800'}`}>
+            <Icon name={t.icon} size={14} /> {t.label}
           </button>
         ))}
       </nav>
@@ -123,21 +124,21 @@ function Dashboard({ token }: { token: string }) {
     const load = () => rpc<any>('admin_stats', { p_token: token }).then(setStats).catch(() => {});
     load(); const t = setInterval(load, 20000); return () => clearInterval(t);
   }, [token]);
-  const cards = [
-    { label: 'العملاء', value: stats?.customers ?? '—', icon: '👥', color: 'bg-blue-50 text-blue-700' },
-    { label: 'إجمالي الطلبات', value: stats?.orders ?? '—', icon: '🧾', color: 'bg-amber-50 text-amber-700' },
-    { label: 'طلبات حالية', value: stats?.active_orders ?? '—', icon: '⏱️', color: 'bg-orange-50 text-orange-700' },
-    { label: 'طلبات مكتملة', value: stats?.completed_orders ?? '—', icon: '✅', color: 'bg-emerald-50 text-emerald-700' },
-    { label: 'المبيعات', value: stats != null ? eur(stats.sales_cents) : '—', icon: '💰', color: 'bg-green-50 text-green-700' },
-    { label: 'نقاط معلقة', value: stats?.points_outstanding ?? '—', icon: '⭐', color: 'bg-yellow-50 text-yellow-700' },
-    { label: 'استبدالات', value: stats?.redemptions ?? '—', icon: '🎁', color: 'bg-purple-50 text-purple-700' },
-    { label: 'منتجات نشطة', value: stats?.products ?? '—', icon: '☕', color: 'bg-rose-50 text-rose-700' },
+  const cards: { label: string; value: any; icon: IconName; color: string }[] = [
+    { label: 'العملاء', value: stats?.customers ?? '—', icon: 'users', color: 'bg-blue-50 text-blue-700' },
+    { label: 'إجمالي الطلبات', value: stats?.orders ?? '—', icon: 'receipt', color: 'bg-amber-50 text-amber-700' },
+    { label: 'طلبات حالية', value: stats?.active_orders ?? '—', icon: 'clock', color: 'bg-orange-50 text-orange-700' },
+    { label: 'طلبات مكتملة', value: stats?.completed_orders ?? '—', icon: 'check', color: 'bg-emerald-50 text-emerald-700' },
+    { label: 'المبيعات', value: stats != null ? eur(stats.sales_cents) : '—', icon: 'chart', color: 'bg-green-50 text-green-700' },
+    { label: 'نقاط معلقة', value: stats?.points_outstanding ?? '—', icon: 'star', color: 'bg-yellow-50 text-yellow-700' },
+    { label: 'استبدالات', value: stats?.redemptions ?? '—', icon: 'gift', color: 'bg-purple-50 text-purple-700' },
+    { label: 'منتجات نشطة', value: stats?.products ?? '—', icon: 'package', color: 'bg-rose-50 text-rose-700' },
   ];
   return (
     <div className="grid grid-cols-2 gap-3 anim-rise md:grid-cols-4">
       {cards.map((c) => (
         <Card key={c.label} className="text-center">
-          <span className={`mx-auto grid size-11 place-items-center rounded-2xl text-xl ${c.color}`}>{c.icon}</span>
+          <span className={`mx-auto grid size-11 place-items-center rounded-2xl ${c.color}`}><Icon name={c.icon} size={20} /></span>
           <p className="mt-2 text-2xl font-black text-coffee-900">{c.value}</p>
           <p className="text-[11px] font-bold text-neutral-500">{c.label}</p>
         </Card>
@@ -253,7 +254,7 @@ function ProductsTab({ token }: { token: string }) {
               <Field label="الاسم بالإنجليزية"><input className={inputCls} dir="ltr" value={edit.name_en} onChange={(e) => setEdit({ ...edit, name_en: e.target.value })} /></Field>
               <Field label="الوصف"><textarea className={`${inputCls} h-20 py-2`} value={edit.description_ar} onChange={(e) => setEdit({ ...edit, description_ar: e.target.value })} /></Field>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="السعر (سنت)"><input type="number" className={inputCls} value={edit.price_cents} onChange={(e) => setEdit({ ...edit, price_cents: +e.target.value })} /></Field>
+                <Field label="السعر (ل.س)"><input type="number" className={inputCls} value={edit.price_cents} onChange={(e) => setEdit({ ...edit, price_cents: +e.target.value })} /></Field>
                 <Field label="النقاط"><input type="number" className={inputCls} value={edit.points} onChange={(e) => setEdit({ ...edit, points: +e.target.value })} /></Field>
               </div>
               <Field label="رابط الصورة">

@@ -1,5 +1,8 @@
-export const eur = (cents: number, symbol = '€') =>
-  (cents / 100).toFixed(2) + symbol;
+/** عرض المبالغ — الليرة السورية بدون كسور، والعملات الأعشار بالصيغة القديمة */
+export const eur = (cents: number, symbol = '€') => {
+  if (symbol === 'ل.س') return cents.toLocaleString('en-US') + ' ل.س';
+  return (cents / 100).toFixed(2) + symbol;
+};
 
 export const timeOnly = (iso: string) =>
   new Date(iso).toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit', hour12: false });
