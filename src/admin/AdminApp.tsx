@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { rpc } from '../lib/supabase';
+import { rpc, sb } from '../lib/supabase';
 import { eur, fmtDateTime } from '../lib/utils';
 import { Icon, type IconName } from '../components/Icons';
 
@@ -116,6 +116,43 @@ const useAdminAction = () => {
   };
   return { busy, wrap };
 };
+
+/* حقل رفع صورة من الجهاز إلى Supabase Storage */
+function ImageUploadField({ value, onChange, folder }: { value: string; onChange: (url: string) => void; folder: string }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const upload = async (file: File) => {
+    setBusy(true); setErr('');
+    try {
+      if (!file.type.startsWith('image/')) throw new Error('اختر ملف صورة صحيحًا');
+      if (file.size > 5 * 1024 * 1024) throw new Error('حجم الصورة يجب أن يكون أقل من 5 ميجابايت');
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace('jpeg', 'jpg');
+      const path = folder + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+      const { error } = await sb.storage.from('images').upload(path, file, { contentType: file.type });
+      if (error) throw error;
+      onChange(sb.storage.from('images').getPublicUrl(path).data.publicUrl);
+    } catch (e: any) {
+      setErr(e.message || 'فشل رفع الصورة');
+    }
+    setBusy(false);
+  };
+  return (
+    <div>
+      <div className="flex items-center gap-3">
+        {value
+          ? <img src={value} alt="" className="size-16 rounded-2xl object-cover shadow ring-1 ring-fresh-100" />
+          : <span className="grid size-16 place-items-center rounded-2xl bg-[#F3EDE0] text-neutral-400"><Icon name="package" size={20} /></span>}
+        <label className="cursor-pointer rounded-xl bg-coffee-900 px-4 py-2.5 text-[11px] font-extrabold text-cream transition active:scale-95">
+          {busy ? 'جارٍ الرفع…' : value ? 'تغيير الصورة' : 'رفع صورة من الجهاز'}
+          <input type="file" accept="image/*" className="hidden" disabled={busy}
+            onChange={(e) => { const file = e.target.files?.[0]; if (file) upload(file); e.target.value = ''; }} />
+        </label>
+        {value && <span className="text-[10px] font-extrabold text-green-600">جاهزة للعرض</span>}
+      </div>
+      {err && <p className="mt-1.5 text-[11px] font-bold text-red-600">{err}</p>}
+    </div>
+  );
+}
 
 /* ============================ الرئيسية ============================ */
 function Dashboard({ token }: { token: string }) {
@@ -257,14 +294,7 @@ function ProductsTab({ token }: { token: string }) {
                 <Field label="السعر (ل.س)"><input type="number" className={inputCls} value={edit.price_cents} onChange={(e) => setEdit({ ...edit, price_cents: +e.target.value })} /></Field>
                 <Field label="النقاط"><input type="number" className={inputCls} value={edit.points} onChange={(e) => setEdit({ ...edit, points: +e.target.value })} /></Field>
               </div>
-              <Field label="رابط الصورة">
-                <select className={inputCls} value={edit.image_url} onChange={(e) => setEdit({ ...edit, image_url: e.target.value })} dir="ltr">
-                  {['/img/americano.jpg','/img/latte.jpg','/img/cappuccino.jpg','/img/mocha.jpg','/img/espresso.jpg','/img/macchiato.jpg','/img/caramel-macchiato.jpg','/img/iced-latte.jpg','/img/iced-mocha.jpg','/img/chocolate-cake.jpg','/img/vanilla-cake.jpg','/img/cookies.jpg','/img/iced-coffee.jpg'].map((u) => <option key={u} value={u}>{u}</option>)}
-                  {!['/img/americano.jpg','/img/latte.jpg','/img/cappuccino.jpg','/img/mocha.jpg','/img/espresso.jpg','/img/macchiato.jpg','/img/caramel-macchiato.jpg','/img/iced-latte.jpg','/img/iced-mocha.jpg','/img/chocolate-cake.jpg','/img/vanilla-cake.jpg','/img/cookies.jpg','/img/iced-coffee.jpg'].includes(edit.image_url) && edit.image_url && (
-                    <option value={edit.image_url}>{edit.image_url}</option>
-                  )}
-                </select>
-              </Field>
+              <Field label="صورة المنتج"><ImageUploadField value={edit.image_url} onChange={(url) => setEdit({ ...edit, image_url: url })} folder="products" /></Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="التصنيف">
                   <select className={inputCls} value={edit.category_slug} onChange={(e) => setEdit({ ...edit, category_slug: e.target.value })}>
@@ -406,11 +436,7 @@ function RewardsTab({ token }: { token: string }) {
             <div className="mt-4 space-y-3">
               <Field label="الاسم"><input className={inputCls} value={edit.name_ar} onChange={(e) => setEdit({ ...edit, name_ar: e.target.value })} /></Field>
               <Field label="النقاط المطلوبة"><input type="number" className={inputCls} value={edit.points_cost} onChange={(e) => setEdit({ ...edit, points_cost: +e.target.value })} /></Field>
-              <Field label="الصورة">
-                <select className={inputCls} dir="ltr" value={edit.image_url} onChange={(e) => setEdit({ ...edit, image_url: e.target.value })}>
-                  {['/img/latte.jpg','/img/cappuccino.jpg','/img/mocha.jpg','/img/espresso.jpg','/img/iced-latte.jpg','/img/iced-mocha.jpg','/img/cookies.jpg','/img/chocolate-cake.jpg','/img/vanilla-cake.jpg'].map((u) => <option key={u} value={u}>{u}</option>)}
-                </select>
-              </Field>
+              <Field label="صورة المكافأة"><ImageUploadField value={edit.image_url} onChange={(url) => setEdit({ ...edit, image_url: url })} folder="rewards" /></Field>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3">
               <button disabled={busy} onClick={() => wrap(async () => { await rpc('admin_save_reward', { p_token: token, p_reward: edit }); setEdit(null); load(); })}
@@ -490,11 +516,7 @@ function AdsTab({ token }: { token: string }) {
                   </select>
                 </Field>
               </div>
-              <Field label="الصورة">
-                <select className={inputCls} dir="ltr" value={edit.image_url} onChange={(e) => setEdit({ ...edit, image_url: e.target.value })}>
-                  {['/img/latte.jpg','/img/cappuccino.jpg','/img/mocha.jpg','/img/espresso.jpg','/img/iced-latte.jpg','/img/iced-mocha.jpg','/img/cookies.jpg','/img/chocolate-cake.jpg','/img/vanilla-cake.jpg','/img/caramel-macchiato.jpg'].map((u) => <option key={u} value={u}>{u}</option>)}
-                </select>
-              </Field>
+              <Field label="صورة الإعلان"><ImageUploadField value={edit.image_url} onChange={(url) => setEdit({ ...edit, image_url: url })} folder="ads" /></Field>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3">
               <button disabled={busy} onClick={() => wrap(async () => { await rpc('admin_save_ad', { p_token: token, p_ad: edit }); setEdit(null); load(); })}
