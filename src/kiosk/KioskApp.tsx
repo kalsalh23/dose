@@ -99,7 +99,7 @@ export default function KioskApp() {
           <img src="/logo.jpg" alt="Dose" className="size-11 rounded-2xl object-cover shadow-md shadow-[#8a6a48]/25 ring-2 ring-white" />
           <div className="text-right leading-none">
             <p className="text-[19px] font-black tracking-tight" style={{ color: '#221B12' }}>Dose</p>
-            <span className="mt-1 inline-block rounded-full bg-white px-2 py-0.5 text-[8px] font-black tracking-[.16em] shadow-sm" style={{ color: '#8A6A48' }}>COFFEE &amp; MORE</span>
+            <span className="mt-1 inline-block rounded-full bg-white px-2 py-0.5 text-[8px] font-black tracking-[.16em] shadow-sm" style={{ color: '#8A6A48' }}>CAFE</span>
           </div>
         </div>
         <button onClick={() => setView('signup')}
@@ -256,14 +256,14 @@ export default function KioskApp() {
       <footer className="flex h-11 items-center justify-between border-t px-5" style={{ background: '#F6E7C9', borderColor: '#EAD3A0' }}>
         <div className="flex items-center gap-2">
           <img src="/logo.jpg" alt="" className="size-6 rounded-lg object-cover shadow-sm" style={{ border: '1.5px solid white' }} />
-          <span className="font-serif text-[13px] font-black" style={{ color: '#221B12' }}>Dose <i className="not-italic font-sans text-[8.5px] font-bold tracking-[.2em] uppercase" style={{ color: '#94826A' }}>Coffee & More</i></span>
+          <span className="font-serif text-[13px] font-black" style={{ color: '#221B12' }}>Dose <i className="not-italic font-sans text-[8.5px] font-bold tracking-[.2em] uppercase" style={{ color: '#94826A' }}>Cafe</i></span>
         </div>
         <div className="flex items-center gap-1">
-          <a href={`tel:${catalog?.settings?.store_phone ?? '0952639157'}`} className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition hover:brightness-90" style={{ color: '#6E6553' }} dir="ltr">
-            <Icon name="phone" size={12} /> {catalog?.settings?.store_phone ?? '0952639157'}
+          <a href={`tel:${catalog?.settings?.store_phone ?? '0936107119'}`} className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition hover:brightness-90" style={{ color: '#6E6553' }} dir="ltr">
+            <Icon name="phone" size={12} /> {catalog?.settings?.store_phone ?? '0936107119'}
           </a>
-          <a href="https://instagram.com/dose.coffee" target="_blank" rel="noopener" className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition hover:brightness-90" style={{ color: '#6E6553' }} dir="ltr">
-            <Icon name="instagram" size={12} /> @dose.coffee
+          <a href="https://www.instagram.com/dose__cafe" target="_blank" rel="noopener" className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition hover:brightness-90" style={{ color: '#6E6553' }} dir="ltr">
+            <Icon name="instagram" size={12} /> @dose__cafe
           </a>
         </div>
       </footer>

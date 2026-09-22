@@ -479,7 +479,7 @@ function AccountPage({ session, myData, waNumber, onLogout }: {
       <div className="mt-5 space-y-2.5">
         <AccountRow icon="receipt" label="الطلبات" onClick={() => _navRef?.('/orders')} />
         <AccountRow icon="gift" label="المكافأة" onClick={() => setShowCodes(true)} badge={redemptions.filter((r) => r.status === 'unused').length || undefined} />
-        <a href={waChatLink(waNumber, 'مرحبًا، أحتاج مساعدة من Dose Coffee & More')} target="_blank" rel="noopener"
+        <a href={waChatLink(waNumber, 'مرحبًا، أحتاج مساعدة من Dose Cafe')} target="_blank" rel="noopener"
           className="flex w-full items-center justify-between rounded-[1.4rem] bg-white p-4 shadow-sm ring-1 ring-fresh-100 transition active:scale-[.98]">
           <span className="flex items-center gap-3 text-sm font-extrabold text-fresh-ink">
             <span className="grid size-10 place-items-center rounded-2xl bg-fresh-50 text-fresh-700"><Icon name="headset" size={18} /></span>
@@ -505,7 +505,7 @@ function AccountPage({ session, myData, waNumber, onLogout }: {
 
 /* ============================ عن المحل ============================ */
 function AboutPage({ catalog }: { catalog: Catalog | null }) {
-  const phone = catalog?.settings?.store_phone ?? '0952639157';
+  const phone = catalog?.settings?.store_phone ?? '0936107119';
   const contactRow = (icon: IconName, label: string, value: string, href: string) => (
     <a href={href} target={href.startsWith('http') ? '_blank' : undefined} rel="noopener"
       className="flex w-full items-center gap-3 rounded-[1.4rem] bg-white p-4 shadow-sm ring-1 ring-fresh-100 transition active:scale-[.98]">
@@ -538,12 +538,12 @@ function AboutPage({ catalog }: { catalog: Catalog | null }) {
       <div className="rounded-[2rem] bg-gradient-to-bl from-fresh-600 via-fresh-700 to-fresh-900 p-6 text-center text-white shadow-xl shadow-fresh-900/20">
         <img src="/logo.jpg" alt="Dose" className="mx-auto size-20 rounded-[1.6rem] object-cover shadow-2xl ring-4 ring-white/20" />
         <h2 className="mt-3 text-xl font-black">عن المحل</h2>
-        <p className="mt-1 text-xs font-bold text-[#EAC98F]" dir="ltr">Dose Coffee &amp; More</p>
+        <p className="mt-1 text-xs font-bold text-[#EAC98F]" dir="ltr">Dose Cafe</p>
       </div>
 
       <div className="mt-4 rounded-[1.75rem] bg-white p-5 shadow-sm ring-1 ring-fresh-100">
         <p className="text-sm leading-loose text-[#4A3A28]">
-          <b className="text-fresh-ink">Dose Coffee &amp; More — أكثر من مجرد قهوة.</b>
+          <b className="text-fresh-ink">Dose Cafe — أكثر من مجرد قهوة.</b>
           <br />نقدّم لك قهوة مختصة ومشروبات ساخنة وباردة على أصولها، وحلويات طازجة تُخبز يوميًا،
           مع خدمة سريعة وأجواء مريحة تناسب كل الأوقات.
           <br />مع نظام نقاط ومكافآت خاص: اجمع النقاط مع كل طلب، واستبدلها بمشروبات وحلويات مجانية.
@@ -553,11 +553,10 @@ function AboutPage({ catalog }: { catalog: Catalog | null }) {
       <h3 className="mb-2.5 mt-6 text-base font-black text-fresh-ink">تواصل معنا</h3>
       <div className="space-y-2.5">
         {contactRow('phone', 'هاتف المحل', phone, `tel:${phone}`)}
-        {contactRow('instagram', 'إنستغرام', '@dose.coffee', 'https://instagram.com/dose.coffee')}
+        {contactRow('instagram', 'إنستغرام', '@dose__cafe', 'https://www.instagram.com/dose__cafe')}
         {contactRow('tiktok', 'تيك توك', '@dose.coffee', 'https://tiktok.com/@dose.coffee')}
-        {contactRow('facebook', 'فيسبوك', 'Dose Coffee', 'https://facebook.com/dose.coffee')}
-        {contactRow('globe', 'الموقع الإلكتروني', 'www.dose.com', 'https://www.dose.com')}
-        {contactRow('pin', 'موقع المحل', 'افتح موقعنا على الخريطة', 'https://www.google.com/maps/search/?api=1&query=Dose+Coffee+%26+More')}
+        {contactRow('facebook', 'فيسبوك', 'Dose Cafe', 'https://www.facebook.com/share/1DhShCC3Fm/')}
+        {contactRow('pin', 'موقع المحل', '35.1327334 , 36.7526210', 'https://www.google.com/maps?q=35.1327334,36.7526210')}
       </div>
 
       <h3 className="mb-2.5 mt-7 text-base font-black text-fresh-ink">فريق العمل</h3>
@@ -566,10 +565,10 @@ function AboutPage({ catalog }: { catalog: Catalog | null }) {
           <Icon name="star" size={13} filled /> بطاقة مميزة
         </p>
         <div className="mt-4 space-y-3">
-          {credit('براء دهبية', 'صاحب الفكرة والدعم', '0952639157')}
-          {credit('قصي مهند الصالح', 'مطور المنصة وبرمجتها', '0966333006')}
+          {credit('براء دهبية', 'صاحب الفكرة والدعم', '0966333006')}
+          {credit('قصي مهند الصالح', 'مطور المنصة وبرمجتها', '0952639157')}
         </div>
-        <p className="mt-4 text-center text-[10px] font-bold text-white/60">صُنعت هذه المنصة بحب ☕ Dose Coffee &amp; More</p>
+        <p className="mt-4 text-center text-[10px] font-bold text-white/60">صُنعت هذه المنصة بحب — Dose Cafe</p>
       </div>
     </div>
   );
@@ -678,7 +677,7 @@ export default function CustomerApp() {
   const [success, setSuccess] = useState<{ orderNumber: number; points: number; message: string } | null>(null);
   const [adOpen, setAdOpen] = useState<Ad | null>(null);
   const [welcomeDone, setWelcomeDone] = useState(false);
-  const waNumber = catalog?.settings?.whatsapp_number ?? '963952639157';
+  const waNumber = catalog?.settings?.whatsapp_number ?? '963936107119';
   const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
 
   const ads = catalog?.ads ?? [];
@@ -765,7 +764,7 @@ export default function CustomerApp() {
                 <Logo size={42} />
                 <div className="leading-none">
                   <p className="text-[19px] font-black tracking-tight text-[#221B12]">Dose</p>
-                  <span className="mt-1 inline-block rounded-full bg-white px-2 py-0.5 text-[8px] font-black tracking-[.16em] text-[#8A6A48] shadow-sm">COFFEE &amp; MORE</span>
+                  <span className="mt-1 inline-block rounded-full bg-white px-2 py-0.5 text-[8px] font-black tracking-[.16em] text-[#8A6A48] shadow-sm">CAFE</span>
                 </div>
               </div>
               <Link to="/login" className="rounded-full bg-[#EAC98F] px-5 py-2.5 text-xs font-black text-[#221B12] shadow-md shadow-[#8a6a48]/30 active:scale-95">تسجيل الدخول</Link>

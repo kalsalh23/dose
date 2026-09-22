@@ -23,7 +23,7 @@ export interface WhatsAppOrder {
 export function buildOrderMessage(o: WhatsAppOrder): string {
   const cur = o.currencySymbol ?? '€';
   const lines: string[] = [];
-  lines.push('☕ طلب جديد — Dose Coffee & More', '');
+  lines.push('☕ طلب جديد — Dose Cafe', '');
   lines.push(`🔢 رقم الطلب: #${o.orderNumber}`, '');
   lines.push('👤 العميل:', o.customerName, '');
   lines.push('📱 الهاتف:', o.customerPhone, '');

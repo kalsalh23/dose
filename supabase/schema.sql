@@ -799,13 +799,13 @@ insert into public.categories (slug, name_ar, emoji, sort_order) values
 on conflict (slug) do nothing;
 
 insert into public.stores (name, phone, whatsapp_number, address) values
-  ('Dose Coffee & More','0952639157','963952639157','Dose Coffee & More')
+  ('Dose Cafe','0936107119','963936107119','35.1327334, 36.7526210')
 on conflict do nothing;
 
 insert into public.settings (key, value) values
   ('points_award_mode','on_complete'),
-  ('whatsapp_number','963952639157'),
-  ('store_phone','0952639157'),
+  ('whatsapp_number','963936107119'),
+  ('store_phone','0936107119'),
   ('currency_symbol','€')
 on conflict (key) do nothing;
 
