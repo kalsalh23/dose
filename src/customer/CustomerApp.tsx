@@ -464,15 +464,15 @@ function AccountPage({ session, myData, waNumber, onLogout }: {
   const redemptions = myData?.redemptions ?? [];
   return (
     <div className="anim-rise">
-      <div className="rounded-[2rem] bg-gradient-to-bl from-[#7A5C3E] to-[#3E3222] p-6 text-center text-white shadow-xl shadow-[#8a6a48]/40">
+      <div className="rounded-[2rem] bg-gradient-to-bl from-fresh-600 via-fresh-700 to-fresh-900 p-6 text-center text-white shadow-xl shadow-fresh-900/20">
         <span className="mx-auto grid size-16 place-items-center rounded-full bg-white/15 text-2xl font-black backdrop-blur">
           {c.full_name.trim().charAt(0)}
         </span>
         <h2 className="mt-3 text-lg font-black">{c.full_name}</h2>
         <p className="mt-0.5 text-xs text-white/70" dir="ltr">{c.phone}</p>
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-3xl bg-white/10 py-3"><p className="text-xl font-black text-[#EAC98F]">{c.points}</p><p className="text-[10px] font-bold text-white/70">نقطة</p></div>
-          <div className="rounded-3xl bg-white/10 py-3"><p className="text-xl font-black text-[#EAC98F]">{c.orders_count}</p><p className="text-[10px] font-bold text-white/70">طلب</p></div>
+          <div className="rounded-3xl bg-white/10 py-3"><p className="text-xl font-black text-[#7FE7B0]">{c.points}</p><p className="text-[10px] font-bold text-white/70">نقطة</p></div>
+          <div className="rounded-3xl bg-white/10 py-3"><p className="text-xl font-black text-[#7FE7B0]">{c.orders_count}</p><p className="text-[10px] font-bold text-white/70">طلب</p></div>
         </div>
       </div>
 
@@ -480,24 +480,97 @@ function AccountPage({ session, myData, waNumber, onLogout }: {
         <AccountRow icon="receipt" label="الطلبات" onClick={() => _navRef?.('/orders')} />
         <AccountRow icon="gift" label="المكافأة" onClick={() => setShowCodes(true)} badge={redemptions.filter((r) => r.status === 'unused').length || undefined} />
         <a href={waChatLink(waNumber, 'مرحبًا، أحتاج مساعدة من Dose Coffee & More')} target="_blank" rel="noopener"
-          className="flex w-full items-center justify-between rounded-[1.4rem] bg-[#F1DCB0] p-4 transition active:scale-[.98]">
-          <span className="flex items-center gap-3 text-sm font-extrabold text-[#221B12]">
-            <span className="grid size-10 place-items-center rounded-2xl bg-white shadow-sm text-[#8A6A48]"><Icon name="headset" size={18} /></span>
+          className="flex w-full items-center justify-between rounded-[1.4rem] bg-white p-4 shadow-sm ring-1 ring-fresh-100 transition active:scale-[.98]">
+          <span className="flex items-center gap-3 text-sm font-extrabold text-fresh-ink">
+            <span className="grid size-10 place-items-center rounded-2xl bg-fresh-50 text-fresh-700"><Icon name="headset" size={18} /></span>
             المساعدة والدعم
           </span>
-          <span className="text-[#D9B171]"><Icon name="chevron" size={16} /></span>
+          <span className="text-fresh-200"><Icon name="chevron" size={16} /></span>
         </a>
+        <AccountRow icon="store" label="عن المحل" onClick={() => _navRef?.('/about')} />
         <button onClick={onLogout}
-          className="flex w-full items-center justify-between rounded-[1.4rem] bg-[#F1DCB0] p-4 transition active:scale-[.98]">
-          <span className="flex items-center gap-3 text-sm font-extrabold text-[#C4482E]">
-            <span className="grid size-10 place-items-center rounded-2xl bg-white shadow-sm text-[#C4482E]"><Icon name="logout" size={18} /></span>
+          className="flex w-full items-center justify-between rounded-[1.4rem] bg-white p-4 shadow-sm ring-1 ring-red-100 transition active:scale-[.98]">
+          <span className="flex items-center gap-3 text-sm font-extrabold text-red-500">
+            <span className="grid size-10 place-items-center rounded-2xl bg-red-50 text-red-500"><Icon name="logout" size={18} /></span>
             تسجيل الخروج
           </span>
-          <span className="text-[#D9B171]"><Icon name="chevron" size={16} /></span>
+          <span className="text-red-200"><Icon name="chevron" size={16} /></span>
         </button>
       </div>
 
       {showCodes && <MyCodes redemptions={redemptions} />}
+    </div>
+  );
+}
+
+/* ============================ عن المحل ============================ */
+function AboutPage({ catalog }: { catalog: Catalog | null }) {
+  const phone = catalog?.settings?.store_phone ?? '0952639157';
+  const contactRow = (icon: IconName, label: string, value: string, href: string) => (
+    <a href={href} target={href.startsWith('http') ? '_blank' : undefined} rel="noopener"
+      className="flex w-full items-center gap-3 rounded-[1.4rem] bg-white p-4 shadow-sm ring-1 ring-fresh-100 transition active:scale-[.98]">
+      <span className="grid size-10 place-items-center rounded-2xl bg-fresh-100 text-fresh-700"><Icon name={icon} size={17} /></span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[10px] font-bold text-neutral-400">{label}</span>
+        <span className="block truncate text-sm font-extrabold text-fresh-ink" dir="ltr">{value}</span>
+      </span>
+      <span className="text-fresh-200"><Icon name="chevron" size={16} /></span>
+    </a>
+  );
+  const credit = (name: string, role: string, phoneNum: string) => (
+    <div className="rounded-[1.4rem] bg-white/10 p-4 text-right backdrop-blur">
+      <p className="text-[15px] font-black">{name}</p>
+      <p className="mt-0.5 text-[11px] font-bold text-[#EAC98F]">{role}</p>
+      <div className="mt-2.5 flex items-center gap-2" dir="ltr">
+        <a href={`tel:${phoneNum}`} className="flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-[11px] font-extrabold transition hover:bg-white/25">
+          <Icon name="phone" size={12} /> {phoneNum}
+        </a>
+        <a href={`https://wa.me/963${phoneNum.replace(/^0/, '')}`} target="_blank" rel="noopener"
+          className="flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-[11px] font-extrabold transition hover:bg-white/25">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Zm5.5 14.1c-.2.7-1.3 1.3-1.9 1.4-.5.1-1.1.1-1.8-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.7-4-4.8-4.2-.1-.2-1.2-1.6-1.2-3s.7-2.1 1-2.4c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.4.2.5.7 1.8.8 1.9.1.1.1.3 0 .5-.1.2-.1.3-.3.5l-.4.5c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1.1 2.2 1.4 2.5 1.5.3.1.5.1.6-.1.2-.2.7-.8.9-1.1.2-.3.4-.2.6-.1l1.8.9c.3.1.5.2.5.3.1.1.1.7-.1 1.3Z"/></svg>
+          واتساب
+        </a>
+      </div>
+    </div>
+  );
+  return (
+    <div className="anim-rise">
+      <div className="rounded-[2rem] bg-gradient-to-bl from-fresh-600 via-fresh-700 to-fresh-900 p-6 text-center text-white shadow-xl shadow-fresh-900/20">
+        <img src="/logo.jpg" alt="Dose" className="mx-auto size-20 rounded-[1.6rem] object-cover shadow-2xl ring-4 ring-white/20" />
+        <h2 className="mt-3 text-xl font-black">عن المحل</h2>
+        <p className="mt-1 text-xs font-bold text-[#EAC98F]" dir="ltr">Dose Coffee &amp; More</p>
+      </div>
+
+      <div className="mt-4 rounded-[1.75rem] bg-white p-5 shadow-sm ring-1 ring-fresh-100">
+        <p className="text-sm leading-loose text-[#4A3A28]">
+          <b className="text-fresh-ink">Dose Coffee &amp; More — أكثر من مجرد قهوة.</b>
+          <br />نقدّم لك قهوة مختصة ومشروبات ساخنة وباردة على أصولها، وحلويات طازجة تُخبز يوميًا،
+          مع خدمة سريعة وأجواء مريحة تناسب كل الأوقات.
+          <br />مع نظام نقاط ومكافآت خاص: اجمع النقاط مع كل طلب، واستبدلها بمشروبات وحلويات مجانية.
+        </p>
+      </div>
+
+      <h3 className="mb-2.5 mt-6 text-base font-black text-fresh-ink">تواصل معنا</h3>
+      <div className="space-y-2.5">
+        {contactRow('phone', 'هاتف المحل', phone, `tel:${phone}`)}
+        {contactRow('instagram', 'إنستغرام', '@dose.coffee', 'https://instagram.com/dose.coffee')}
+        {contactRow('tiktok', 'تيك توك', '@dose.coffee', 'https://tiktok.com/@dose.coffee')}
+        {contactRow('facebook', 'فيسبوك', 'Dose Coffee', 'https://facebook.com/dose.coffee')}
+        {contactRow('globe', 'الموقع الإلكتروني', 'www.dose.com', 'https://www.dose.com')}
+        {contactRow('pin', 'موقع المحل', 'افتح موقعنا على الخريطة', 'https://www.google.com/maps/search/?api=1&query=Dose+Coffee+%26+More')}
+      </div>
+
+      <h3 className="mb-2.5 mt-7 text-base font-black text-fresh-ink">فريق العمل</h3>
+      <div className="overflow-hidden rounded-[2rem] bg-gradient-to-bl from-[#7A5C3E] via-[#5C4430] to-[#3E3222] p-5 text-white shadow-xl shadow-[#8a6a48]/40">
+        <p className="flex items-center justify-center gap-2 text-xs font-black tracking-wide text-[#EAC98F]">
+          <Icon name="star" size={13} filled /> بطاقة مميزة
+        </p>
+        <div className="mt-4 space-y-3">
+          {credit('براء دهبية', 'صاحب الفكرة والدعم', '0952639157')}
+          {credit('قصي مهند الصالح', 'مطور المنصة وبرمجتها', '0966333006')}
+        </div>
+        <p className="mt-4 text-center text-[10px] font-bold text-white/60">صُنعت هذه المنصة بحب ☕ Dose Coffee &amp; More</p>
+      </div>
     </div>
   );
 }
@@ -718,6 +791,7 @@ export default function CustomerApp() {
             <AccountPage session={session} myData={myData} waNumber={waNumber}
               onLogout={async () => { if (session) await rpc('customer_logout', { p_token: session.token }).catch(() => {}); save(null); nav('/'); }} />
           ) : <NeedLogin />} />
+          <Route path="/about" element={<AboutPage catalog={catalog} />} />
           <Route path="/login" element={<LoginPage onLogged={(s) => { save(s); nav('/'); show('أهلًا بك ' + s.customer.full_name, 'ok'); }} />} />
           <Route path="/signup" element={<SignupPage onLogged={(s) => { save(s); nav('/'); show('تم إنشاء حسابك بنجاح', 'ok'); }} />} />
           <Route path="*" element={<div className="py-20 text-center text-sm font-bold text-[#94826A]">الصفحة غير موجودة</div>} />
