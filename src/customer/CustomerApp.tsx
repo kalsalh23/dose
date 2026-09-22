@@ -554,7 +554,7 @@ function AboutPage({ catalog }: { catalog: Catalog | null }) {
       <div className="space-y-2.5">
         {contactRow('phone', 'هاتف المحل', phone, `tel:${phone}`)}
         {contactRow('instagram', 'إنستغرام', '@dose__cafe', 'https://www.instagram.com/dose__cafe')}
-        {contactRow('tiktok', 'تيك توك', '@dose.coffee', 'https://tiktok.com/@dose.coffee')}
+        {contactRow('tiktok', 'تيك توك', '@dose__cafe', 'https://www.tiktok.com/@dose__cafe')}
         {contactRow('facebook', 'فيسبوك', 'Dose Cafe', 'https://www.facebook.com/share/1DhShCC3Fm/')}
         {contactRow('pin', 'موقع المحل', '35.1327334 , 36.7526210', 'https://www.google.com/maps?q=35.1327334,36.7526210')}
       </div>
