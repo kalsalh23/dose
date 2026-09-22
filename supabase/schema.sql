@@ -598,7 +598,95 @@ begin
       sort_order = coalesce((p_reward->>'sort_order')::int, 0)
     where id = (p_reward->>'id')::int;
   else
-    insert into public.rewards (name_ar, name_en, image_url, points_cost, is_active, sort_order)
+    -- قائمة الحلويات (من ملف المنيو)
+insert into public.products (category_id, name_ar, name_en, description_ar, price_cents, points, image_url, sort_order)
+select c.id, v.name_ar, v.name_en, v.descr, v.price, v.pts, v.img, v.sort
+from (values
+  -- تشيز كيك
+  ('تشيز كيك فراوله','Strawberry Cheesecake','تشيز كيك كريمي بنكهة الفراولة',25000,5,'/img/vanilla-cake.jpg',4),
+  ('تشيز كيك شوكولا','Chocolate Cheesecake','تشيز كيك كريمي بنكهة الشوكولاتة',22000,4,'/img/vanilla-cake.jpg',5),
+  ('تشيز كيك لوتس','Lotus Cheesecake','تشيز كيك كريمي بنكهة اللوتس',25000,5,'/img/vanilla-cake.jpg',6),
+  ('تشيز كيك باستاشيو','Pistachio Cheesecake','تشيز كيك كريمي بنكهة الفستق الحلبي',25000,5,'/img/vanilla-cake.jpg',7),
+  ('تشيز كيك توت','Berries Cheesecake','تشيز كيك كريمي بنكهة التوت',20000,4,'/img/vanilla-cake.jpg',8),
+  ('تشيز كيك فواكه','Fruit Cheesecake','تشيز كيك كريمي مع فواكه موسمية',25000,5,'/img/vanilla-cake.jpg',9),
+  ('تيراميسيو','Tiramisu','تيراميسيو كلاسيكي بنكهة القهوة',25000,5,'/img/vanilla-cake.jpg',10),
+  -- غوفر
+  ('غوفر كيندر','Kinder Waffle','غوفر طازج مع كريمة الكيندر',15000,3,'/img/chocolate-cake.jpg',11),
+  ('غوفر لوتس','Lotus Waffle','غوفر طازج مع كريمة اللوتس',20000,4,'/img/chocolate-cake.jpg',12),
+  ('غوفر باستاشيو','Pistachio Waffle','غوفر طازج مع كريمة الفستق',25000,5,'/img/chocolate-cake.jpg',13),
+  ('غوفر ديري','Berry Waffle','غوفر طازج بنكهة التوت',25000,5,'/img/chocolate-cake.jpg',14),
+  -- وافل ببلي
+  ('وافل كيندر','Kinder Bubbly Waffle','وافل ببلي طازج مع كريمة الكيندر',25000,5,'/img/cookies.jpg',11),
+  ('وافل لوتس','Lotus Bubbly Waffle','وافل ببلي طازج مع كريمة اللوتس',25000,5,'/img/cookies.jpg',12),
+  ('وافل فواكه','Fruit Bubbly Waffle','وافل ببلي طازج مع فواكه موسمية',35000,7,'/img/cookies.jpg',13),
+  ('وافل باستاشيو','Pistachio Bubbly Waffle','وافل ببلي طازج مع كريمة الفستق',40000,8,'/img/cookies.jpg',14),
+  ('وافل دوز','Dos Bubbly Waffle','وافل ببلي طازج بنكهة مميزة',40000,8,'/img/cookies.jpg',15),
+  -- بان كيك
+  ('بان كيك كيندر','Kinder Pancake','بان كيك طري مع كريمة الكيندر',25000,5,'/img/vanilla-cake.jpg',11),
+  ('بان كيك لوتس','Lotus Pancake','بان كيك طري مع كريمة اللوتس',25000,5,'/img/vanilla-cake.jpg',12),
+  ('بان كيك باستاشيو','Pistachio Pancake','بان كيك طري مع كريمة الفستق',30000,6,'/img/vanilla-cake.jpg',13),
+  ('بان كيك فواكه','Fruit Pancake','بان كيك طري مع فواكه موسمية',35000,7,'/img/vanilla-cake.jpg',14),
+  ('بان كيك دبي','Dubai Pancake','بان كيك بنكهة دبي الشهيرة',35000,7,'/img/vanilla-cake.jpg',15),
+  -- كريب
+  ('كريب كيندر','Kinder Crepe','كريب طازج مع كريمة الكيندر',25000,5,'/img/cookies.jpg',11),
+  ('كريب لوتس','Lotus Crepe','كريب طازج مع كريمة اللوتس',25000,5,'/img/cookies.jpg',12),
+  ('كريب اوريو','Oreo Crepe','كريب طازج مع البسكويت الاوريو',30000,6,'/img/cookies.jpg',13),
+  ('كريب رول','Crepe Roll','كريب رول طازج محشو',30000,6,'/img/cookies.jpg',14),
+  ('كريب فونتنتشيني شوكولا','Fontticcini Chocolate Crepe','كريب فونتنتشيني بالشوكولاتة',25000,5,'/img/cookies.jpg',15),
+  ('كريب سوشي','Sushi Crepe','كريب سوشي بطعم مميز',30000,6,'/img/cookies.jpg',16),
+  ('كريب فواكه','Fruit Crepe','كريب طازج مع فواكه موسمية',35000,7,'/img/cookies.jpg',17),
+  ('كريب دبي','Dubai Crepe','كريب دبي الشهير',45000,9,'/img/cookies.jpg',18),
+  ('كريب باستاشيو','Pistachio Crepe','كريب طازج مع كريمة الفستق',40000,8,'/img/cookies.jpg',19)
+) as v(name_ar, name_en, descr, price, pts, img, sort)
+join public.categories c on c.slug = 'dessert'
+where not exists (select 1 from public.products p where p.name_ar = v.name_ar);
+
+
+-- قائمة الحلويات (من ملف المنيو)
+insert into public.products (category_id, name_ar, name_en, description_ar, price_cents, points, image_url, sort_order)
+select c.id, v.name_ar, v.name_en, v.descr, v.price, v.pts, v.img, v.sort
+from (values
+  -- تشيز كيك
+  ('تشيز كيك فراوله','Strawberry Cheesecake','تشيز كيك كريمي بنكهة الفراولة',25000,5,'/img/vanilla-cake.jpg',4),
+  ('تشيز كيك شوكولا','Chocolate Cheesecake','تشيز كيك كريمي بنكهة الشوكولاتة',22000,4,'/img/vanilla-cake.jpg',5),
+  ('تشيز كيك لوتس','Lotus Cheesecake','تشيز كيك كريمي بنكهة اللوتس',25000,5,'/img/vanilla-cake.jpg',6),
+  ('تشيز كيك باستاشيو','Pistachio Cheesecake','تشيز كيك كريمي بنكهة الفستق الحلبي',25000,5,'/img/vanilla-cake.jpg',7),
+  ('تشيز كيك توت','Berries Cheesecake','تشيز كيك كريمي بنكهة التوت',20000,4,'/img/vanilla-cake.jpg',8),
+  ('تشيز كيك فواكه','Fruit Cheesecake','تشيز كيك كريمي مع فواكه موسمية',25000,5,'/img/vanilla-cake.jpg',9),
+  ('تيراميسيو','Tiramisu','تيراميسيو كلاسيكي بنكهة القهوة',25000,5,'/img/vanilla-cake.jpg',10),
+  -- غوفر
+  ('غوفر كيندر','Kinder Waffle','غوفر طازج مع كريمة الكيندر',15000,3,'/img/chocolate-cake.jpg',11),
+  ('غوفر لوتس','Lotus Waffle','غوفر طازج مع كريمة اللوتس',20000,4,'/img/chocolate-cake.jpg',12),
+  ('غوفر باستاشيو','Pistachio Waffle','غوفر طازج مع كريمة الفستق',25000,5,'/img/chocolate-cake.jpg',13),
+  ('غوفر ديري','Berry Waffle','غوفر طازج بنكهة التوت',25000,5,'/img/chocolate-cake.jpg',14),
+  -- وافل ببلي
+  ('وافل كيندر','Kinder Bubbly Waffle','وافل ببلي طازج مع كريمة الكيندر',25000,5,'/img/cookies.jpg',11),
+  ('وافل لوتس','Lotus Bubbly Waffle','وافل ببلي طازج مع كريمة اللوتس',25000,5,'/img/cookies.jpg',12),
+  ('وافل فواكه','Fruit Bubbly Waffle','وافل ببلي طازج مع فواكه موسمية',35000,7,'/img/cookies.jpg',13),
+  ('وافل باستاشيو','Pistachio Bubbly Waffle','وافل ببلي طازج مع كريمة الفستق',40000,8,'/img/cookies.jpg',14),
+  ('وافل دوز','Dos Bubbly Waffle','وافل ببلي طازج بنكهة مميزة',40000,8,'/img/cookies.jpg',15),
+  -- بان كيك
+  ('بان كيك كيندر','Kinder Pancake','بان كيك طري مع كريمة الكيندر',25000,5,'/img/vanilla-cake.jpg',11),
+  ('بان كيك لوتس','Lotus Pancake','بان كيك طري مع كريمة اللوتس',25000,5,'/img/vanilla-cake.jpg',12),
+  ('بان كيك باستاشيو','Pistachio Pancake','بان كيك طري مع كريمة الفستق',30000,6,'/img/vanilla-cake.jpg',13),
+  ('بان كيك فواكه','Fruit Pancake','بان كيك طري مع فواكه موسمية',35000,7,'/img/vanilla-cake.jpg',14),
+  ('بان كيك دبي','Dubai Pancake','بان كيك بنكهة دبي الشهيرة',35000,7,'/img/vanilla-cake.jpg',15),
+  -- كريب
+  ('كريب كيندر','Kinder Crepe','كريب طازج مع كريمة الكيندر',25000,5,'/img/cookies.jpg',11),
+  ('كريب لوتس','Lotus Crepe','كريب طازج مع كريمة اللوتس',25000,5,'/img/cookies.jpg',12),
+  ('كريب اوريو','Oreo Crepe','كريب طازج مع البسكويت الاوريو',30000,6,'/img/cookies.jpg',13),
+  ('كريب رول','Crepe Roll','كريب رول طازج محشو',30000,6,'/img/cookies.jpg',14),
+  ('كريب فونتنتشيني شوكولا','Fontticcini Chocolate Crepe','كريب فونتنتشيني بالشوكولاتة',25000,5,'/img/cookies.jpg',15),
+  ('كريب سوشي','Sushi Crepe','كريب سوشي بطعم مميز',30000,6,'/img/cookies.jpg',16),
+  ('كريب فواكه','Fruit Crepe','كريب طازج مع فواكه موسمية',35000,7,'/img/cookies.jpg',17),
+  ('كريب دبي','Dubai Crepe','كريب دبي الشهير',45000,9,'/img/cookies.jpg',18),
+  ('كريب باستاشيو','Pistachio Crepe','كريب طازج مع كريمة الفستق',40000,8,'/img/cookies.jpg',19)
+) as v(name_ar, name_en, descr, price, pts, img, sort)
+join public.categories c on c.slug = 'dessert'
+where not exists (select 1 from public.products p where p.name_ar = v.name_ar);
+
+
+insert into public.rewards (name_ar, name_en, image_url, points_cost, is_active, sort_order)
     values (p_reward->>'name_ar', coalesce(p_reward->>'name_en',''), coalesce(p_reward->>'image_url',''),
             greatest(1,(p_reward->>'points_cost')::int), coalesce((p_reward->>'is_active')::boolean,true),
             coalesce((p_reward->>'sort_order')::int,0));
@@ -728,21 +816,21 @@ on conflict (username) do nothing;
 insert into public.products (category_id, name_ar, name_en, description_ar, price_cents, points, image_url, sort_order)
 select c.id, v.name_ar, v.name_en, v.descr, v.price, v.pts, v.img, v.sort
 from (values
-  ('hot','إسبريسو','Espresso','إسبريسو مركّز من حبوب مختارة',200,2,'/img/espresso.jpg',1),
-  ('hot','ماكياتو','Macchiato','إسبريسو مع لمسة حليب',300,3,'/img/macchiato.jpg',2),
-  ('hot','أمريكانو','Americano','إسبريسو مع ماء ساخن',250,4,'/img/americano.jpg',3),
-  ('hot','كابتشينو','Cappuccino','إسبريسو مع حليب مبخر ورغوة ناعمة',400,4,'/img/cappuccino.jpg',4),
-  ('hot','لاتيه','Latte','إسبريسو مع حليب حريري',400,5,'/img/latte.jpg',5),
-  ('hot','موكا','Mocha','إسبريسو مع شوكولاتة وحليب',450,6,'/img/mocha.jpg',6),
-  ('hot','كراميل ماكياتو','Caramel Macchiato','لاتيه مع كراميل ذهبي',450,5,'/img/caramel-macchiato.jpg',7),
-  ('cold','آيس لاتيه','Iced Latte','لاتيه بارد منعش',450,7,'/img/iced-latte.jpg',1),
-  ('cold','آيس موكا','Iced Mocha','موكا بارد مع كريمة',450,7,'/img/iced-mocha.jpg',2),
-  ('dessert','كيك الشوكولاتة','Chocolate Cake','كيكة شوكولاتة غنية',350,5,'/img/chocolate-cake.jpg',1),
-  ('dessert','كيك الفانيليا','Vanilla Cake','كيكة فانيليا طرية',350,4,'/img/vanilla-cake.jpg',2),
-  ('dessert','كوكيز','Cookies','كوكيز بالشوكولاتة طازج',250,3,'/img/cookies.jpg',3),
-  ('extras','شوت إسبريسو إضافي','Extra Espresso Shot','شوت إسبريسو إضافي لطلبك',100,1,'/img/espresso.jpg',1),
-  ('extras','كراميل إضافي','Extra Caramel','صوص كراميل إضافي',50,1,'/img/caramel-macchiato.jpg',2),
-  ('extras','حليب إضافي','Extra Milk','حليب إضافي لطلبك',50,1,'/img/latte.jpg',3)
+  ('hot','إسبريسو','Espresso','إسبريسو مركّز من حبوب مختارة',15000,2,'/img/espresso.jpg',1),
+  ('hot','ماكياتو','Macchiato','إسبريسو مع لمسة حليب',20000,3,'/img/macchiato.jpg',2),
+  ('hot','أمريكانو','Americano','إسبريسو مع ماء ساخن',20000,4,'/img/americano.jpg',3),
+  ('hot','كابتشينو','Cappuccino','إسبريسو مع حليب مبخر ورغوة ناعمة',25000,4,'/img/cappuccino.jpg',4),
+  ('hot','لاتيه','Latte','إسبريسو مع حليب حريري',25000,5,'/img/latte.jpg',5),
+  ('hot','موكا','Mocha','إسبريسو مع شوكولاتة وحليب',30000,6,'/img/mocha.jpg',6),
+  ('hot','كراميل ماكياتو','Caramel Macchiato','لاتيه مع كراميل ذهبي',30000,5,'/img/caramel-macchiato.jpg',7),
+  ('cold','آيس لاتيه','Iced Latte','لاتيه بارد منعش',30000,7,'/img/iced-latte.jpg',1),
+  ('cold','آيس موكا','Iced Mocha','موكا بارد مع كريمة',30000,7,'/img/iced-mocha.jpg',2),
+  ('dessert','كيك الشوكولاتة','Chocolate Cake','كيكة شوكولاتة غنية',35000,4,'/img/chocolate-cake.jpg',1),
+  ('dessert','كيك الفانيليا','Vanilla Cake','كيكة فانيليا طرية',30000,4,'/img/vanilla-cake.jpg',2),
+  ('dessert','كوكيز','Cookies','كوكيز بالشوكولاتة طازج',20000,3,'/img/cookies.jpg',3),
+  ('extras','شوت إسبريسو إضافي','Extra Espresso Shot','شوت إسبريسو إضافي لطلبك',10000,1,'/img/espresso.jpg',1),
+  ('extras','كراميل إضافي','Extra Caramel','صوص كراميل إضافي',5000,1,'/img/caramel-macchiato.jpg',2),
+  ('extras','حليب إضافي','Extra Milk','حليب إضافي لطلبك',5000,1,'/img/latte.jpg',3)
 ) as v(cat, name_ar, name_en, descr, price, pts, img, sort)
 join public.categories c on c.slug = v.cat
 where not exists (select 1 from public.products p where p.name_ar = v.name_ar);
@@ -754,7 +842,7 @@ from (values
   ('كابتشينو مجاني','Free Cappuccino','/img/cappuccino.jpg',40,2),
   ('لاتيه مجاني','Free Latte','/img/latte.jpg',50,3),
   ('موكا مجاني','Free Mocha','/img/mocha.jpg',60,4),
-  ('كيك الشوكولاتة مجاني','Free Chocolate Cake','/img/chocolate-cake.jpg',60,5),
+  ('dessert','كيك الشوكولاتة','Chocolate Cake','كيكة شوكولاتة غنية',35000,4,'/img/chocolate-cake.jpg',1),
   ('آيس لاتيه مجاني','Free Iced Latte','/img/iced-latte.jpg',70,6)
 ) as v(name_ar, name_en, img, cost, sort)
 where not exists (select 1 from public.rewards r where r.name_ar = v.name_ar);
