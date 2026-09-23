@@ -2,12 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom';
 import { rpc } from '../lib/supabase';
 import type { Ad, CartLine, Catalog, MyData, MyOrder, Product, Redemption, Session } from '../lib/types';
-import { eur, fmtDateTime, deviceId, getCurrentLocation } from '../lib/utils';
+import { eur, fmtDateTime, deviceId, getCurrentLocation, urlBase64ToUint8Array } from '../lib/utils';
 import { buildOrderMessage, waChatLink, whatsapp } from '../lib/whatsapp';
 import PinPad from '../components/PinPad';
 import { Icon, type IconName } from '../components/Icons';
 
 const SESSION_KEY = 'dose_app_session_v1';
+const CART_KEY = 'dose_cart_v1';
+const VAPID_PUB = 'BCDKL0U34tZgWEGIygt6PLe6tpX_7kOn4bkavZYoO6OAPdEBC0kjDpLxuDouKqWNqjgsC5h9V2gNJ08POBsRLmo';
 
 /* ============================ الحالة المشتركة ============================ */
 function useAppSession() {
@@ -43,12 +45,40 @@ function useCatalog() {
   return catalog;
 }
 
-/* ============================ عناصر مشتركة ============================ */
-const CTA = 'w-full rounded-full bg-[#EAC98F] py-3.5 text-base font-black text-[#221B12] shadow-lg shadow-[#8a6a48]/35 transition active:scale-[.98] disabled:opacity-50';
+/* ============================ السلة ============================ */
+function useCart() {
+  const [lines, setLines] = useState<CartLine[]>(() => {
+    try { return JSON.parse(localStorage.getItem(CART_KEY) || '[]'); } catch { return []; }
+  });
+  useEffect(() => { localStorage.setItem(CART_KEY, JSON.stringify(lines)); }, [lines]);
 
+  const add = useCallback((line: CartLine) => {
+    setLines((ls) => {
+      const key = (l: CartLine) => l.product.id + '|' + (l.options || []).join(',');
+      const i = ls.findIndex((l) => key(l) === key(line));
+      if (i >= 0) {
+        const cp = [...ls];
+        cp[i] = { ...cp[i], qty: Math.min(50, cp[i].qty + line.qty) };
+        return cp;
+      }
+      return [...ls, line];
+    });
+  }, []);
+
+  const setQty = useCallback((idx: number, qty: number) => {
+    setLines((ls) => ls.map((l, i) => (i === idx ? { ...l, qty: Math.max(1, Math.min(50, qty)) } : l)));
+  }, []);
+
+  const remove = useCallback((idx: number) => setLines((ls) => ls.filter((_, i) => i !== idx)), []);
+  const clear = useCallback(() => setLines([]), []);
+  const count = lines.reduce((a, l) => a + l.qty, 0);
+  return { lines, add, setQty, remove, clear, count };
+}
+
+/* ============================ عناصر مشتركة ============================ */
 const Logo = ({ size = 42 }: { size?: number }) => (
   <img src="/logo.jpg" alt="Dose" style={{ width: size, height: size }}
-    className="rounded-2xl object-cover shadow-md shadow-[#8a6a48]/30 ring-2 ring-white" />
+    className="rounded-2xl object-cover shadow-md shadow-[#8a6a48]/15 ring-2 ring-white" />
 );
 
 function useToast() {
@@ -69,7 +99,26 @@ function useToast() {
 type Fulfillment = 'pickup' | 'delivery';
 interface OrderFlow { step: 'fulfillment' | 'location' | 'pin' | null; lines: CartLine[]; fulfillment?: Fulfillment; loc?: { lat: number; lng: number; mapUrl: string } }
 
-/* ============================ الشاشة الترحيبية — الشعار + الشعار النصي، 3 ثوانٍ ============================ */
+/* ============================ الإشعارات الفورية ============================ */
+async function enablePushNotifications(session: Session): Promise<string> {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return 'غير مدعوم في هذا المتصفح';
+  const perm = Notification.permission;
+  if (perm === 'denied') return 'الإشعارات محظورة من إعدادات المتصفح';
+  const ask = perm === 'default' ? await Notification.requestPermission() : perm;
+  if (ask !== 'granted') return 'لم يتم السماح بالإشعارات';
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) {
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUB),
+    });
+  }
+  await rpc('save_push_subscription', { p_token: session.token, p_sub: JSON.stringify(sub) });
+  return 'تم تفعيل الإشعارات على هذا الجهاز';
+}
+
+/* ============================ الشاشة الترحيبية — 3 ثوانٍ ============================ */
 function WelcomeScreen({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     const t = setTimeout(onClose, 3000);
@@ -93,7 +142,7 @@ function WelcomeScreen({ onClose }: { onClose: () => void }) {
   );
 }
 
-/* ============================ بانر العروض — بنّي مثل الصورة ============================ */
+/* ============================ بانر العروض ============================ */
 function OfferBanners({ ads, cur, onOpen }: { ads: Ad[]; cur: string; onOpen: (a: Ad) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const [idx, setIdx] = useState(0);
@@ -154,7 +203,7 @@ function FeaturedCategories({ catalog, cat, setCat }: { catalog: Catalog | null;
           const active = cat === c.slug;
           return (
             <button key={c.slug} onClick={() => setCat(c.slug)} className="flex flex-none flex-col items-center gap-2 transition active:scale-95">
-              <span className={`grid size-[76px] place-items-center overflow-hidden rounded-full shadow-md shadow-[#8a6a48]/25 transition-all ${
+              <span className={`grid size-[76px] place-items-center overflow-hidden rounded-full shadow-md shadow-[#8a6a48]/10 transition-all ${
                 active ? 'ring-2 ring-[#8A6A48] ring-offset-2 ring-offset-[#F6E7C9]' : 'ring-1 ring-[#EAD3A0]'}`}>
                 {c.slug === 'all'
                   ? <span className="grid size-full place-items-center bg-[#EAC98F] text-[#221B12]"><Icon name="search" size={20} /></span>
@@ -186,7 +235,6 @@ function Home({ catalog, openProduct }: { catalog: Catalog | null; openProduct: 
           <h2 className="text-[17px] font-black text-[#221B12]">{activeName}</h2>
           <span className="text-[11px] font-bold text-[#94826A]">{shown.length} منتج</span>
         </div>
-        {/* بطاقات كريمية مثل التصميم المرجعي */}
         <div className="grid grid-cols-2 gap-3.5 pb-4 sm:grid-cols-3">
           {shown.map((p, i) => (
             <button key={p.id} onClick={() => openProduct(p)}
@@ -211,46 +259,67 @@ function Home({ catalog, openProduct }: { catalog: Catalog | null; openProduct: 
   );
 }
 
-/* ============================ تفاصيل المنتج — ملء الشاشة ============================ */
-function ProductSheet({ product, catalog, onClose, onOrder }: {
-  product: Product; catalog: Catalog | null; onClose: () => void; onOrder: (line: CartLine) => void;
+/* ============================ تفاصيل المنتج — ملء الشاشة مع الخيارات ============================ */
+function ProductSheet({ product, catalog, onClose, onAdd, onOrderNow }: {
+  product: Product; catalog: Catalog | null; onClose: () => void;
+  onAdd: (line: CartLine) => void; onOrderNow: (line: CartLine) => void;
 }) {
   const [qty, setQty] = useState(1);
+  const [opts, setOpts] = useState<string[]>([]);
   const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
+  const options = ((product as any).options || '').split(',').map((o: string) => o.trim()).filter(Boolean);
+  const toggle = (o: string) => setOpts((os) => (os.includes(o) ? os.filter((x) => x !== o) : [...os, o]));
+
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-white anim-rise">
-      {/* صورة ملء الشاشة */}
-      <div className="relative h-[46vh] min-h-64 flex-none overflow-hidden">
+      <div className="relative h-[42vh] min-h-56 flex-none overflow-hidden">
         <img src={product.image_url} alt={product.name_ar} className="size-full object-cover" />
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/35 to-transparent" />
-        {/* زر الرجوع */}
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/35 to-transparent" />
         <button onClick={onClose}
           className="absolute top-4 right-4 grid size-11 place-items-center rounded-full bg-white shadow-lg transition active:scale-90"
           style={{ color: '#221B12' }} aria-label="رجوع">
           <Icon name="chevron" size={20} />
         </button>
-        {/* شارة السعر */}
         <span className="absolute bottom-5 left-5 rounded-full bg-[#EAC98F] px-5 py-2.5 text-xl font-black shadow-xl" style={{ color: '#221B12' }}>
           {eur(product.price_cents, cur)}
         </span>
       </div>
 
-      {/* المحتوى */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-4 pt-5">
-        <h2 className="text-[26px] font-black leading-tight" style={{ color: '#221B12' }}>{product.name_ar}</h2>
-        <p className="mt-1 text-xs font-bold uppercase tracking-[.14em]" style={{ color: '#94826A' }}>{product.name_en}</p>
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-40 pt-5">
+        <h2 className="text-[26px] font-black leading-tight text-[#221B12]">{product.name_ar}</h2>
+        <p className="mt-1 text-xs font-bold uppercase tracking-[.14em] text-[#94826A]">{product.name_en}</p>
 
-        <div className="mt-4 rounded-[1.4rem] p-4" style={{ background: '#F8EED6' }}>
-          <p className="text-[11px] font-extrabold" style={{ color: '#8A6A48' }}>الوصف</p>
-          <p className="mt-1.5 text-sm leading-relaxed" style={{ color: '#4A3A28' }}>
-            {product.description_ar || 'مشروب مميز من Dose Coffee & More'}
+        {options.length > 0 && (
+          <div className="mt-5">
+            <h3 className="text-[15px] font-black text-[#221B12]">اطلبها على ذوقك</h3>
+            <p className="mt-0.5 text-[11px] font-bold text-[#94826A]">اختياري — اختر ما يناسب ذوقك</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {options.map((o) => {
+                const on = opts.includes(o);
+                return (
+                  <button key={o} onClick={() => toggle(o)}
+                    className={`flex items-center gap-1.5 rounded-full border-2 px-4 py-2 text-[13px] font-extrabold transition active:scale-95 ${
+                      on ? 'border-[#8A6A48] bg-[#EAC98F]/40 text-[#221B12]' : 'border-[#EAD3A0] bg-[#F8EED6] text-[#6E6553]'}`}>
+                    {on && <Icon name="check" size={13} strokeWidth={2.6} />}
+                    {o}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-5 rounded-[1.4rem] p-4" style={{ background: '#F8EED6' }}>
+          <p className="text-[11px] font-extrabold text-[#8A6A48]">الوصف</p>
+          <p className="mt-1.5 text-sm leading-relaxed text-[#4A3A28]">
+            {product.description_ar || 'مميز من Dose Cafe'}
           </p>
         </div>
 
-        <div className="mt-4 flex items-center justify-between">
+        <div className="mt-4 flex items-center justify-between pb-2">
           <div>
-            <p className="text-[11px] font-extrabold" style={{ color: '#8A6A48' }}>الكمية</p>
-            <p className="mt-0.5 text-2xl font-black" style={{ color: '#221B12' }}>{qty}</p>
+            <p className="text-[11px] font-extrabold text-[#8A6A48]">الكمية</p>
+            <p className="mt-0.5 text-2xl font-black text-[#221B12]">{qty}</p>
           </div>
           <div className="flex items-center gap-3.5" dir="ltr">
             <button onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1}
@@ -263,21 +332,72 @@ function ProductSheet({ product, catalog, onClose, onOrder }: {
         </div>
       </div>
 
-      {/* الشريط الثابت بالأسفل */}
-      <div className="flex-none bg-white px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2"
-        style={{ boxShadow: '0 -12px 32px -18px rgba(34,27,18,.35)' }}>
-        <div className="flex items-center gap-3">
-          <div className="flex-none text-right">
-            <p className="text-[10px] font-bold" style={{ color: '#94826A' }}>الإجمالي</p>
-            <p className="text-xl font-black" style={{ color: '#221B12' }}>{eur(product.price_cents * qty, cur)}</p>
-          </div>
-          <button onClick={() => onOrder({ product, qty })}
-            className="flex-1 rounded-full bg-[#EAC98F] py-4 text-base font-black shadow-lg shadow-[#8a6a48]/35 transition active:scale-[.98]"
-            style={{ color: '#221B12' }}>
+      <div className="flex-none bg-white px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_32px_-18px_rgba(34,27,18,.35)]">
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={() => onAdd({ product, qty, options: opts })}
+            className="rounded-full border-2 border-[#EAC98F] py-4 text-sm font-black text-[#221B12] transition active:scale-[.98]">
+            أضف إلى السلة
+          </button>
+          <button onClick={() => onOrderNow({ product, qty, options: opts })}
+            className="rounded-full bg-gradient-to-l from-[#EAC98F] to-[#D9B171] py-4 text-sm font-black text-[#221B12] shadow-lg shadow-[#8a6a48]/35 transition active:scale-[.98]">
             اطلب الآن
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ============================ صفحة السلة ============================ */
+function CartPage({ lines, setQty, remove, onOrder, onBrowse }: {
+  lines: CartLine[];
+  setQty: (i: number, q: number) => void;
+  remove: (i: number) => void;
+  onOrder: () => void;
+  onBrowse: () => void;
+}) {
+  const cur = 'ل.س';
+  const total = lines.reduce((a, l) => a + l.product.price_cents * l.qty, 0);
+  const points = lines.reduce((a, l) => a + l.product.points * l.qty, 0);
+
+  if (!lines.length) return (
+    <div className="grid place-items-center py-20 text-center anim-rise">
+      <span className="mx-auto grid size-16 place-items-center rounded-[1.4rem] bg-[#F1DCB0] text-[#8A6A48]"><Icon name="cart" size={26} /></span>
+      <h3 className="mt-4 text-base font-extrabold text-[#221B12]">سلتك فارغة</h3>
+      <p className="mt-1 text-xs text-neutral-500">أضف مشروباتك وحلوياتك المفضلة من القائمة</p>
+      <button onClick={onBrowse} className="mt-5 rounded-full bg-[#EAC98F] px-9 py-3 text-sm font-black text-[#221B12] shadow-md active:scale-95">تصفح القائمة</button>
+    </div>
+  );
+
+  return (
+    <div className="space-y-3 pb-4 anim-rise">
+      {lines.map((l, i) => (
+        <div key={i} className="flex items-center gap-3.5 rounded-[1.5rem] bg-white p-3 shadow-sm ring-1 ring-[#EAD3A0]">
+          <img src={l.product.image_url} alt="" className="size-20 flex-none rounded-[1.1rem] object-cover" />
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate text-sm font-extrabold text-[#221B12]">{l.product.name_ar}</h3>
+            {(l.options || []).length > 0 && <p className="mt-0.5 truncate text-[10.5px] font-bold text-[#8A6A48]">✓ {l.options.join('، ')}</p>}
+            <p className="mt-1 text-sm font-black text-[#221B12]">{eur(l.product.price_cents * l.qty, cur)}</p>
+          </div>
+          <div className="flex flex-none items-center gap-2.5" dir="ltr">
+            <button onClick={() => setQty(i, l.qty - 1)} disabled={l.qty <= 1}
+              className="grid size-8 place-items-center rounded-full border-2 border-[#EAC98F] text-sm font-black text-[#221B12] disabled:opacity-30">−</button>
+            <span className="w-5 text-center text-sm font-black text-[#221B12]">{l.qty}</span>
+            <button onClick={() => setQty(i, l.qty + 1)}
+              className="grid size-8 place-items-center rounded-full bg-[#EAC98F] text-sm font-black text-[#221B12]">+</button>
+          </div>
+          <button onClick={() => remove(i)} className="grid size-9 flex-none place-items-center rounded-full bg-red-50 text-red-500 transition active:scale-90" aria-label="حذف">
+            <Icon name="trash" size={15} />
+          </button>
+        </div>
+      ))}
+      <div className="rounded-[1.5rem] bg-[#F1DCB0] p-4 text-center">
+        <p className="text-[11px] font-bold text-[#6E6553]">الإجمالي · ستكسب ⭐ {points} نقطة</p>
+        <p className="mt-1 text-2xl font-black text-[#221B12]">{eur(total, cur)}</p>
+      </div>
+      <button onClick={onOrder} className="w-full rounded-full bg-[#EAC98F] py-4 text-base font-black text-[#221B12] shadow-lg shadow-[#8a6a48]/35 transition active:scale-[.98]">
+        اطلب الآن
+      </button>
     </div>
   );
 }
@@ -337,7 +457,7 @@ const NeedLogin = () => (
     <span className="mx-auto grid size-16 place-items-center rounded-[1.4rem] bg-[#F1DCB0] text-[#8A6A48]"><Icon name="lock" size={26} /></span>
     <h3 className="mt-4 text-base font-extrabold text-[#221B12]">سجّل دخولك للمتابعة</h3>
     <p className="mt-1 text-xs text-neutral-500">برقم هاتفك ورمز PIN</p>
-    <Link to="/login" className={`mt-5 w-fit px-9 ${CTA.replace('w-full', '')}`}>تسجيل الدخول</Link>
+    <Link to="/login" className="mt-5 rounded-full bg-[#EAC98F] px-9 py-3 text-sm font-black text-[#221B12] shadow-md active:scale-95">تسجيل الدخول</Link>
   </div>
 );
 
@@ -372,8 +492,8 @@ function OrdersPage({ myData, session }: { myData: MyData | null; session: Sessi
             <span className={`rounded-full px-2.5 py-1 text-[11px] font-extrabold ${statusInfo(o.status).color}`}>{statusInfo(o.status).label}</span>
           </div>
           <div className="mt-2 space-y-1">
-            {o.items.map((it, i) => (
-              <p key={i} className="text-xs text-[#5c5142]">• {it.name_ar} × {it.qty} — {eur(it.unit_price_cents)}</p>
+            {o.items.map((it: any, i) => (
+              <p key={i} className="text-xs text-[#5c5142]">• {it.name_ar} × {it.qty}{it.options ? ` (${it.options})` : ''} — {eur(it.unit_price_cents)}</p>
             ))}
           </div>
           <div className="mt-3 flex items-center justify-between border-t border-dashed border-[#E0C288] pt-3 text-xs">
@@ -390,14 +510,23 @@ function OrdersPage({ myData, session }: { myData: MyData | null; session: Sessi
 }
 
 /* ============================ الإشعارات ============================ */
-function NotificationsPage({ myData, session, onSeen }: { myData: MyData | null; session: Session | null; onSeen: () => void }) {
+function NotificationsPage({ myData, session, onSeen, onEnablePush, pushMsg }: {
+  myData: MyData | null; session: Session | null; onSeen: () => void; onEnablePush: () => void; pushMsg: string;
+}) {
   useEffect(() => { onSeen(); }, []);
   if (!session) return <NeedLogin />;
   const items = myData?.notifications ?? [];
   return (
     <div className="space-y-2.5 pb-4 anim-rise">
+      <button onClick={onEnablePush} className="flex w-full items-center justify-between rounded-[1.4rem] bg-gradient-to-l from-[#7A5C3E] to-[#3E3222] p-4 text-right text-white shadow-lg">
+        <span className="flex items-center gap-3 text-sm font-extrabold">
+          <span className="grid size-10 place-items-center rounded-2xl bg-white/15"><Icon name="bell" size={18} /></span>
+          تفعيل الإشعارات الفورية
+        </span>
+        <span className="max-w-[38%] text-[10px] font-bold text-[#EAC98F]">{pushMsg || 'اضغط للتفعيل'}</span>
+      </button>
       {items.length === 0 && (
-        <div className="py-20 text-center">
+        <div className="py-16 text-center">
           <span className="mx-auto grid size-16 place-items-center rounded-[1.4rem] bg-[#F1DCB0] text-[#8A6A48]"><Icon name="bell" size={26} /></span>
           <p className="mt-4 text-sm font-bold text-neutral-500">لا توجد إشعارات حاليًا</p>
         </div>
@@ -456,23 +585,23 @@ function MyCodes({ redemptions }: { redemptions: Redemption[] }) {
   );
 }
 
-function AccountPage({ session, myData, waNumber, onLogout }: {
-  session: Session; myData: MyData | null; waNumber: string; onLogout: () => void;
+function AccountPage({ session, myData, waNumber, onLogout, onPush, pushMsg }: {
+  session: Session; myData: MyData | null; waNumber: string; onLogout: () => void; onPush: () => void; pushMsg: string;
 }) {
   const [showCodes, setShowCodes] = useState(false);
   const c = myData?.customer ?? session.customer;
   const redemptions = myData?.redemptions ?? [];
   return (
     <div className="anim-rise">
-      <div className="rounded-[2rem] bg-gradient-to-bl from-fresh-600 via-fresh-700 to-fresh-900 p-6 text-center text-white shadow-xl shadow-fresh-900/20">
+      <div className="rounded-[2rem] bg-gradient-to-bl from-[#7A5C3E] to-[#3E3222] p-6 text-center text-white shadow-xl shadow-[#8a6a48]/40">
         <span className="mx-auto grid size-16 place-items-center rounded-full bg-white/15 text-2xl font-black backdrop-blur">
           {c.full_name.trim().charAt(0)}
         </span>
         <h2 className="mt-3 text-lg font-black">{c.full_name}</h2>
         <p className="mt-0.5 text-xs text-white/70" dir="ltr">{c.phone}</p>
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-3xl bg-white/10 py-3"><p className="text-xl font-black text-[#7FE7B0]">{c.points}</p><p className="text-[10px] font-bold text-white/70">نقطة</p></div>
-          <div className="rounded-3xl bg-white/10 py-3"><p className="text-xl font-black text-[#7FE7B0]">{c.orders_count}</p><p className="text-[10px] font-bold text-white/70">طلب</p></div>
+          <div className="rounded-3xl bg-white/10 py-3"><p className="text-xl font-black text-[#EAC98F]">{c.points}</p><p className="text-[10px] font-bold text-white/70">نقطة</p></div>
+          <div className="rounded-3xl bg-white/10 py-3"><p className="text-xl font-black text-[#EAC98F]">{c.orders_count}</p><p className="text-[10px] font-bold text-white/70">طلب</p></div>
         </div>
       </div>
 
@@ -480,96 +609,32 @@ function AccountPage({ session, myData, waNumber, onLogout }: {
         <AccountRow icon="receipt" label="الطلبات" onClick={() => _navRef?.('/orders')} />
         <AccountRow icon="gift" label="المكافأة" onClick={() => setShowCodes(true)} badge={redemptions.filter((r) => r.status === 'unused').length || undefined} />
         <a href={waChatLink(waNumber, 'مرحبًا، أحتاج مساعدة من Dose Cafe')} target="_blank" rel="noopener"
-          className="flex w-full items-center justify-between rounded-[1.4rem] bg-white p-4 shadow-sm ring-1 ring-fresh-100 transition active:scale-[.98]">
-          <span className="flex items-center gap-3 text-sm font-extrabold text-fresh-ink">
-            <span className="grid size-10 place-items-center rounded-2xl bg-fresh-50 text-fresh-700"><Icon name="headset" size={18} /></span>
+          className="flex w-full items-center justify-between rounded-[1.4rem] bg-[#F1DCB0] p-4 transition active:scale-[.98]">
+          <span className="flex items-center gap-3 text-sm font-extrabold text-[#221B12]">
+            <span className="grid size-10 place-items-center rounded-2xl bg-white shadow-sm text-[#8A6A48]"><Icon name="headset" size={18} /></span>
             المساعدة والدعم
           </span>
-          <span className="text-fresh-200"><Icon name="chevron" size={16} /></span>
+          <span className="text-[#D9B171]"><Icon name="chevron" size={16} /></span>
         </a>
         <AccountRow icon="store" label="عن المحل" onClick={() => _navRef?.('/about')} />
+        <button onClick={onPush} className="flex w-full items-center justify-between rounded-[1.4rem] bg-[#F1DCB0] p-4 transition active:scale-[.98]">
+          <span className="flex items-center gap-3 text-sm font-extrabold text-[#221B12]">
+            <span className="grid size-10 place-items-center rounded-2xl bg-white shadow-sm text-[#8A6A48]"><Icon name="bell" size={18} /></span>
+            الإشعارات الفورية
+          </span>
+          <span className="max-w-[38%] truncate text-[10px] font-bold text-[#6E8B5A]">{pushMsg || 'اضغط للتفعيل'}</span>
+        </button>
         <button onClick={onLogout}
-          className="flex w-full items-center justify-between rounded-[1.4rem] bg-white p-4 shadow-sm ring-1 ring-red-100 transition active:scale-[.98]">
-          <span className="flex items-center gap-3 text-sm font-extrabold text-red-500">
-            <span className="grid size-10 place-items-center rounded-2xl bg-red-50 text-red-500"><Icon name="logout" size={18} /></span>
+          className="flex w-full items-center justify-between rounded-[1.4rem] bg-[#F1DCB0] p-4 transition active:scale-[.98]">
+          <span className="flex items-center gap-3 text-sm font-extrabold text-[#C4482E]">
+            <span className="grid size-10 place-items-center rounded-2xl bg-white shadow-sm text-[#C4482E]"><Icon name="logout" size={18} /></span>
             تسجيل الخروج
           </span>
-          <span className="text-red-200"><Icon name="chevron" size={16} /></span>
+          <span className="text-[#D9B171]"><Icon name="chevron" size={16} /></span>
         </button>
       </div>
 
       {showCodes && <MyCodes redemptions={redemptions} />}
-    </div>
-  );
-}
-
-/* ============================ عن المحل ============================ */
-function AboutPage({ catalog }: { catalog: Catalog | null }) {
-  const phone = catalog?.settings?.store_phone ?? '0936107119';
-  const contactRow = (icon: IconName, label: string, value: string, href: string) => (
-    <a href={href} target={href.startsWith('http') ? '_blank' : undefined} rel="noopener"
-      className="flex w-full items-center gap-3 rounded-[1.4rem] bg-white p-4 shadow-sm ring-1 ring-fresh-100 transition active:scale-[.98]">
-      <span className="grid size-10 place-items-center rounded-2xl bg-fresh-100 text-fresh-700"><Icon name={icon} size={17} /></span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-[10px] font-bold text-neutral-400">{label}</span>
-        <span className="block truncate text-sm font-extrabold text-fresh-ink" dir="ltr">{value}</span>
-      </span>
-      <span className="text-fresh-200"><Icon name="chevron" size={16} /></span>
-    </a>
-  );
-  const credit = (name: string, role: string, phoneNum: string) => (
-    <div className="rounded-[1.4rem] bg-white/10 p-4 text-right backdrop-blur">
-      <p className="text-[15px] font-black">{name}</p>
-      <p className="mt-0.5 text-[11px] font-bold text-[#EAC98F]">{role}</p>
-      <div className="mt-2.5 flex items-center gap-2" dir="ltr">
-        <a href={`tel:${phoneNum}`} className="flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-[11px] font-extrabold transition hover:bg-white/25">
-          <Icon name="phone" size={12} /> {phoneNum}
-        </a>
-        <a href={`https://wa.me/963${phoneNum.replace(/^0/, '')}`} target="_blank" rel="noopener"
-          className="flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-[11px] font-extrabold transition hover:bg-white/25">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Zm5.5 14.1c-.2.7-1.3 1.3-1.9 1.4-.5.1-1.1.1-1.8-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.7-4-4.8-4.2-.1-.2-1.2-1.6-1.2-3s.7-2.1 1-2.4c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.4.2.5.7 1.8.8 1.9.1.1.1.3 0 .5-.1.2-.1.3-.3.5l-.4.5c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1.1 2.2 1.4 2.5 1.5.3.1.5.1.6-.1.2-.2.7-.8.9-1.1.2-.3.4-.2.6-.1l1.8.9c.3.1.5.2.5.3.1.1.1.7-.1 1.3Z"/></svg>
-          واتساب
-        </a>
-      </div>
-    </div>
-  );
-  return (
-    <div className="anim-rise">
-      <div className="rounded-[2rem] bg-gradient-to-bl from-fresh-600 via-fresh-700 to-fresh-900 p-6 text-center text-white shadow-xl shadow-fresh-900/20">
-        <img src="/logo.jpg" alt="Dose" className="mx-auto size-20 rounded-[1.6rem] object-cover shadow-2xl ring-4 ring-white/20" />
-        <h2 className="mt-3 text-xl font-black">عن المحل</h2>
-        <p className="mt-1 text-xs font-bold text-[#EAC98F]" dir="ltr">Dose Cafe</p>
-      </div>
-
-      <div className="mt-4 rounded-[1.75rem] bg-white p-5 shadow-sm ring-1 ring-fresh-100">
-        <p className="text-sm leading-loose text-[#4A3A28]">
-          <b className="text-fresh-ink">Dose Cafe — أكثر من مجرد قهوة.</b>
-          <br />نقدّم لك قهوة مختصة ومشروبات ساخنة وباردة على أصولها، وحلويات طازجة تُخبز يوميًا،
-          مع خدمة سريعة وأجواء مريحة تناسب كل الأوقات.
-          <br />مع نظام نقاط ومكافآت خاص: اجمع النقاط مع كل طلب، واستبدلها بمشروبات وحلويات مجانية.
-        </p>
-      </div>
-
-      <h3 className="mb-2.5 mt-6 text-base font-black text-fresh-ink">تواصل معنا</h3>
-      <div className="space-y-2.5">
-        {contactRow('phone', 'هاتف المحل', phone, `tel:${phone}`)}
-        {contactRow('instagram', 'إنستغرام', '@dose__cafe', 'https://www.instagram.com/dose__cafe')}
-        {contactRow('tiktok', 'تيك توك', '@dose__cafe', 'https://www.tiktok.com/@dose__cafe')}
-        {contactRow('facebook', 'فيسبوك', 'Dose Cafe', 'https://www.facebook.com/share/1DhShCC3Fm/')}
-        {contactRow('pin', 'موقع المحل', '35.1327334 , 36.7526210', 'https://www.google.com/maps?q=35.1327334,36.7526210')}
-      </div>
-
-      <h3 className="mb-2.5 mt-7 text-base font-black text-fresh-ink">فريق العمل</h3>
-      <div className="overflow-hidden rounded-[2rem] bg-gradient-to-bl from-[#7A5C3E] via-[#5C4430] to-[#3E3222] p-5 text-white shadow-xl shadow-[#8a6a48]/40">
-        <p className="flex items-center justify-center gap-2 text-xs font-black tracking-wide text-[#EAC98F]">
-          <Icon name="star" size={13} filled /> بطاقة مميزة
-        </p>
-        <div className="mt-4 space-y-3">
-          {credit('براء دهبية', 'صاحب الفكرة والدعم', '0966333006')}
-          {credit('قصي مهند الصالح', 'مطور المنصة وبرمجتها', '0952639157')}
-        </div>
-        <p className="mt-4 text-center text-[10px] font-bold text-white/60">صُنعت هذه المنصة بحب — Dose Cafe</p>
-      </div>
     </div>
   );
 }
@@ -603,7 +668,7 @@ function LoginPage({ onLogged }: { onLogged: (s: Session) => void }) {
           className="mt-3 h-12 w-full rounded-2xl border-2 border-[#EAD3A0] bg-[#F8EED6] px-4 text-center text-lg font-black tracking-[.5em] outline-none focus:border-[#D9B171]" />
         {err && <p className="mt-3 rounded-2xl bg-red-50 px-3 py-2 text-center text-xs font-bold text-red-600">{err}</p>}
         <button onClick={submit} disabled={busy || pin.length !== 4 || phone.replace(/\D/g, '').length < 8}
-          className={`mt-5 ${CTA}`}>
+          className="mt-5 w-full rounded-full bg-[#EAC98F] py-3.5 text-base font-black text-[#221B12] shadow-lg shadow-[#8a6a48]/35 active:scale-[.98] disabled:opacity-40">
           {busy ? 'جارٍ الدخول…' : 'دخول'}
         </button>
         <button onClick={() => nav('/signup')} className="mt-3 w-full py-2 text-center text-sm font-bold text-[#8A6A48]">ليس لديك حساب؟ أنشئ حسابك الآن</button>
@@ -637,7 +702,7 @@ function SignupPage({ onLogged }: { onLogged: (s: Session) => void }) {
   return (
     <div className="mx-auto max-w-sm py-8 anim-rise">
       <div className="rounded-[2rem] bg-white p-7 shadow-xl shadow-[#8a6a48]/15">
-        <h2 className="text-center text-xl font-black text-[#221B12]">مرحبًا بك في <span className="text-[#8A6A48]">Dose</span></h2>
+        <h2 className="text-center text-xl font-black text-[#221B12]">مرحبًا بك في <span className="text-[#8A6A48]">Dose Cafe</span></h2>
         <p className="mt-1 text-center text-xs text-neutral-500">أنشئ حسابك الآن واستمتع بالنقاط والمكافآت</p>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="الاسم الكامل"
           className="mt-4 h-12 w-full rounded-2xl border-2 border-[#EAD3A0] bg-[#F8EED6] px-4 text-sm font-bold outline-none focus:border-[#D9B171]" />
@@ -654,7 +719,7 @@ function SignupPage({ onLogged }: { onLogged: (s: Session) => void }) {
         </p>
         {err && <p className="mt-3 rounded-2xl bg-red-50 px-3 py-2 text-center text-xs font-bold text-red-600">{err}</p>}
         <button onClick={submit} disabled={busy}
-          className={`mt-4 ${CTA}`}>
+          className="mt-4 w-full rounded-full bg-[#EAC98F] py-3.5 text-base font-black text-[#221B12] shadow-lg shadow-[#8a6a48]/35 active:scale-[.98] disabled:opacity-50">
           {busy ? 'جارٍ الإنشاء…' : 'إنشاء الحساب والمتابعة'}
         </button>
         <button onClick={() => nav('/login')} className="mt-3 w-full py-2 text-center text-sm font-bold text-neutral-500">إلغاء والعودة</button>
@@ -669,6 +734,7 @@ export default function CustomerApp() {
   _navRef = nav;
   const catalog = useCatalog();
   const { session, myData, save, refresh } = useAppSession();
+  const cart = useCart();
   const { show, node: toastNode } = useToast();
   const [product, setProduct] = useState<Product | null>(null);
   const [flow, setFlow] = useState<OrderFlow>({ step: null, lines: [] });
@@ -677,16 +743,25 @@ export default function CustomerApp() {
   const [success, setSuccess] = useState<{ orderNumber: number; points: number; message: string } | null>(null);
   const [adOpen, setAdOpen] = useState<Ad | null>(null);
   const [welcomeDone, setWelcomeDone] = useState(false);
+  const [pushMsg, setPushMsg] = useState('');
   const waNumber = catalog?.settings?.whatsapp_number ?? '963936107119';
   const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
 
   const ads = catalog?.ads ?? [];
   const unread = (myData?.notifications ?? []).filter((n) => !n.is_read).length;
 
-  const startOrder = (line: CartLine) => {
-    if (!session) { setProduct(null); nav('/login'); show('سجّل دخولك أولًا لإتمام الطلب'); return; }
-    setProduct(null);
-    setFlow({ step: 'fulfillment', lines: [line] });
+  /* تفعيل الإشعارات تلقائيًا بعد الدخول (إن كانت مسموحة مسبقًا) */
+  useEffect(() => {
+    if (!session?.token) return;
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      enablePushNotifications(session).then(() => setPushMsg('مفعّلة')).catch(() => {});
+    }
+  }, [session?.token]);
+
+  const startOrder = (lines: CartLine[]) => {
+    if (!lines.length) { show('سلتك فارغة'); return; }
+    if (!session) { nav('/login'); show('سجّل دخولك أولًا لإتمام الطلب'); return; }
+    setFlow({ step: 'fulfillment', lines });
   };
 
   const submitPin = async (pin: string) => {
@@ -696,19 +771,20 @@ export default function CustomerApp() {
       const res = await rpc<any>('create_order', {
         p_customer_id: session.customer.id, p_pin: pin,
         p_fulfillment_type: flow.fulfillment ?? 'pickup',
-        p_items: flow.lines.map((l) => ({ product_id: l.product.id, qty: l.qty })),
+        p_items: flow.lines.map((l) => ({ product_id: l.product.id, qty: l.qty, options: (l.options || []).join('، ') })),
         p_latitude: flow.loc?.lat ?? null, p_longitude: flow.loc?.lng ?? null, p_map_url: flow.loc?.mapUrl ?? null,
         p_source: 'customer',
       });
       const msg = buildOrderMessage({
         orderNumber: res.order_number, customerName: res.customer_name, customerPhone: res.customer_phone,
         fulfillmentType: flow.fulfillment ?? 'pickup',
-        items: flow.lines.map((l) => ({ name: l.product.name_ar, qty: l.qty, unitPriceCents: l.product.price_cents })),
+        items: flow.lines.map((l) => ({ name: l.product.name_ar, qty: l.qty, unitPriceCents: l.product.price_cents, options: (l.options || []).join('، ') })),
         totalCents: res.total_cents, totalPoints: res.total_points,
         mapUrl: flow.loc?.mapUrl, createdAt: res.created_at,
         currencySymbol: cur,
       });
       setFlow({ step: null, lines: [] });
+      cart.clear();
       setSuccess({ orderNumber: res.order_number, points: res.total_points, message: msg });
       refresh();
     } catch (e: any) {
@@ -723,6 +799,13 @@ export default function CustomerApp() {
       show(`تم الاستبدال — كودك: ${res.code}`, 'ok');
       refresh();
     } catch (e: any) { show(e.message, 'err'); }
+  };
+
+  const enablePush = async () => {
+    if (!session) { nav('/login'); return; }
+    const m = await enablePushNotifications(session).catch(() => 'تعذر التفعيل');
+    setPushMsg(m.includes('تم تفعيل') ? 'مفعّلة' : m);
+    show(m, m.includes('تم تفعيل') ? 'ok' : 'err');
   };
 
   const navItems: { to: string; icon: IconName; label: string; end?: boolean }[] = [
@@ -773,7 +856,6 @@ export default function CustomerApp() {
         </div>
       </header>
 
-      {/* بانر العروض — متصل بالهيدر */}
       <div className="px-4 pt-3">
         <OfferBanners ads={ads} cur={cur} onOpen={(a) => setAdOpen(a)} />
       </div>
@@ -781,13 +863,18 @@ export default function CustomerApp() {
       <main className="flex-1 px-4 pb-36 pt-2">
         <Routes>
           <Route path="/" element={<Home catalog={catalog} openProduct={setProduct} />} />
+          <Route path="/cart" element={
+            <CartPage lines={cart.lines} setQty={cart.setQty} remove={cart.remove}
+              onOrder={() => startOrder(cart.lines)}
+              onBrowse={() => nav('/')} />} />
           <Route path="/rewards" element={<RewardsPage catalog={catalog} myData={myData} session={session} onRedeem={redeem} />} />
           <Route path="/orders" element={<OrdersPage myData={myData} session={session} />} />
           <Route path="/notifications" element={
-            <NotificationsPage myData={myData} session={session}
-              onSeen={() => { if (session) rpc('mark_notifications_read', { p_token: session.token }).then(refresh).catch(() => {}); }} />} />
+            <NotificationsPage myData={myData} session={session} pushMsg={pushMsg}
+              onSeen={() => { if (session) rpc('mark_notifications_read', { p_token: session.token }).then(refresh).catch(() => {}); }}
+              onEnablePush={enablePush} />} />
           <Route path="/account" element={session ? (
-            <AccountPage session={session} myData={myData} waNumber={waNumber}
+            <AccountPage session={session} myData={myData} waNumber={waNumber} pushMsg={pushMsg} onPush={enablePush}
               onLogout={async () => { if (session) await rpc('customer_logout', { p_token: session.token }).catch(() => {}); save(null); nav('/'); }} />
           ) : <NeedLogin />} />
           <Route path="/about" element={<AboutPage catalog={catalog} />} />
@@ -797,7 +884,7 @@ export default function CustomerApp() {
         </Routes>
       </main>
 
-      {/* شريط تنقل عائم — الحبّة الداكنة للعنصر النشط */}
+      {/* شريط تنقل عائم + زر السلة */}
       <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-md items-center justify-around px-4"
         style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
         <div className="flex w-full items-center justify-around rounded-full bg-white px-2 py-2 shadow-[0_18px_40px_-14px_rgba(74,58,40,.45)]">
@@ -812,10 +899,17 @@ export default function CustomerApp() {
               </>)}
             </NavLink>
           ))}
+          <Link to="/cart" className="relative grid size-11 flex-none place-items-center rounded-full shadow-md" style={{ background: '#EAC98F', color: '#221B12' }} aria-label="السلة">
+            <Icon name="cart" size={19} />
+            {cart.count > 0 && <span className="absolute -top-1 -left-1 grid size-5 place-items-center rounded-full bg-[#221B12] text-[10px] font-black text-white">{cart.count}</span>}
+          </Link>
         </div>
       </nav>
 
-      {product && <ProductSheet product={product} catalog={catalog} onClose={() => setProduct(null)} onOrder={startOrder} />}
+      {product && <ProductSheet product={product} catalog={catalog}
+        onClose={() => setProduct(null)}
+        onAdd={(l) => { cart.add(l); setProduct(null); show('أُضيف إلى السلة', 'ok'); }}
+        onOrderNow={(l) => { cart.add(l); setProduct(null); setTimeout(() => startOrder([l]), 50); }} />}
 
       {flow.step === 'fulfillment' && (
         <FulfillmentModal
@@ -839,7 +933,7 @@ export default function CustomerApp() {
       {success && <OrderSuccessModal {...success} waNumber={waNumber} onClose={() => setSuccess(null)} />}
       {adOpen && (
         <div className="fixed inset-0 z-[120] grid place-items-center bg-black/60 p-4 backdrop-blur-sm anim-fade" onClick={() => setAdOpen(null)}>
-          <div className="w-full max-w-sm overflow-hidden rounded-[2rem] bg-white shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
+          <div className="relative w-full max-w-sm overflow-hidden rounded-[2rem] bg-white shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
             <img src={adOpen.image_url} alt={adOpen.title} className="h-56 w-full object-cover" />
             <div className="p-5 text-center">
               <h3 className="text-lg font-black text-[#221B12]">{adOpen.title}</h3>
@@ -850,8 +944,9 @@ export default function CustomerApp() {
                   <span className="text-2xl font-black text-[#221B12]">{eur(adOpen.new_price_cents, cur)}</span>
                 </div>
               )}
-              <button onClick={() => setAdOpen(null)} className={`mt-4 w-fit px-10 ${CTA}`}>تصفح القائمة</button>
+              <button onClick={() => { setAdOpen(null); nav('/'); }} className="mt-4 w-fit px-10 rounded-full bg-[#EAC98F] py-3 text-sm font-black text-[#221B12] shadow-md active:scale-95">تصفح القائمة</button>
             </div>
+            <button onClick={() => setAdOpen(null)} className="absolute top-3 left-3 grid size-9 place-items-center rounded-full bg-black/50 text-white" aria-label="إغلاق"><Icon name="x" size={16} /></button>
           </div>
         </div>
       )}
@@ -902,7 +997,7 @@ function LocationModal({ onDone, onClose, onBack }: { onDone: (loc: { lat: numbe
         <p className="mt-2 text-xs leading-relaxed text-neutral-500">نحتاج إلى موقعك لتوصيل الطلب إلى المكان الصحيح.</p>
         {err && <p className="mt-3 rounded-2xl bg-red-50 px-3 py-2 text-xs font-bold text-red-600">{err}</p>}
         <button disabled={busy} onClick={share}
-          className={`mt-5 ${CTA}`}>
+          className="mt-5 w-full rounded-full bg-[#EAC98F] py-3.5 text-base font-black text-[#221B12] shadow-lg shadow-[#8a6a48]/35 transition active:scale-[.98] disabled:opacity-50">
           {busy ? 'جارٍ تحديد موقعك…' : 'مشاركة موقعي'}
         </button>
         <button onClick={onBack} className="mt-3 w-full rounded-2xl py-2.5 text-sm font-bold text-neutral-500 hover:text-neutral-800">إلغاء</button>
@@ -931,6 +1026,77 @@ function OrderSuccessModal({ orderNumber, points, waNumber, message, onClose }: 
           {opened ? 'إعادة الإرسال عبر WhatsApp' : 'إرسال الطلب عبر WhatsApp'}
         </button>
         <button onClick={onClose} className="mt-3 w-full rounded-full py-2.5 text-sm font-bold text-neutral-500 hover:text-neutral-800">تم</button>
+      </div>
+    </div>
+  );
+}
+
+/* ============================ عن المحل ============================ */
+function AboutPage({ catalog }: { catalog: Catalog | null }) {
+  const phone = catalog?.settings?.store_phone ?? '0936107119';
+  const contactRow = (icon: IconName, label: string, value: string, href: string) => (
+    <a href={href} target={href.startsWith('http') ? '_blank' : undefined} rel="noopener"
+      className="flex w-full items-center gap-3 rounded-[1.4rem] bg-white p-4 shadow-sm ring-1 ring-[#EAD3A0] transition active:scale-[.98]">
+      <span className="grid size-10 place-items-center rounded-2xl bg-[#F1DCB0] text-[#8A6A48]"><Icon name={icon} size={17} /></span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[10px] font-bold text-[#94826A]">{label}</span>
+        <span className="block truncate text-sm font-extrabold text-[#221B12]" dir="ltr">{value}</span>
+      </span>
+      <span className="text-[#D9B171]"><Icon name="chevron" size={16} /></span>
+    </a>
+  );
+  const credit = (name: string, role: string, phoneNum: string) => (
+    <div className="rounded-[1.4rem] bg-white/10 p-4 text-right backdrop-blur">
+      <p className="text-[15px] font-black">{name}</p>
+      <p className="mt-0.5 text-[11px] font-bold text-[#EAC98F]">{role}</p>
+      <div className="mt-2.5 flex items-center gap-2" dir="ltr">
+        <a href={`tel:${phoneNum}`} className="flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-[11px] font-extrabold transition hover:bg-white/25">
+          <Icon name="phone" size={12} /> {phoneNum}
+        </a>
+        <a href={`https://wa.me/963${phoneNum.replace(/^0/, '')}`} target="_blank" rel="noopener"
+          className="flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-[11px] font-extrabold transition hover:bg-white/25">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Zm5.5 14.1c-.2.7-1.3 1.3-1.9 1.4-.5.1-1.1.1-1.8-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.7-4-4.8-4.2-.1-.2-1.2-1.6-1.2-3s.7-2.1 1-2.4c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.4.2.5.7 1.8.8 1.9.1.1.1.3 0 .5-.1.2-.1.3-.3.5l-.4.5c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1.1 2.2 1.4 2.5 1.5.3.1.5.1.6-.1.2-.2.7-.8.9-1.1.2-.3.4-.2.6-.1l1.8.9c.3.1.5.2.5.3.1.1.1.7-.1 1.3Z"/></svg>
+          واتساب
+        </a>
+      </div>
+    </div>
+  );
+  return (
+    <div className="anim-rise">
+      <div className="rounded-[2rem] bg-gradient-to-bl from-[#7A5C3E] to-[#3E3222] p-6 text-center text-white shadow-xl shadow-[#8a6a48]/40">
+        <img src="/logo.jpg" alt="Dose" className="mx-auto size-20 rounded-[1.6rem] object-cover shadow-2xl ring-4 ring-white/20" />
+        <h2 className="mt-3 text-xl font-black">عن المحل</h2>
+        <p className="mt-1 text-xs font-bold text-[#EAC98F]" dir="ltr">Dose Cafe</p>
+      </div>
+
+      <div className="mt-4 rounded-[1.75rem] bg-white p-5 shadow-sm ring-1 ring-[#EAD3A0]">
+        <p className="text-sm leading-loose text-[#4A3A28]">
+          <b className="text-[#221B12]">Dose Cafe — أكثر من مجرد قهوة.</b>
+          <br />نقدّم لك قهوة مختصة ومشروبات ساخنة وباردة على أصولها، وحلويات طازجة تُخبز يوميًا،
+          مع خدمة سريعة وأجواء مريحة تناسب كل الأوقات.
+          <br />مع نظام نقاط ومكافآت خاص: اجمع النقاط مع كل طلب، واستبدلها بمشروبات وحلويات مجانية.
+        </p>
+      </div>
+
+      <h3 className="mb-2.5 mt-6 text-base font-black text-[#221B12]">تواصل معنا</h3>
+      <div className="space-y-2.5">
+        {contactRow('phone', 'هاتف المحل', phone, `tel:${phone}`)}
+        {contactRow('instagram', 'إنستغرام', '@dose__cafe', 'https://www.instagram.com/dose__cafe')}
+        {contactRow('tiktok', 'تيك توك', '@dose__cafe', 'https://www.tiktok.com/@dose__cafe')}
+        {contactRow('facebook', 'فيسبوك', 'Dose Cafe', 'https://www.facebook.com/share/1DhShCC3Fm/')}
+        {contactRow('pin', 'موقع المحل', '35.1327334 , 36.7526210', 'https://www.google.com/maps?q=35.1327334,36.7526210')}
+      </div>
+
+      <h3 className="mb-2.5 mt-7 text-base font-black text-[#221B12]">فريق العمل</h3>
+      <div className="overflow-hidden rounded-[2rem] bg-gradient-to-bl from-[#7A5C3E] via-[#5C4430] to-[#3E3222] p-5 text-white shadow-xl shadow-[#8a6a48]/40">
+        <p className="flex items-center justify-center gap-2 text-xs font-black tracking-wide text-[#EAC98F]">
+          <Icon name="star" size={13} filled /> بطاقة مميزة
+        </p>
+        <div className="mt-4 space-y-3">
+          {credit('براء دهبية', 'صاحب الفكرة والدعم', '0966333006')}
+          {credit('قصي مهند الصالح', 'مطور المنصة وبرمجتها', '0952639157')}
+        </div>
+        <p className="mt-4 text-center text-[10px] font-bold text-white/60">صُنعت هذه المنصة بحب — Dose Cafe</p>
       </div>
     </div>
   );

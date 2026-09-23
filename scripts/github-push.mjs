@@ -45,7 +45,7 @@ if (repo.status === 404) {
 }
 
 // 2) جمع الملفات (مع استثناءات)
-const SKIP_DIRS = new Set(['node_modules', '.vercel', '.git']);
+const SKIP_DIRS = new Set(['node_modules', '.vercel', '.git', 'cli', 'pdf-pages']);
 async function walk(dir, acc = []) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     if (entry.isDirectory()) {

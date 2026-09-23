@@ -242,7 +242,7 @@ const statusLabel = (s: string) => ({ pending: 'قيد المراجعة', confir
 const statusChip = (s: string) => ({ pending: 'bg-amber-100 text-amber-800', confirmed: 'bg-blue-100 text-blue-800', preparing: 'bg-orange-100 text-orange-800', ready: 'bg-emerald-100 text-emerald-800', completed: 'bg-green-100 text-green-700', cancelled: 'bg-red-100 text-red-700' } as any)[s] ?? 'bg-neutral-100';
 
 /* ============================ المنتجات ============================ */
-const EMPTY_PRODUCT = { id: 0, category_slug: 'hot', name_ar: '', name_en: '', description_ar: '', price_cents: 0, points: 0, image_url: '', is_active: true, sort_order: 0 };
+const EMPTY_PRODUCT = { id: 0, category_slug: 'hot', name_ar: '', name_en: '', description_ar: '', price_cents: 0, points: 0, image_url: '', options: '', is_active: true, sort_order: 0 };
 function ProductsTab({ token }: { token: string }) {
   const [products, setProducts] = useState<any[]>([]);
   const [edit, setEdit] = useState<any>(null);
@@ -290,6 +290,7 @@ function ProductsTab({ token }: { token: string }) {
               <Field label="الاسم بالعربية"><input className={inputCls} value={edit.name_ar} onChange={(e) => setEdit({ ...edit, name_ar: e.target.value })} /></Field>
               <Field label="الاسم بالإنجليزية"><input className={inputCls} dir="ltr" value={edit.name_en} onChange={(e) => setEdit({ ...edit, name_en: e.target.value })} /></Field>
               <Field label="الوصف"><textarea className={`${inputCls} h-20 py-2`} value={edit.description_ar} onChange={(e) => setEdit({ ...edit, description_ar: e.target.value })} /></Field>
+              <Field label="خيارات الذوق (افصل بفاصلة)"><input className={inputCls} value={edit.options || ''} onChange={(e) => setEdit({ ...edit, options: e.target.value })} placeholder="سكر إضافي، بدون سكر، نعناع" /></Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="السعر (ل.س)"><input type="number" className={inputCls} value={edit.price_cents} onChange={(e) => setEdit({ ...edit, price_cents: +e.target.value })} /></Field>
                 <Field label="النقاط"><input type="number" className={inputCls} value={edit.points} onChange={(e) => setEdit({ ...edit, points: +e.target.value })} /></Field>

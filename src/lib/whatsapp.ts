@@ -12,7 +12,7 @@ export interface WhatsAppOrder {
   customerName: string;
   customerPhone: string;
   fulfillmentType: 'pickup' | 'delivery';
-  items: { name: string; qty: number; unitPriceCents: number }[];
+  items: { name: string; qty: number; unitPriceCents: number; options?: string }[];
   totalCents: number;
   totalPoints: number;
   mapUrl?: string | null;
@@ -29,7 +29,7 @@ export function buildOrderMessage(o: WhatsAppOrder): string {
   lines.push('📱 الهاتف:', o.customerPhone, '');
   lines.push('📦 نوع الطلب:', o.fulfillmentType === 'delivery' ? '🚚 توصيل' : '🏪 استلام من المحل', '');
   lines.push('🛒 الطلب:');
-  for (const it of o.items) lines.push(`• ${it.name} × ${it.qty} — ${eur(it.unitPriceCents, cur)}`);
+  for (const it of o.items) lines.push(`• ${it.name} × ${it.qty} — ${eur(it.unitPriceCents, cur)}${it.options ? ` (${it.options})` : ''}`);
   lines.push('', '💰 الإجمالي:', eur(o.totalCents, cur), '');
   lines.push('⭐ النقاط:', `${o.totalPoints} نقاط`);
   if (o.fulfillmentType === 'delivery' && o.mapUrl) {

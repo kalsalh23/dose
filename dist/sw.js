@@ -1,4 +1,4 @@
-const CACHE = 'dose-v1';
+const CACHE = 'dose-v2';
 const CORE = ['/', '/logo.jpg', '/manifest.webmanifest'];
 
 self.addEventListener('install', (e) => {
@@ -8,6 +8,31 @@ self.addEventListener('install', (e) => {
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim())
+  );
+});
+
+/* الإشعارات الفورية */
+self.addEventListener('push', (e) => {
+  let d = { title: 'Dose Cafe', body: '' };
+  try { d = e.data.json(); } catch { try { d = { title: 'Dose Cafe', body: e.data.text() }; } catch {} }
+  e.waitUntil(self.registration.showNotification(d.title || 'Dose Cafe', {
+    body: d.body || '',
+    icon: '/logo.jpg',
+    badge: '/logo.jpg',
+    dir: 'rtl',
+    lang: 'ar',
+    vibrate: [100, 50, 100],
+    data: { url: '/orders' },
+  }));
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const c of list) if (c.url.includes(self.location.origin)) return c.focus();
+      return self.clients.openWindow('/orders');
+    })
   );
 });
 

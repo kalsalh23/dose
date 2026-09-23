@@ -1,7 +1,7 @@
 export interface Category { id: number; slug: string; name_ar: string; emoji: string; sort_order: number }
 export interface Product {
   id: number; category_id: number; category: string; name_ar: string; name_en: string;
-  description_ar: string; price_cents: number; points: number; image_url: string; sort_order: number;
+  description_ar: string; price_cents: number; points: number; image_url: string; sort_order: number; options?: string;
 }
 export interface Reward { id: number; name_ar: string; name_en: string; image_url: string; points_cost: number; sort_order: number }
 export interface Ad {
@@ -24,4 +24,4 @@ export interface MyOrder {
 export interface AppNotification { id: number; title: string; body: string; kind: string; is_read: boolean; created_at: string }
 export interface Redemption { code: string; reward_name: string; points_cost: number; status: 'unused' | 'used' | 'expired'; created_at: string }
 export interface MyData { customer: AppCustomer | null; orders: MyOrder[]; redemptions: Redemption[]; notifications: AppNotification[] }
-export interface CartLine { product: Product; qty: number }
+export interface CartLine { product: Product; qty: number; options?: string[] }
