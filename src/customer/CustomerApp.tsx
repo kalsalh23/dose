@@ -813,7 +813,6 @@ export default function CustomerApp() {
     { to: '/rewards', icon: 'star', label: 'النقاط' },
     { to: '/orders', icon: 'receipt', label: 'الطلبات' },
     { to: '/notifications', icon: 'bell', label: 'الإشعارات' },
-    { to: '/account', icon: 'user', label: 'حسابي' },
   ];
 
   return (
@@ -822,7 +821,7 @@ export default function CustomerApp() {
         <div className="flex items-center justify-between gap-3">
           {session ? (
             <>
-              <div className="flex items-center gap-3">
+              <Link to="/account" className="flex items-center gap-3" aria-label="حسابي">
                 <span className="grid size-11 place-items-center rounded-full bg-[#EAC98F] text-base font-black text-[#221B12] shadow-md">
                   {session.customer.full_name.trim().charAt(0)}
                 </span>
@@ -830,7 +829,7 @@ export default function CustomerApp() {
                   <p className="text-[10px] font-bold text-[#94826A]">أهلًا بك</p>
                   <p className="text-[15px] font-black text-[#221B12]">{session.customer.full_name.split(' ')[0]}</p>
                 </div>
-              </div>
+              </Link>
               <div className="flex items-center gap-2">
                 <span className="flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-[#221B12] shadow-sm">
                   <Icon name="star" size={12} filled className="text-[#B07C3A]" /> {myData?.customer?.points ?? session.customer.points}
