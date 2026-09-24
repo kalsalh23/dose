@@ -166,7 +166,7 @@ function Dashboard({ token }: { token: string }) {
     { label: 'إجمالي الطلبات', value: stats?.orders ?? '—', icon: 'receipt', color: 'bg-amber-50 text-amber-700' },
     { label: 'طلبات حالية', value: stats?.active_orders ?? '—', icon: 'clock', color: 'bg-orange-50 text-orange-700' },
     { label: 'طلبات مكتملة', value: stats?.completed_orders ?? '—', icon: 'check', color: 'bg-emerald-50 text-emerald-700' },
-    { label: 'المبيعات', value: stats != null ? eur(stats.sales_cents) : '—', icon: 'chart', color: 'bg-green-50 text-green-700' },
+    { label: 'المبيعات', value: stats != null ? eur(stats.sales_cents, 'ل.س') : '—', icon: 'chart', color: 'bg-green-50 text-green-700' },
     { label: 'نقاط معلقة', value: stats?.points_outstanding ?? '—', icon: 'star', color: 'bg-yellow-50 text-yellow-700' },
     { label: 'استبدالات', value: stats?.redemptions ?? '—', icon: 'gift', color: 'bg-purple-50 text-purple-700' },
     { label: 'منتجات نشطة', value: stats?.products ?? '—', icon: 'package', color: 'bg-rose-50 text-rose-700' },
@@ -216,7 +216,7 @@ function OrdersTab({ token }: { token: string }) {
           <div className="mt-3 grid gap-3 text-xs md:grid-cols-4">
             <div><p className="font-bold text-neutral-400">العميل</p><p className="mt-0.5 font-extrabold text-coffee-900">{o.customer_name}</p><p dir="ltr" className="text-neutral-500">{o.customer_phone}</p></div>
             <div><p className="font-bold text-neutral-400">نوع الطلب</p><p className="mt-0.5 font-extrabold text-coffee-900">{o.fulfillment_type === 'delivery' ? '🚚 توصيل' : '🏪 استلام'}</p></div>
-            <div><p className="font-bold text-neutral-400">الإجمالي / النقاط</p><p className="mt-0.5 font-extrabold text-gold-deep">{eur(o.total_cents)} · ⭐{o.total_points}</p></div>
+            <div><p className="font-bold text-neutral-400">الإجمالي / النقاط</p><p className="mt-0.5 font-extrabold text-gold-deep">{eur(o.total_cents, 'ل.س')} · ⭐{o.total_points}</p></div>
             <div className="flex flex-col gap-1.5">
               {o.delivery_map_url && (
                 <a href={o.delivery_map_url} target="_blank" rel="noopener" className="rounded-xl bg-blue-50 px-3 py-2 text-center text-[11px] font-extrabold text-blue-700 hover:bg-blue-100">📍 فتح موقع العميل على الخريطة</a>
@@ -268,7 +268,7 @@ function ProductsTab({ token }: { token: string }) {
             <div className="min-w-0 flex-1">
               <p className="text-sm font-extrabold text-coffee-900">{p.name_ar} <span className="text-[10px] font-bold text-neutral-400">{p.name_en}</span></p>
               <p className="mt-0.5 text-xs text-neutral-500">{p.description_ar}</p>
-              <p className="mt-1 text-xs font-extrabold text-gold-deep">{eur(p.price_cents)} · ⭐ {p.points}</p>
+              <p className="mt-1 text-xs font-extrabold text-gold-deep">{eur(p.price_cents, 'ل.س')} · ⭐ {p.points}</p>
               <p className="text-[10px] font-bold text-neutral-400">تصنيف: {p.category_slug}</p>
               <div className="mt-2 flex gap-2">
                 <button onClick={() => setEdit({ ...EMPTY_PRODUCT, ...p, category_slug: p.category_slug })} className="rounded-lg bg-[#F3EDE0] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
@@ -475,7 +475,7 @@ function AdsTab({ token }: { token: string }) {
                 <p className="text-sm font-extrabold text-coffee-900">{a.title} {a.full_screen && <span className="ms-1 rounded-full bg-gold/20 px-2 py-0.5 text-[9px] font-black text-gold-deep">ملء الشاشة</span>}</p>
                 <p className="mt-0.5 text-xs text-neutral-500">{a.description_ar}</p>
                 <p className="mt-1 text-xs font-extrabold text-gold-deep">
-                  {a.new_price_cents != null ? eur(a.new_price_cents) : ''} {a.old_price_cents != null && <span className="font-bold text-neutral-400 line-through">{eur(a.old_price_cents)}</span>}
+                  {a.new_price_cents != null ? eur(a.new_price_cents, 'ل.س') : ''} {a.old_price_cents != null && <span className="font-bold text-neutral-400 line-through">{eur(a.old_price_cents, 'ل.س')}</span>}
                   {a.discount_percent != null && <span className="ms-1">(-{a.discount_percent}%)</span>}
                 </p>
               </div>
@@ -497,8 +497,8 @@ function AdsTab({ token }: { token: string }) {
               <Field label="العنوان"><input className={inputCls} value={edit.title} onChange={(e) => setEdit({ ...edit, title: e.target.value })} /></Field>
               <Field label="الوصف"><textarea className={`${inputCls} h-20 py-2`} value={edit.description_ar} onChange={(e) => setEdit({ ...edit, description_ar: e.target.value })} /></Field>
               <div className="grid grid-cols-3 gap-2">
-                <Field label="السعر القديم"><input type="number" className={inputCls} value={edit.old_price_cents} onChange={(e) => setEdit({ ...edit, old_price_cents: e.target.value })} /></Field>
-                <Field label="السعر الجديد"><input type="number" className={inputCls} value={edit.new_price_cents} onChange={(e) => setEdit({ ...edit, new_price_cents: e.target.value })} /></Field>
+                <Field label="السعر القديم (ل.س)"><input type="number" className={inputCls} value={edit.old_price_cents} onChange={(e) => setEdit({ ...edit, old_price_cents: e.target.value })} /></Field>
+                <Field label="السعر الجديد (ل.س)"><input type="number" className={inputCls} value={edit.new_price_cents} onChange={(e) => setEdit({ ...edit, new_price_cents: e.target.value })} /></Field>
                 <Field label="الخصم %"><input type="number" className={inputCls} value={edit.discount_percent} onChange={(e) => setEdit({ ...edit, discount_percent: e.target.value })} /></Field>
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -590,7 +590,7 @@ function SettingsTab({ token }: { token: string }) {
               <select className={inputCls} value={settings[f.key] ?? 'on_complete'}
                 onChange={(e) => setSettings({ ...settings, [f.key]: e.target.value })}>
                 <option value="on_complete">عند إكمال الطلب</option>
-                <option value="on_create">عند إنشاء الطلب</option>
+                
               </select>
             ) : (
               <input className={inputCls} dir="ltr" value={settings[f.key] ?? ''} onChange={(e) => setSettings({ ...settings, [f.key]: e.target.value })} />
