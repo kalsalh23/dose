@@ -91,7 +91,7 @@ function useToast() {
   };
   const node = toast ? (
     <div className={`fixed inset-x-0 bottom-32 z-[300] mx-auto w-fit max-w-[92vw] rounded-full px-5 py-3 text-center text-sm font-bold shadow-2xl anim-pop ${
-      toast.kind === 'err' ? 'bg-[#C4482E] text-white' : 'bg-[#221B12] text-[#F6E7C9]'}`}>{toast.msg}</div>
+      toast.kind === 'err' ? 'bg-[#C4482E] text-white' : 'bg-[#26301C] text-[#E9EDD6]'}`}>{toast.msg}</div>
   ) : null;
   return { show, node };
 }
@@ -125,18 +125,18 @@ function WelcomeScreen({ onClose }: { onClose: () => void }) {
     return () => clearTimeout(t);
   }, []);
   return (
-    <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center overflow-hidden bg-[#F6E7C9] anim-fade">
-      <div className="pointer-events-none absolute -top-10 -left-10 size-44 rounded-full bg-[#EAD3A0]/60 blur-2xl" />
-      <div className="pointer-events-none absolute bottom-16 -right-12 size-52 rounded-full bg-[#E0C288]/50 blur-2xl" />
+    <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center overflow-hidden bg-[#E9EDD6] anim-fade">
+      <div className="pointer-events-none absolute -top-10 -left-10 size-44 rounded-full bg-[#D5DEB4]/60 blur-2xl" />
+      <div className="pointer-events-none absolute bottom-16 -right-12 size-52 rounded-full bg-[#C4CF9E]/50 blur-2xl" />
 
       <img src="/logo.jpg" alt="Dose Coffee & More"
         className="size-36 rounded-[2.2rem] object-cover shadow-2xl shadow-[#8a6a48]/45 ring-4 ring-white" />
 
-      <h1 className="mt-8 text-4xl font-black text-[#221B12]">حب من طرف قهوة</h1>
-      <p className="mt-2 text-sm font-bold tracking-wide text-[#94826A]">Dose Coffee &amp; More</p>
+      <h1 className="mt-8 text-4xl font-black text-[#26301C]">حب من طرف قهوة</h1>
+      <p className="mt-2 text-sm font-bold tracking-wide text-[#7C8665]">Dose Coffee &amp; More</p>
 
-      <div className="absolute bottom-12 h-1 w-28 overflow-hidden rounded-full bg-[#EAD3A0]">
-        <div className="h-full rounded-full bg-[#8A6A48]" style={{ width: '100%', animation: 'welcome-progress 3s linear forwards' }} />
+      <div className="absolute bottom-12 h-1 w-28 overflow-hidden rounded-full bg-[#D5DEB4]">
+        <div className="h-full rounded-full bg-[#5C6B3C]" style={{ width: '100%', animation: 'welcome-progress 3s linear forwards' }} />
       </div>
     </div>
   );
@@ -160,16 +160,16 @@ function OfferBanners({ ads, cur, onOpen }: { ads: Ad[]; cur: string; onOpen: (a
           <button key={a.id} onClick={() => onOpen(a)}
             className="relative h-44 w-full flex-none snap-center overflow-hidden rounded-[1.9rem] text-right shadow-xl shadow-[#8a6a48]/35 sm:h-48">
             <img src={a.image_url} alt={a.title} className="absolute inset-0 size-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-l from-[#4A3A28]/95 via-[#4A3A28]/60 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-l from-[#333D25]/95 via-[#333D25]/60 to-transparent" />
             <div className="absolute inset-y-0 right-0 flex w-[62%] flex-col justify-center gap-1 p-6 text-white">
-              <span className="text-[11px] font-bold text-[#EAC98F]">اليوم فقط</span>
+              <span className="text-[11px] font-bold text-[#C9D3A8]">اليوم فقط</span>
               <h3 className="text-[22px] font-black leading-tight">{a.title}</h3>
               <p className="text-[11px] font-medium text-white/80">{a.description_ar}</p>
               <div className="mt-1 flex items-baseline gap-2">
                 {a.old_price_cents != null && <span className="text-xs font-bold text-white/60 line-through">{eur(a.old_price_cents, cur)}</span>}
-                {a.new_price_cents != null && <span className="text-xl font-black text-[#EAC98F]">{eur(a.new_price_cents, cur)}</span>}
+                {a.new_price_cents != null && <span className="text-xl font-black text-[#C9D3A8]">{eur(a.new_price_cents, cur)}</span>}
               </div>
-              <span className="mt-2 w-fit rounded-full bg-[#EAC98F] px-4 py-1.5 text-[11px] font-black text-[#221B12] shadow">اطلب الآن</span>
+              <span className="mt-2 w-fit rounded-full bg-[#C9D3A8] px-4 py-1.5 text-[11px] font-black text-[#26301C] shadow">اطلب الآن</span>
             </div>
           </button>
         ))}
@@ -177,7 +177,7 @@ function OfferBanners({ ads, cur, onOpen }: { ads: Ad[]; cur: string; onOpen: (a
       {ads.length > 1 && (
         <div className="mt-2.5 flex justify-center gap-1.5">
           {ads.map((_, i) => (
-            <span key={i} className={`h-1.5 rounded-full transition-all ${i === idx ? 'w-5 bg-[#8A6A48]' : 'w-1.5 bg-[#E0C288]'}`} />
+            <span key={i} className={`h-1.5 rounded-full transition-all ${i === idx ? 'w-5 bg-[#5C6B3C]' : 'w-1.5 bg-[#C4CF9E]'}`} />
           ))}
         </div>
       )}
@@ -197,19 +197,19 @@ function FeaturedCategories({ catalog, cat, setCat }: { catalog: Catalog | null;
   const items = [{ slug: 'all', name_ar: 'الكل' }, ...(catalog?.categories ?? [])];
   return (
     <section className="mt-7">
-      <h2 className="mb-3.5 text-[17px] font-black text-[#221B12]">فئات مميزة</h2>
+      <h2 className="mb-3.5 text-[17px] font-black text-[#26301C]">فئات مميزة</h2>
       <div className="no-scrollbar -mx-4 flex gap-5 overflow-x-auto px-4 pb-1">
         {items.map((c) => {
           const active = cat === c.slug;
           return (
             <button key={c.slug} onClick={() => setCat(c.slug)} className="flex flex-none flex-col items-center gap-2 transition active:scale-95">
               <span className={`grid size-[76px] place-items-center overflow-hidden rounded-full shadow-md shadow-[#8a6a48]/10 transition-all ${
-                active ? 'ring-2 ring-[#8A6A48] ring-offset-2 ring-offset-[#F6E7C9]' : 'ring-1 ring-[#EAD3A0]'}`}>
+                active ? 'ring-2 ring-[#5C6B3C] ring-offset-2 ring-offset-[#E9EDD6]' : 'ring-1 ring-[#D5DEB4]'}`}>
                 {c.slug === 'all'
-                  ? <span className="grid size-full place-items-center bg-[#EAC98F] text-[#221B12]"><Icon name="search" size={20} /></span>
+                  ? <span className="grid size-full place-items-center bg-[#C9D3A8] text-[#26301C]"><Icon name="search" size={20} /></span>
                   : <img src={CAT_IMAGES[c.slug] ?? '/img/latte.jpg'} alt={c.name_ar} className="size-full object-cover" loading="lazy" />}
               </span>
-              <span className={`text-[11.5px] font-extrabold ${active ? 'text-[#221B12]' : 'text-[#94826A]'}`}>{c.name_ar}</span>
+              <span className={`text-[11.5px] font-extrabold ${active ? 'text-[#26301C]' : 'text-[#7C8665]'}`}>{c.name_ar}</span>
             </button>
           );
         })}
@@ -232,28 +232,28 @@ function Home({ catalog, openProduct }: { catalog: Catalog | null; openProduct: 
 
       <section className="mt-5">
         <div className="mb-3 flex items-end justify-between px-1">
-          <h2 className="text-[17px] font-black text-[#221B12]">{activeName}</h2>
-          <span className="text-[11px] font-bold text-[#94826A]">{shown.length} منتج</span>
+          <h2 className="text-[17px] font-black text-[#26301C]">{activeName}</h2>
+          <span className="text-[11px] font-bold text-[#7C8665]">{shown.length} منتج</span>
         </div>
         <div className="grid grid-cols-2 gap-3.5 pb-4 sm:grid-cols-3">
           {shown.map((p, i) => (
             <button key={p.id} onClick={() => openProduct(p)}
-              className="rounded-[1.75rem] bg-[#F1DCB0] p-2.5 text-right shadow-sm shadow-[#8a6a48]/15 transition hover:-translate-y-1 hover:shadow-lg anim-rise"
+              className="rounded-[1.75rem] bg-[#E3E9C8] p-2.5 text-right shadow-sm shadow-[#8a6a48]/15 transition hover:-translate-y-1 hover:shadow-lg anim-rise"
               style={{ animationDelay: `${i * 30}ms` }}>
               <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-28 w-full rounded-[1.3rem] object-cover" />
               <div className="flex items-end justify-between px-1 pb-0.5 pt-2.5">
                 <div className="min-w-0">
-                  <h3 className="truncate text-[13px] font-extrabold text-[#221B12]">{p.name_ar}</h3>
-                  <p className="mt-0.5 text-[13px] font-black text-[#221B12]">{eur(p.price_cents, cur)}</p>
+                  <h3 className="truncate text-[13px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
+                  <p className="mt-0.5 text-[13px] font-black text-[#26301C]">{eur(p.price_cents, cur)}</p>
                 </div>
                 <span className="grid size-9 flex-none place-items-center rounded-full bg-white shadow-md">
-                  <Icon name="plus" size={15} className="text-[#221B12]" />
+                  <Icon name="plus" size={15} className="text-[#26301C]" />
                 </span>
               </div>
             </button>
           ))}
         </div>
-        <p className="pb-2 text-center text-[11px] text-[#94826A]">اجمع النقاط مع كل طلب واستبدلها من صفحة «استبدل نقاطك»</p>
+        <p className="pb-2 text-center text-[11px] text-[#7C8665]">اجمع النقاط مع كل طلب واستبدلها من صفحة «استبدل نقاطك»</p>
       </section>
     </div>
   );
@@ -277,29 +277,29 @@ function ProductSheet({ product, catalog, onClose, onAdd, onOrderNow }: {
         <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/35 to-transparent" />
         <button onClick={onClose}
           className="absolute top-4 right-4 grid size-11 place-items-center rounded-full bg-white shadow-lg transition active:scale-90"
-          style={{ color: '#221B12' }} aria-label="رجوع">
+          style={{ color: '#26301C' }} aria-label="رجوع">
           <Icon name="chevron" size={20} />
         </button>
-        <span className="absolute bottom-5 left-5 rounded-full bg-[#EAC98F] px-5 py-2.5 text-xl font-black shadow-xl" style={{ color: '#221B12' }}>
+        <span className="absolute bottom-5 left-5 rounded-full bg-[#C9D3A8] px-5 py-2.5 text-xl font-black shadow-xl" style={{ color: '#26301C' }}>
           {eur(product.price_cents, cur)}
         </span>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-40 pt-5">
-        <h2 className="text-[26px] font-black leading-tight text-[#221B12]">{product.name_ar}</h2>
-        <p className="mt-1 text-xs font-bold uppercase tracking-[.14em] text-[#94826A]">{product.name_en}</p>
+        <h2 className="text-[26px] font-black leading-tight text-[#26301C]">{product.name_ar}</h2>
+        <p className="mt-1 text-xs font-bold uppercase tracking-[.14em] text-[#7C8665]">{product.name_en}</p>
 
         {options.length > 0 && (
           <div className="mt-5">
-            <h3 className="text-[15px] font-black text-[#221B12]">اطلبها على ذوقك</h3>
-            <p className="mt-0.5 text-[11px] font-bold text-[#94826A]">اختياري — اختر ما يناسب ذوقك</p>
+            <h3 className="text-[15px] font-black text-[#26301C]">اطلبها على ذوقك</h3>
+            <p className="mt-0.5 text-[11px] font-bold text-[#7C8665]">اختياري — اختر ما يناسب ذوقك</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {options.map((o) => {
                 const on = opts.includes(o);
                 return (
                   <button key={o} onClick={() => toggle(o)}
                     className={`flex items-center gap-1.5 rounded-full border-2 px-4 py-2 text-[13px] font-extrabold transition active:scale-95 ${
-                      on ? 'border-[#8A6A48] bg-[#EAC98F]/40 text-[#221B12]' : 'border-[#EAD3A0] bg-[#F8EED6] text-[#6E6553]'}`}>
+                      on ? 'border-[#5C6B3C] bg-[#C9D3A8]/40 text-[#26301C]' : 'border-[#D5DEB4] bg-[#EEF2DC] text-[#6B7357]'}`}>
                     {on && <Icon name="check" size={13} strokeWidth={2.6} />}
                     {o}
                   </button>
@@ -309,37 +309,37 @@ function ProductSheet({ product, catalog, onClose, onAdd, onOrderNow }: {
           </div>
         )}
 
-        <div className="mt-5 rounded-[1.4rem] p-4" style={{ background: '#F8EED6' }}>
-          <p className="text-[11px] font-extrabold text-[#8A6A48]">الوصف</p>
-          <p className="mt-1.5 text-sm leading-relaxed text-[#4A3A28]">
+        <div className="mt-5 rounded-[1.4rem] p-4" style={{ background: '#EEF2DC' }}>
+          <p className="text-[11px] font-extrabold text-[#5C6B3C]">الوصف</p>
+          <p className="mt-1.5 text-sm leading-relaxed text-[#333D25]">
             {product.description_ar || 'مميز من Dose Cafe'}
           </p>
         </div>
 
         <div className="mt-4 flex items-center justify-between pb-2">
           <div>
-            <p className="text-[11px] font-extrabold text-[#8A6A48]">الكمية</p>
-            <p className="mt-0.5 text-2xl font-black text-[#221B12]">{qty}</p>
+            <p className="text-[11px] font-extrabold text-[#5C6B3C]">الكمية</p>
+            <p className="mt-0.5 text-2xl font-black text-[#26301C]">{qty}</p>
           </div>
           <div className="flex items-center gap-3.5" dir="ltr">
             <button onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1}
               className="grid size-12 place-items-center rounded-full text-xl font-black shadow-md transition active:scale-90 disabled:opacity-40"
-              style={{ background: '#F1DCB0', color: '#221B12' }}>−</button>
+              style={{ background: '#E3E9C8', color: '#26301C' }}>−</button>
             <button onClick={() => setQty((q) => Math.min(50, q + 1))}
               className="grid size-12 place-items-center rounded-full text-xl font-black text-white shadow-md transition active:scale-90"
-              style={{ background: '#221B12' }}>+</button>
+              style={{ background: '#26301C' }}>+</button>
           </div>
         </div>
       </div>
 
-      <div className="flex-none bg-white px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_32px_-18px_rgba(34,27,18,.35)]">
+      <div className="flex-none bg-white px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_32px_-18px_rgba(38,48,28,.35)]">
         <div className="grid grid-cols-2 gap-3">
           <button onClick={() => onAdd({ product, qty, options: opts })}
-            className="rounded-full border-2 border-[#EAC98F] py-4 text-sm font-black text-[#221B12] transition active:scale-[.98]">
+            className="rounded-full border-2 border-[#C9D3A8] py-4 text-sm font-black text-[#26301C] transition active:scale-[.98]">
             أضف إلى السلة
           </button>
           <button onClick={() => onOrderNow({ product, qty, options: opts })}
-            className="rounded-full bg-gradient-to-l from-[#EAC98F] to-[#D9B171] py-4 text-sm font-black text-[#221B12] shadow-lg shadow-[#8a6a48]/35 transition active:scale-[.98]">
+            className="rounded-full bg-gradient-to-l from-[#C9D3A8] to-[#A9B87F] py-4 text-sm font-black text-[#26301C] shadow-lg shadow-[#8a6a48]/35 transition active:scale-[.98]">
             اطلب الآن
           </button>
         </div>
@@ -362,40 +362,40 @@ function CartPage({ lines, setQty, remove, onOrder, onBrowse }: {
 
   if (!lines.length) return (
     <div className="grid place-items-center py-20 text-center anim-rise">
-      <span className="mx-auto grid size-16 place-items-center rounded-[1.4rem] bg-[#F1DCB0] text-[#8A6A48]"><Icon name="cart" size={26} /></span>
-      <h3 className="mt-4 text-base font-extrabold text-[#221B12]">سلتك فارغة</h3>
+      <span className="mx-auto grid size-16 place-items-center rounded-[1.4rem] bg-[#E3E9C8] text-[#5C6B3C]"><Icon name="cart" size={26} /></span>
+      <h3 className="mt-4 text-base font-extrabold text-[#26301C]">سلتك فارغة</h3>
       <p className="mt-1 text-xs text-neutral-500">أضف مشروباتك وحلوياتك المفضلة من القائمة</p>
-      <button onClick={onBrowse} className="mt-5 rounded-full bg-[#EAC98F] px-9 py-3 text-sm font-black text-[#221B12] shadow-md active:scale-95">تصفح القائمة</button>
+      <button onClick={onBrowse} className="mt-5 rounded-full bg-[#C9D3A8] px-9 py-3 text-sm font-black text-[#26301C] shadow-md active:scale-95">تصفح القائمة</button>
     </div>
   );
 
   return (
     <div className="space-y-3 pb-4 anim-rise">
       {lines.map((l, i) => (
-        <div key={i} className="flex items-center gap-3.5 rounded-[1.5rem] bg-white p-3 shadow-sm ring-1 ring-[#EAD3A0]">
+        <div key={i} className="flex items-center gap-3.5 rounded-[1.5rem] bg-white p-3 shadow-sm ring-1 ring-[#D5DEB4]">
           <img src={l.product.image_url} alt="" className="size-20 flex-none rounded-[1.1rem] object-cover" />
           <div className="min-w-0 flex-1">
-            <h3 className="truncate text-sm font-extrabold text-[#221B12]">{l.product.name_ar}</h3>
-            {(l.options || []).length > 0 && <p className="mt-0.5 truncate text-[10.5px] font-bold text-[#8A6A48]">✓ {l.options.join('، ')}</p>}
-            <p className="mt-1 text-sm font-black text-[#221B12]">{eur(l.product.price_cents * l.qty, cur)}</p>
+            <h3 className="truncate text-sm font-extrabold text-[#26301C]">{l.product.name_ar}</h3>
+            {(l.options || []).length > 0 && <p className="mt-0.5 truncate text-[10.5px] font-bold text-[#5C6B3C]">✓ {l.options.join('، ')}</p>}
+            <p className="mt-1 text-sm font-black text-[#26301C]">{eur(l.product.price_cents * l.qty, cur)}</p>
           </div>
           <div className="flex flex-none items-center gap-2.5" dir="ltr">
             <button onClick={() => setQty(i, l.qty - 1)} disabled={l.qty <= 1}
-              className="grid size-8 place-items-center rounded-full border-2 border-[#EAC98F] text-sm font-black text-[#221B12] disabled:opacity-30">−</button>
-            <span className="w-5 text-center text-sm font-black text-[#221B12]">{l.qty}</span>
+              className="grid size-8 place-items-center rounded-full border-2 border-[#C9D3A8] text-sm font-black text-[#26301C] disabled:opacity-30">−</button>
+            <span className="w-5 text-center text-sm font-black text-[#26301C]">{l.qty}</span>
             <button onClick={() => setQty(i, l.qty + 1)}
-              className="grid size-8 place-items-center rounded-full bg-[#EAC98F] text-sm font-black text-[#221B12]">+</button>
+              className="grid size-8 place-items-center rounded-full bg-[#C9D3A8] text-sm font-black text-[#26301C]">+</button>
           </div>
           <button onClick={() => remove(i)} className="grid size-9 flex-none place-items-center rounded-full bg-red-50 text-red-500 transition active:scale-90" aria-label="حذف">
             <Icon name="trash" size={15} />
           </button>
         </div>
       ))}
-      <div className="rounded-[1.5rem] bg-[#F1DCB0] p-4 text-center">
-        <p className="text-[11px] font-bold text-[#6E6553]">الإجمالي · ستكسب ⭐ {points} نقطة</p>
-        <p className="mt-1 text-2xl font-black text-[#221B12]">{eur(total, cur)}</p>
+      <div className="rounded-[1.5rem] bg-[#E3E9C8] p-4 text-center">
+        <p className="text-[11px] font-bold text-[#6B7357]">الإجمالي · ستكسب ⭐ {points} نقطة</p>
+        <p className="mt-1 text-2xl font-black text-[#26301C]">{eur(total, cur)}</p>
       </div>
-      <button onClick={onOrder} className="w-full rounded-full bg-[#EAC98F] py-4 text-base font-black text-[#221B12] shadow-lg shadow-[#8a6a48]/35 transition active:scale-[.98]">
+      <button onClick={onOrder} className="w-full rounded-full bg-[#C9D3A8] py-4 text-base font-black text-[#26301C] shadow-lg shadow-[#8a6a48]/35 transition active:scale-[.98]">
         اطلب الآن
       </button>
     </div>
@@ -409,8 +409,8 @@ function RewardsPage({ catalog, myData, session, onRedeem }: any) {
   if (!session) return <NeedLogin />;
   return (
     <div className="anim-rise">
-      <div className="rounded-[2rem] bg-gradient-to-bl from-[#7A5C3E] to-[#3E3222] p-6 text-center text-white shadow-xl shadow-[#8a6a48]/40">
-        <p className="flex items-center justify-center gap-1.5 text-xs font-bold text-[#EAC98F]"><Icon name="star" size={13} filled /> رصيد نقاطك</p>
+      <div className="rounded-[2rem] bg-gradient-to-bl from-[#414D36] to-[#23291B] p-6 text-center text-white shadow-xl shadow-[#8a6a48]/40">
+        <p className="flex items-center justify-center gap-1.5 text-xs font-bold text-[#C9D3A8]"><Icon name="star" size={13} filled /> رصيد نقاطك</p>
         <p className="mt-1 text-5xl font-black">{myData?.customer?.points ?? session.customer.points}</p>
         <p className="mt-1 text-[11px] text-white/70">استبدل نقاطك بمشروبات وحلويات مجانية</p>
       </div>
@@ -421,13 +421,13 @@ function RewardsPage({ catalog, myData, session, onRedeem }: any) {
             <div key={r.id} className="flex items-center gap-4 py-2 anim-rise" style={{ animationDelay: `${i * 30}ms` }}>
               <img src={r.image_url} alt={r.name_ar} loading="lazy" className="size-[72px] flex-none rounded-[1.3rem] object-cover shadow-md shadow-[#8a6a48]/25" />
               <div className="min-w-0 flex-1">
-                <h3 className="text-[15px] font-extrabold text-[#221B12]">{r.name_ar}</h3>
-                <p className="mt-0.5 flex items-center gap-1 text-sm font-black text-[#B07C3A]">
+                <h3 className="text-[15px] font-extrabold text-[#26301C]">{r.name_ar}</h3>
+                <p className="mt-0.5 flex items-center gap-1 text-sm font-black text-[#7C8F52]">
                   <Icon name="star" size={13} filled /> {r.points_cost} نقطة
                 </p>
               </div>
               <button disabled={!can || busy} onClick={() => setConfirming(r)}
-                className={`rounded-full px-5 py-2.5 text-sm font-black transition active:scale-95 ${can ? 'bg-[#EAC98F] text-[#221B12] shadow-md shadow-[#8a6a48]/30' : 'bg-[#F1DCB0] text-[#94826A]'}`}>
+                className={`rounded-full px-5 py-2.5 text-sm font-black transition active:scale-95 ${can ? 'bg-[#C9D3A8] text-[#26301C] shadow-md shadow-[#8a6a48]/30' : 'bg-[#E3E9C8] text-[#7C8665]'}`}>
                 {can ? 'استبدال' : 'غير كافية'}
               </button>
             </div>
@@ -439,10 +439,10 @@ function RewardsPage({ catalog, myData, session, onRedeem }: any) {
         <div className="fixed inset-0 z-[110] grid place-items-center bg-black/50 p-4 backdrop-blur-sm anim-fade" onClick={() => setConfirming(null)}>
           <div className="w-full max-w-sm rounded-[2rem] bg-white p-6 text-center shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
             <img src={confirming.image_url} alt="" className="mx-auto size-24 rounded-[1.5rem] object-cover shadow-lg" />
-            <h3 className="mt-4 text-base font-extrabold leading-relaxed text-[#221B12]">هل تريد استبدال {confirming.points_cost} نقطة مقابل {confirming.name_ar}؟</h3>
+            <h3 className="mt-4 text-base font-extrabold leading-relaxed text-[#26301C]">هل تريد استبدال {confirming.points_cost} نقطة مقابل {confirming.name_ar}؟</h3>
             <div className="mt-5 grid grid-cols-2 gap-3">
               <button disabled={busy} onClick={async () => { setBusy(true); await onRedeem(confirming); setBusy(false); setConfirming(null); }}
-                className="rounded-full bg-[#EAC98F] py-3 text-sm font-black text-[#221B12] shadow-md active:scale-95 disabled:opacity-50">تأكيد الاستبدال</button>
+                className="rounded-full bg-[#C9D3A8] py-3 text-sm font-black text-[#26301C] shadow-md active:scale-95 disabled:opacity-50">تأكيد الاستبدال</button>
               <button onClick={() => setConfirming(null)} className="rounded-full bg-neutral-100 py-3 text-sm font-black text-neutral-600 active:scale-95">إلغاء</button>
             </div>
           </div>
@@ -454,10 +454,10 @@ function RewardsPage({ catalog, myData, session, onRedeem }: any) {
 
 const NeedLogin = () => (
   <div className="grid place-items-center py-20 text-center anim-rise">
-    <span className="mx-auto grid size-16 place-items-center rounded-[1.4rem] bg-[#F1DCB0] text-[#8A6A48]"><Icon name="lock" size={26} /></span>
-    <h3 className="mt-4 text-base font-extrabold text-[#221B12]">سجّل دخولك للمتابعة</h3>
+    <span className="mx-auto grid size-16 place-items-center rounded-[1.4rem] bg-[#E3E9C8] text-[#5C6B3C]"><Icon name="lock" size={26} /></span>
+    <h3 className="mt-4 text-base font-extrabold text-[#26301C]">سجّل دخولك للمتابعة</h3>
     <p className="mt-1 text-xs text-neutral-500">برقم هاتفك ورمز PIN</p>
-    <Link to="/login" className="mt-5 rounded-full bg-[#EAC98F] px-9 py-3 text-sm font-black text-[#221B12] shadow-md active:scale-95">تسجيل الدخول</Link>
+    <Link to="/login" className="mt-5 rounded-full bg-[#C9D3A8] px-9 py-3 text-sm font-black text-[#26301C] shadow-md active:scale-95">تسجيل الدخول</Link>
   </div>
 );
 
@@ -481,14 +481,14 @@ function OrdersPage({ myData, session }: { myData: MyData | null; session: Sessi
     <div className="space-y-3 pb-4 anim-rise">
       {orders.length === 0 && (
         <div className="py-20 text-center">
-          <span className="mx-auto grid size-16 place-items-center rounded-[1.4rem] bg-[#F1DCB0] text-[#8A6A48]"><Icon name="receipt" size={26} /></span>
+          <span className="mx-auto grid size-16 place-items-center rounded-[1.4rem] bg-[#E3E9C8] text-[#5C6B3C]"><Icon name="receipt" size={26} /></span>
           <p className="mt-4 text-sm font-bold text-neutral-500">لا توجد طلبات بعد</p>
         </div>
       )}
       {orders.map((o) => (
-        <div key={o.id} className="rounded-[1.75rem] bg-[#F1DCB0] p-4">
+        <div key={o.id} className="rounded-[1.75rem] bg-[#E3E9C8] p-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-black text-[#221B12]">طلب #{o.order_number}</span>
+            <span className="text-sm font-black text-[#26301C]">طلب #{o.order_number}</span>
             <span className={`rounded-full px-2.5 py-1 text-[11px] font-extrabold ${statusInfo(o.status).color}`}>{statusInfo(o.status).label}</span>
           </div>
           <div className="mt-2 space-y-1">
@@ -496,12 +496,12 @@ function OrdersPage({ myData, session }: { myData: MyData | null; session: Sessi
               <p key={i} className="text-xs text-[#5c5142]">• {it.name_ar} × {it.qty}{it.options ? ` (${it.options})` : ''} — {eur(it.unit_price_cents)}</p>
             ))}
           </div>
-          <div className="mt-3 flex items-center justify-between border-t border-dashed border-[#E0C288] pt-3 text-xs">
-            <span className="flex items-center gap-1 text-[#6E6553]">
+          <div className="mt-3 flex items-center justify-between border-t border-dashed border-[#C4CF9E] pt-3 text-xs">
+            <span className="flex items-center gap-1 text-[#6B7357]">
               <Icon name={o.fulfillment_type === 'delivery' ? 'pin' : 'home'} size={12} />
               {o.fulfillment_type === 'delivery' ? 'توصيل' : 'استلام'} · {fmtDateTime(o.created_at)}
             </span>
-            <span className="font-black text-[#221B12]">{eur(o.total_cents)}</span>
+            <span className="font-black text-[#26301C]">{eur(o.total_cents)}</span>
           </div>
         </div>
       ))}
@@ -518,27 +518,27 @@ function NotificationsPage({ myData, session, onSeen, onEnablePush, pushMsg }: {
   const items = myData?.notifications ?? [];
   return (
     <div className="space-y-2.5 pb-4 anim-rise">
-      <button onClick={onEnablePush} className="flex w-full items-center justify-between rounded-[1.4rem] bg-gradient-to-l from-[#7A5C3E] to-[#3E3222] p-4 text-right text-white shadow-lg">
+      <button onClick={onEnablePush} className="flex w-full items-center justify-between rounded-[1.4rem] bg-gradient-to-l from-[#414D36] to-[#23291B] p-4 text-right text-white shadow-lg">
         <span className="flex items-center gap-3 text-sm font-extrabold">
           <span className="grid size-10 place-items-center rounded-2xl bg-white/15"><Icon name="bell" size={18} /></span>
           تفعيل الإشعارات الفورية
         </span>
-        <span className="max-w-[38%] text-[10px] font-bold text-[#EAC98F]">{pushMsg || 'اضغط للتفعيل'}</span>
+        <span className="max-w-[38%] text-[10px] font-bold text-[#C9D3A8]">{pushMsg || 'اضغط للتفعيل'}</span>
       </button>
       {items.length === 0 && (
         <div className="py-16 text-center">
-          <span className="mx-auto grid size-16 place-items-center rounded-[1.4rem] bg-[#F1DCB0] text-[#8A6A48]"><Icon name="bell" size={26} /></span>
+          <span className="mx-auto grid size-16 place-items-center rounded-[1.4rem] bg-[#E3E9C8] text-[#5C6B3C]"><Icon name="bell" size={26} /></span>
           <p className="mt-4 text-sm font-bold text-neutral-500">لا توجد إشعارات حاليًا</p>
         </div>
       )}
       {items.map((n) => (
-        <div key={n.id} className={`rounded-[1.5rem] p-4 ${n.is_read ? 'bg-white/70' : 'bg-[#F1DCB0] shadow-sm'}`}>
+        <div key={n.id} className={`rounded-[1.5rem] p-4 ${n.is_read ? 'bg-white/70' : 'bg-[#E3E9C8] shadow-sm'}`}>
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-extrabold text-[#221B12]">{n.title}</p>
-              {n.body && <p className="mt-1 text-xs leading-relaxed text-[#6E6553]">{n.body}</p>}
+              <p className="text-sm font-extrabold text-[#26301C]">{n.title}</p>
+              {n.body && <p className="mt-1 text-xs leading-relaxed text-[#6B7357]">{n.body}</p>}
             </div>
-            <span className="flex-none text-[10px] font-bold text-[#94826A]">{fmtDateTime(n.created_at)}</span>
+            <span className="flex-none text-[10px] font-bold text-[#7C8665]">{fmtDateTime(n.created_at)}</span>
           </div>
         </div>
       ))}
@@ -548,14 +548,14 @@ function NotificationsPage({ myData, session, onSeen, onEnablePush, pushMsg }: {
 
 /* ============================ حسابي ============================ */
 const AccountRow = ({ icon, label, onClick, badge, danger }: { icon: IconName; label: string; onClick: () => void; badge?: number; danger?: boolean }) => (
-  <button onClick={onClick} className="flex w-full items-center justify-between rounded-[1.4rem] bg-[#F1DCB0] p-4 transition active:scale-[.98]">
-    <span className={`flex items-center gap-3 text-sm font-extrabold ${danger ? 'text-[#C4482E]' : 'text-[#221B12]'}`}>
-      <span className={`grid size-10 place-items-center rounded-2xl bg-white shadow-sm ${danger ? 'text-[#C4482E]' : 'text-[#8A6A48]'}`}><Icon name={icon} size={18} /></span>
+  <button onClick={onClick} className="flex w-full items-center justify-between rounded-[1.4rem] bg-[#E3E9C8] p-4 transition active:scale-[.98]">
+    <span className={`flex items-center gap-3 text-sm font-extrabold ${danger ? 'text-[#C4482E]' : 'text-[#26301C]'}`}>
+      <span className={`grid size-10 place-items-center rounded-2xl bg-white shadow-sm ${danger ? 'text-[#C4482E]' : 'text-[#5C6B3C]'}`}><Icon name={icon} size={18} /></span>
       {label}
     </span>
     <span className="flex items-center gap-2">
-      {badge ? <span className="rounded-full bg-[#EAC98F] px-2 py-0.5 text-[10px] font-black text-[#221B12]">{badge}</span> : null}
-      <span className="text-[#D9B171]"><Icon name="chevron" size={16} /></span>
+      {badge ? <span className="rounded-full bg-[#C9D3A8] px-2 py-0.5 text-[10px] font-black text-[#26301C]">{badge}</span> : null}
+      <span className="text-[#A9B87F]"><Icon name="chevron" size={16} /></span>
     </span>
   </button>
 );
@@ -563,18 +563,18 @@ const AccountRow = ({ icon, label, onClick, badge, danger }: { icon: IconName; l
 function MyCodes({ redemptions }: { redemptions: Redemption[] }) {
   return (
     <div className="mt-6 anim-rise">
-      <h3 className="mb-3 text-base font-black text-[#221B12]">أكواد مكافآتك</h3>
-      {redemptions.length === 0 && <p className="rounded-[1.5rem] bg-[#F1DCB0] p-6 text-center text-xs font-bold text-[#94826A]">لا توجد استبدالات بعد — اجمع النقاط واستبدلها من «استبدل نقاطك»</p>}
+      <h3 className="mb-3 text-base font-black text-[#26301C]">أكواد مكافآتك</h3>
+      {redemptions.length === 0 && <p className="rounded-[1.5rem] bg-[#E3E9C8] p-6 text-center text-xs font-bold text-[#7C8665]">لا توجد استبدالات بعد — اجمع النقاط واستبدلها من «استبدل نقاطك»</p>}
       <div className="space-y-2.5">
         {redemptions.map((r) => (
-          <div key={r.code} className="flex items-center justify-between rounded-[1.5rem] bg-[#F1DCB0] p-4">
+          <div key={r.code} className="flex items-center justify-between rounded-[1.5rem] bg-[#E3E9C8] p-4">
             <div>
-              <p className="text-sm font-extrabold text-[#221B12]">{r.reward_name}</p>
-              <p className="mt-0.5 text-[11px] text-[#94826A]">{fmtDateTime(r.created_at)}</p>
+              <p className="text-sm font-extrabold text-[#26301C]">{r.reward_name}</p>
+              <p className="mt-0.5 text-[11px] text-[#7C8665]">{fmtDateTime(r.created_at)}</p>
             </div>
             <div className="text-center">
-              <p className="rounded-2xl bg-[#221B12] px-3.5 py-2 font-mono text-base font-black tracking-widest text-[#EAC98F]" dir="ltr">{r.code}</p>
-              <p className={`mt-1 text-[10px] font-extrabold ${r.status === 'unused' ? 'text-[#6E8B5A]' : 'text-[#94826A]'}`}>
+              <p className="rounded-2xl bg-[#26301C] px-3.5 py-2 font-mono text-base font-black tracking-widest text-[#C9D3A8]" dir="ltr">{r.code}</p>
+              <p className={`mt-1 text-[10px] font-extrabold ${r.status === 'unused' ? 'text-[#6B7A45]' : 'text-[#7C8665]'}`}>
                 {r.status === 'unused' ? 'غير مستخدم' : r.status === 'used' ? 'مستخدم' : 'منتهي'}
               </p>
             </div>
@@ -593,15 +593,15 @@ function AccountPage({ session, myData, waNumber, onLogout, onPush, pushMsg }: {
   const redemptions = myData?.redemptions ?? [];
   return (
     <div className="anim-rise">
-      <div className="rounded-[2rem] bg-gradient-to-bl from-[#7A5C3E] to-[#3E3222] p-6 text-center text-white shadow-xl shadow-[#8a6a48]/40">
+      <div className="rounded-[2rem] bg-gradient-to-bl from-[#414D36] to-[#23291B] p-6 text-center text-white shadow-xl shadow-[#8a6a48]/40">
         <span className="mx-auto grid size-16 place-items-center rounded-full bg-white/15 text-2xl font-black backdrop-blur">
           {c.full_name.trim().charAt(0)}
         </span>
         <h2 className="mt-3 text-lg font-black">{c.full_name}</h2>
         <p className="mt-0.5 text-xs text-white/70" dir="ltr">{c.phone}</p>
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-3xl bg-white/10 py-3"><p className="text-xl font-black text-[#EAC98F]">{c.points}</p><p className="text-[10px] font-bold text-white/70">نقطة</p></div>
-          <div className="rounded-3xl bg-white/10 py-3"><p className="text-xl font-black text-[#EAC98F]">{c.orders_count}</p><p className="text-[10px] font-bold text-white/70">طلب</p></div>
+          <div className="rounded-3xl bg-white/10 py-3"><p className="text-xl font-black text-[#C9D3A8]">{c.points}</p><p className="text-[10px] font-bold text-white/70">نقطة</p></div>
+          <div className="rounded-3xl bg-white/10 py-3"><p className="text-xl font-black text-[#C9D3A8]">{c.orders_count}</p><p className="text-[10px] font-bold text-white/70">طلب</p></div>
         </div>
       </div>
 
@@ -609,28 +609,28 @@ function AccountPage({ session, myData, waNumber, onLogout, onPush, pushMsg }: {
         <AccountRow icon="receipt" label="الطلبات" onClick={() => _navRef?.('/orders')} />
         <AccountRow icon="gift" label="المكافأة" onClick={() => setShowCodes(true)} badge={redemptions.filter((r) => r.status === 'unused').length || undefined} />
         <a href={waChatLink(waNumber, 'مرحبًا، أحتاج مساعدة من Dose Cafe')} target="_blank" rel="noopener"
-          className="flex w-full items-center justify-between rounded-[1.4rem] bg-[#F1DCB0] p-4 transition active:scale-[.98]">
-          <span className="flex items-center gap-3 text-sm font-extrabold text-[#221B12]">
-            <span className="grid size-10 place-items-center rounded-2xl bg-white shadow-sm text-[#8A6A48]"><Icon name="headset" size={18} /></span>
+          className="flex w-full items-center justify-between rounded-[1.4rem] bg-[#E3E9C8] p-4 transition active:scale-[.98]">
+          <span className="flex items-center gap-3 text-sm font-extrabold text-[#26301C]">
+            <span className="grid size-10 place-items-center rounded-2xl bg-white shadow-sm text-[#5C6B3C]"><Icon name="headset" size={18} /></span>
             المساعدة والدعم
           </span>
-          <span className="text-[#D9B171]"><Icon name="chevron" size={16} /></span>
+          <span className="text-[#A9B87F]"><Icon name="chevron" size={16} /></span>
         </a>
         <AccountRow icon="store" label="عن المحل" onClick={() => _navRef?.('/about')} />
-        <button onClick={onPush} className="flex w-full items-center justify-between rounded-[1.4rem] bg-[#F1DCB0] p-4 transition active:scale-[.98]">
-          <span className="flex items-center gap-3 text-sm font-extrabold text-[#221B12]">
-            <span className="grid size-10 place-items-center rounded-2xl bg-white shadow-sm text-[#8A6A48]"><Icon name="bell" size={18} /></span>
+        <button onClick={onPush} className="flex w-full items-center justify-between rounded-[1.4rem] bg-[#E3E9C8] p-4 transition active:scale-[.98]">
+          <span className="flex items-center gap-3 text-sm font-extrabold text-[#26301C]">
+            <span className="grid size-10 place-items-center rounded-2xl bg-white shadow-sm text-[#5C6B3C]"><Icon name="bell" size={18} /></span>
             الإشعارات الفورية
           </span>
-          <span className="max-w-[38%] truncate text-[10px] font-bold text-[#6E8B5A]">{pushMsg || 'اضغط للتفعيل'}</span>
+          <span className="max-w-[38%] truncate text-[10px] font-bold text-[#6B7A45]">{pushMsg || 'اضغط للتفعيل'}</span>
         </button>
         <button onClick={onLogout}
-          className="flex w-full items-center justify-between rounded-[1.4rem] bg-[#F1DCB0] p-4 transition active:scale-[.98]">
+          className="flex w-full items-center justify-between rounded-[1.4rem] bg-[#E3E9C8] p-4 transition active:scale-[.98]">
           <span className="flex items-center gap-3 text-sm font-extrabold text-[#C4482E]">
             <span className="grid size-10 place-items-center rounded-2xl bg-white shadow-sm text-[#C4482E]"><Icon name="logout" size={18} /></span>
             تسجيل الخروج
           </span>
-          <span className="text-[#D9B171]"><Icon name="chevron" size={16} /></span>
+          <span className="text-[#A9B87F]"><Icon name="chevron" size={16} /></span>
         </button>
       </div>
 
@@ -660,18 +660,18 @@ function LoginPage({ onLogged }: { onLogged: (s: Session) => void }) {
     <div className="mx-auto max-w-sm py-10 anim-rise">
       <div className="rounded-[2rem] bg-white p-7 shadow-xl shadow-[#8a6a48]/15">
         <div className="text-center"><Logo size={60} /></div>
-        <h2 className="mt-4 text-center text-xl font-black text-[#221B12]">تسجيل الدخول</h2>
+        <h2 className="mt-4 text-center text-xl font-black text-[#26301C]">تسجيل الدخول</h2>
         <p className="mt-1 text-center text-xs text-neutral-500">برقم هاتفك ورمز PIN الخاص بك</p>
         <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="numeric" dir="ltr" placeholder="09XXXXXXXX"
-          className="mt-5 h-12 w-full rounded-2xl border-2 border-[#EAD3A0] bg-[#F8EED6] px-4 text-center text-base font-bold tracking-widest text-[#221B12] outline-none focus:border-[#D9B171]" />
+          className="mt-5 h-12 w-full rounded-2xl border-2 border-[#D5DEB4] bg-[#EEF2DC] px-4 text-center text-base font-bold tracking-widest text-[#26301C] outline-none focus:border-[#A9B87F]" />
         <input value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" type="password" dir="ltr" placeholder="PIN ••••"
-          className="mt-3 h-12 w-full rounded-2xl border-2 border-[#EAD3A0] bg-[#F8EED6] px-4 text-center text-lg font-black tracking-[.5em] outline-none focus:border-[#D9B171]" />
+          className="mt-3 h-12 w-full rounded-2xl border-2 border-[#D5DEB4] bg-[#EEF2DC] px-4 text-center text-lg font-black tracking-[.5em] outline-none focus:border-[#A9B87F]" />
         {err && <p className="mt-3 rounded-2xl bg-red-50 px-3 py-2 text-center text-xs font-bold text-red-600">{err}</p>}
         <button onClick={submit} disabled={busy || pin.length !== 4 || phone.replace(/\D/g, '').length < 8}
-          className="mt-5 w-full rounded-full bg-[#EAC98F] py-3.5 text-base font-black text-[#221B12] shadow-lg shadow-[#8a6a48]/35 active:scale-[.98] disabled:opacity-40">
+          className="mt-5 w-full rounded-full bg-[#C9D3A8] py-3.5 text-base font-black text-[#26301C] shadow-lg shadow-[#8a6a48]/35 active:scale-[.98] disabled:opacity-40">
           {busy ? 'جارٍ الدخول…' : 'دخول'}
         </button>
-        <button onClick={() => nav('/signup')} className="mt-3 w-full py-2 text-center text-sm font-bold text-[#8A6A48]">ليس لديك حساب؟ أنشئ حسابك الآن</button>
+        <button onClick={() => nav('/signup')} className="mt-3 w-full py-2 text-center text-sm font-bold text-[#5C6B3C]">ليس لديك حساب؟ أنشئ حسابك الآن</button>
       </div>
     </div>
   );
@@ -702,24 +702,24 @@ function SignupPage({ onLogged }: { onLogged: (s: Session) => void }) {
   return (
     <div className="mx-auto max-w-sm py-8 anim-rise">
       <div className="rounded-[2rem] bg-white p-7 shadow-xl shadow-[#8a6a48]/15">
-        <h2 className="text-center text-xl font-black text-[#221B12]">مرحبًا بك في <span className="text-[#8A6A48]">Dose Cafe</span></h2>
+        <h2 className="text-center text-xl font-black text-[#26301C]">مرحبًا بك في <span className="text-[#5C6B3C]">Dose Cafe</span></h2>
         <p className="mt-1 text-center text-xs text-neutral-500">أنشئ حسابك الآن واستمتع بالنقاط والمكافآت</p>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="الاسم الكامل"
-          className="mt-4 h-12 w-full rounded-2xl border-2 border-[#EAD3A0] bg-[#F8EED6] px-4 text-sm font-bold outline-none focus:border-[#D9B171]" />
+          className="mt-4 h-12 w-full rounded-2xl border-2 border-[#D5DEB4] bg-[#EEF2DC] px-4 text-sm font-bold outline-none focus:border-[#A9B87F]" />
         <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="numeric" dir="ltr" placeholder="09XXXXXXXX"
-          className="mt-3 h-12 w-full rounded-2xl border-2 border-[#EAD3A0] bg-[#F8EED6] px-4 text-center text-sm font-bold outline-none focus:border-[#D9B171]" />
+          className="mt-3 h-12 w-full rounded-2xl border-2 border-[#D5DEB4] bg-[#EEF2DC] px-4 text-center text-sm font-bold outline-none focus:border-[#A9B87F]" />
         <div className="mt-3 grid grid-cols-2 gap-3">
           <input value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} type="password" inputMode="numeric" dir="ltr" placeholder="PIN"
-            className="h-12 w-full rounded-2xl border-2 border-[#EAD3A0] bg-[#F8EED6] text-center text-base font-black tracking-widest outline-none focus:border-[#D9B171]" />
+            className="h-12 w-full rounded-2xl border-2 border-[#D5DEB4] bg-[#EEF2DC] text-center text-base font-black tracking-widest outline-none focus:border-[#A9B87F]" />
           <input value={pin2} onChange={(e) => setPin2(e.target.value.replace(/\D/g, '').slice(0, 4))} type="password" inputMode="numeric" dir="ltr" placeholder="تأكيد PIN"
-            className="h-12 w-full rounded-2xl border-2 border-[#EAD3A0] bg-[#F8EED6] text-center text-base font-black tracking-widest outline-none focus:border-[#D9B171]" />
+            className="h-12 w-full rounded-2xl border-2 border-[#D5DEB4] bg-[#EEF2DC] text-center text-base font-black tracking-widest outline-none focus:border-[#A9B87F]" />
         </div>
-        <p className="mt-3 rounded-2xl bg-[#F8EED6] px-3 py-2.5 text-[11px] leading-relaxed text-[#94826A]">
+        <p className="mt-3 rounded-2xl bg-[#EEF2DC] px-3 py-2.5 text-[11px] leading-relaxed text-[#7C8665]">
           يُستخدم رمز PIN للتحقق من هويتك عند الطلب — يُخزَّن مشفّرًا ولا يمكن لأحد رؤيته
         </p>
         {err && <p className="mt-3 rounded-2xl bg-red-50 px-3 py-2 text-center text-xs font-bold text-red-600">{err}</p>}
         <button onClick={submit} disabled={busy}
-          className="mt-4 w-full rounded-full bg-[#EAC98F] py-3.5 text-base font-black text-[#221B12] shadow-lg shadow-[#8a6a48]/35 active:scale-[.98] disabled:opacity-50">
+          className="mt-4 w-full rounded-full bg-[#C9D3A8] py-3.5 text-base font-black text-[#26301C] shadow-lg shadow-[#8a6a48]/35 active:scale-[.98] disabled:opacity-50">
           {busy ? 'جارٍ الإنشاء…' : 'إنشاء الحساب والمتابعة'}
         </button>
         <button onClick={() => nav('/login')} className="mt-3 w-full py-2 text-center text-sm font-bold text-neutral-500">إلغاء والعودة</button>
@@ -816,26 +816,26 @@ export default function CustomerApp() {
   ];
 
   return (
-    <div className="mx-auto flex min-h-full max-w-lg flex-col bg-gradient-to-b from-[#F9EDD2] to-[#F3DFB6]">
-      <header className="sticky top-0 z-40 bg-[#F6E7C9]/85 px-4 py-3 backdrop-blur-xl">
+    <div className="mx-auto flex min-h-full max-w-lg flex-col bg-gradient-to-b from-[#E9EDD6] to-[#DCE3C3]">
+      <header className="sticky top-0 z-40 bg-[#E9EDD6]/85 px-4 py-3 backdrop-blur-xl">
         <div className="flex items-center justify-between gap-3">
           {session ? (
             <>
               <Link to="/account" className="flex items-center gap-3" aria-label="حسابي">
-                <span className="grid size-11 place-items-center rounded-full bg-[#EAC98F] text-base font-black text-[#221B12] shadow-md">
+                <span className="grid size-11 place-items-center rounded-full bg-[#C9D3A8] text-base font-black text-[#26301C] shadow-md">
                   {session.customer.full_name.trim().charAt(0)}
                 </span>
                 <div className="leading-tight">
-                  <p className="text-[10px] font-bold text-[#94826A]">أهلًا بك</p>
-                  <p className="text-[15px] font-black text-[#221B12]">{session.customer.full_name.split(' ')[0]}</p>
+                  <p className="text-[10px] font-bold text-[#7C8665]">أهلًا بك</p>
+                  <p className="text-[15px] font-black text-[#26301C]">{session.customer.full_name.split(' ')[0]}</p>
                 </div>
               </Link>
               <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-[#221B12] shadow-sm">
-                  <Icon name="star" size={12} filled className="text-[#B07C3A]" /> {myData?.customer?.points ?? session.customer.points}
+                <span className="flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-[#26301C] shadow-sm">
+                  <Icon name="star" size={12} filled className="text-[#7C8F52]" /> {myData?.customer?.points ?? session.customer.points}
                 </span>
                 <Link to="/notifications" className="relative grid size-11 place-items-center rounded-full bg-white shadow-sm" aria-label="الإشعارات">
-                  <Icon name="bell" size={18} className="text-[#221B12]" />
+                  <Icon name="bell" size={18} className="text-[#26301C]" />
                   {unread > 0 && <span className="absolute -top-0.5 -left-0.5 grid size-5 place-items-center rounded-full bg-[#C4482E] text-[10px] font-black text-white">{unread}</span>}
                 </Link>
               </div>
@@ -845,11 +845,11 @@ export default function CustomerApp() {
               <div className="flex items-center gap-2.5">
                 <Logo size={42} />
                 <div className="leading-none">
-                  <p className="text-[19px] font-black tracking-tight text-[#221B12]">Dose</p>
-                  <span className="mt-1 inline-block rounded-full bg-white px-2 py-0.5 text-[8px] font-black tracking-[.16em] text-[#8A6A48] shadow-sm">CAFE</span>
+                  <p className="text-[19px] font-black tracking-tight text-[#26301C]">Dose</p>
+                  <span className="mt-1 inline-block rounded-full bg-white px-2 py-0.5 text-[8px] font-black tracking-[.16em] text-[#5C6B3C] shadow-sm">CAFE</span>
                 </div>
               </div>
-              <Link to="/login" className="rounded-full bg-[#EAC98F] px-5 py-2.5 text-xs font-black text-[#221B12] shadow-md shadow-[#8a6a48]/30 active:scale-95">تسجيل الدخول</Link>
+              <Link to="/login" className="rounded-full bg-[#C9D3A8] px-5 py-2.5 text-xs font-black text-[#26301C] shadow-md shadow-[#8a6a48]/30 active:scale-95">تسجيل الدخول</Link>
             </>
           )}
         </div>
@@ -879,28 +879,28 @@ export default function CustomerApp() {
           <Route path="/about" element={<AboutPage catalog={catalog} />} />
           <Route path="/login" element={<LoginPage onLogged={(s) => { save(s); nav('/'); show('أهلًا بك ' + s.customer.full_name, 'ok'); }} />} />
           <Route path="/signup" element={<SignupPage onLogged={(s) => { save(s); nav('/'); show('تم إنشاء حسابك بنجاح', 'ok'); }} />} />
-          <Route path="*" element={<div className="py-20 text-center text-sm font-bold text-[#94826A]">الصفحة غير موجودة</div>} />
+          <Route path="*" element={<div className="py-20 text-center text-sm font-bold text-[#7C8665]">الصفحة غير موجودة</div>} />
         </Routes>
       </main>
 
       {/* شريط تنقل عائم + زر السلة */}
       <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-md items-center justify-around px-4"
         style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
-        <div className="flex w-full items-center justify-around rounded-full bg-white px-2 py-2 shadow-[0_18px_40px_-14px_rgba(74,58,40,.45)]">
+        <div className="flex w-full items-center justify-around rounded-full bg-white px-2 py-2 shadow-[0_18px_40px_-14px_rgba(42,50,35,.45)]">
           {navItems.map((t) => (
             <NavLink key={t.to} to={t.to} end={t.end}
               className={({ isActive }) => isActive
-                ? 'flex items-center gap-1.5 rounded-full bg-[#221B12] px-4 py-2 text-white shadow-md'
-                : 'flex flex-col items-center gap-0.5 rounded-2xl px-2 py-1 text-[9.5px] font-bold text-[#94826A] transition hover:text-[#221B12]'}>
+                ? 'flex items-center gap-1.5 rounded-full bg-[#26301C] px-4 py-2 text-white shadow-md'
+                : 'flex flex-col items-center gap-0.5 rounded-2xl px-2 py-1 text-[9.5px] font-bold text-[#7C8665] transition hover:text-[#26301C]'}>
               {({ isActive }) => (<>
                 <Icon name={t.icon} size={isActive ? 16 : 19} filled={isActive && t.icon === 'star'} />
                 {t.label}
               </>)}
             </NavLink>
           ))}
-          <Link to="/cart" className="relative grid size-11 flex-none place-items-center rounded-full shadow-md" style={{ background: '#EAC98F', color: '#221B12' }} aria-label="السلة">
+          <Link to="/cart" className="relative grid size-11 flex-none place-items-center rounded-full shadow-md" style={{ background: '#C9D3A8', color: '#26301C' }} aria-label="السلة">
             <Icon name="cart" size={19} />
-            {cart.count > 0 && <span className="absolute -top-1 -left-1 grid size-5 place-items-center rounded-full bg-[#221B12] text-[10px] font-black text-white">{cart.count}</span>}
+            {cart.count > 0 && <span className="absolute -top-1 -left-1 grid size-5 place-items-center rounded-full bg-[#26301C] text-[10px] font-black text-white">{cart.count}</span>}
           </Link>
         </div>
       </nav>
@@ -935,15 +935,15 @@ export default function CustomerApp() {
           <div className="relative w-full max-w-sm overflow-hidden rounded-[2rem] bg-white shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
             <img src={adOpen.image_url} alt={adOpen.title} className="h-56 w-full object-cover" />
             <div className="p-5 text-center">
-              <h3 className="text-lg font-black text-[#221B12]">{adOpen.title}</h3>
+              <h3 className="text-lg font-black text-[#26301C]">{adOpen.title}</h3>
               <p className="mt-1 text-sm text-neutral-500">{adOpen.description_ar}</p>
               {adOpen.new_price_cents != null && (
                 <div className="mt-3 flex items-center justify-center gap-3">
                   {adOpen.old_price_cents != null && <span className="text-sm font-bold text-neutral-400 line-through">{eur(adOpen.old_price_cents, cur)}</span>}
-                  <span className="text-2xl font-black text-[#221B12]">{eur(adOpen.new_price_cents, cur)}</span>
+                  <span className="text-2xl font-black text-[#26301C]">{eur(adOpen.new_price_cents, cur)}</span>
                 </div>
               )}
-              <button onClick={() => { setAdOpen(null); nav('/'); }} className="mt-4 w-fit px-10 rounded-full bg-[#EAC98F] py-3 text-sm font-black text-[#221B12] shadow-md active:scale-95">تصفح القائمة</button>
+              <button onClick={() => { setAdOpen(null); nav('/'); }} className="mt-4 w-fit px-10 rounded-full bg-[#C9D3A8] py-3 text-sm font-black text-[#26301C] shadow-md active:scale-95">تصفح القائمة</button>
             </div>
             <button onClick={() => setAdOpen(null)} className="absolute top-3 left-3 grid size-9 place-items-center rounded-full bg-black/50 text-white" aria-label="إغلاق"><Icon name="x" size={16} /></button>
           </div>
@@ -960,19 +960,19 @@ function FulfillmentModal({ onPick, onClose }: { onPick: (f: Fulfillment) => voi
   return (
     <div className="fixed inset-0 z-[110] grid place-items-center bg-black/50 p-4 backdrop-blur-sm anim-fade" onClick={onClose}>
       <div className="w-full max-w-md rounded-[2rem] bg-white p-6 shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-center text-lg font-black text-[#221B12]">كيف تستلم طلبك؟</h3>
+        <h3 className="text-center text-lg font-black text-[#26301C]">كيف تستلم طلبك؟</h3>
         <p className="mt-1 text-center text-xs text-neutral-500">اختر طريقة الاستلام قبل إرسال الطلب</p>
         <div className="mt-5 grid grid-cols-2 gap-3">
-          <button className="rounded-[1.6rem] border-2 border-[#EAD3A0] bg-[#F8EED6] p-5 transition hover:border-[#D9B171] active:scale-95"
+          <button className="rounded-[1.6rem] border-2 border-[#D5DEB4] bg-[#EEF2DC] p-5 transition hover:border-[#A9B87F] active:scale-95"
             onClick={() => onPick('pickup')}>
-            <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-white text-[#8A6A48] shadow"><Icon name="check" size={24} /></span>
-            <span className="mt-3 block text-base font-black text-[#221B12]">استلام من المحل</span>
+            <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-white text-[#5C6B3C] shadow"><Icon name="check" size={24} /></span>
+            <span className="mt-3 block text-base font-black text-[#26301C]">استلام من المحل</span>
             <span className="mt-1 block text-[11px] text-neutral-500">جهّز طلبك وتفضل بالاستلام</span>
           </button>
-          <button className="rounded-[1.6rem] border-2 border-[#EAD3A0] bg-[#F8EED6] p-5 transition hover:border-[#D9B171] active:scale-95"
+          <button className="rounded-[1.6rem] border-2 border-[#D5DEB4] bg-[#EEF2DC] p-5 transition hover:border-[#A9B87F] active:scale-95"
             onClick={() => onPick('delivery')}>
-            <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-white text-[#8A6A48] shadow"><Icon name="pin" size={24} /></span>
-            <span className="mt-3 block text-base font-black text-[#221B12]">توصيل</span>
+            <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-white text-[#5C6B3C] shadow"><Icon name="pin" size={24} /></span>
+            <span className="mt-3 block text-base font-black text-[#26301C]">توصيل</span>
             <span className="mt-1 block text-[11px] text-neutral-500">سنطلب موقعك للتوصيل</span>
           </button>
         </div>
@@ -991,12 +991,12 @@ function LocationModal({ onDone, onClose, onBack }: { onDone: (loc: { lat: numbe
   return (
     <div className="fixed inset-0 z-[110] grid place-items-center bg-black/50 p-4 backdrop-blur-sm anim-fade" onClick={onClose}>
       <div className="w-full max-w-sm rounded-[2rem] bg-white p-6 text-center shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
-        <span className="mx-auto grid size-16 place-items-center rounded-[1.4rem] bg-[#F1DCB0] text-[#8A6A48]"><Icon name="pin" size={30} /></span>
-        <h3 className="mt-3 text-lg font-black text-[#221B12]">مشاركة موقعك</h3>
+        <span className="mx-auto grid size-16 place-items-center rounded-[1.4rem] bg-[#E3E9C8] text-[#5C6B3C]"><Icon name="pin" size={30} /></span>
+        <h3 className="mt-3 text-lg font-black text-[#26301C]">مشاركة موقعك</h3>
         <p className="mt-2 text-xs leading-relaxed text-neutral-500">نحتاج إلى موقعك لتوصيل الطلب إلى المكان الصحيح.</p>
         {err && <p className="mt-3 rounded-2xl bg-red-50 px-3 py-2 text-xs font-bold text-red-600">{err}</p>}
         <button disabled={busy} onClick={share}
-          className="mt-5 w-full rounded-full bg-[#EAC98F] py-3.5 text-base font-black text-[#221B12] shadow-lg shadow-[#8a6a48]/35 transition active:scale-[.98] disabled:opacity-50">
+          className="mt-5 w-full rounded-full bg-[#C9D3A8] py-3.5 text-base font-black text-[#26301C] shadow-lg shadow-[#8a6a48]/35 transition active:scale-[.98] disabled:opacity-50">
           {busy ? 'جارٍ تحديد موقعك…' : 'مشاركة موقعي'}
         </button>
         <button onClick={onBack} className="mt-3 w-full rounded-2xl py-2.5 text-sm font-bold text-neutral-500 hover:text-neutral-800">إلغاء</button>
@@ -1013,12 +1013,12 @@ function OrderSuccessModal({ orderNumber, points, waNumber, message, onClose }: 
   return (
     <div className="fixed inset-0 z-[130] grid place-items-center bg-black/50 p-4 backdrop-blur-sm anim-fade">
       <div className="w-full max-w-sm rounded-[2rem] bg-white p-6 text-center shadow-2xl anim-pop">
-        <span className="mx-auto grid size-16 place-items-center rounded-full bg-[#EAC98F] text-[#221B12] shadow-lg">
+        <span className="mx-auto grid size-16 place-items-center rounded-full bg-[#C9D3A8] text-[#26301C] shadow-lg">
           <Icon name="check" size={30} strokeWidth={2.4} />
         </span>
-        <h3 className="mt-3 text-lg font-black text-[#221B12]">تم تسجيل طلبك بنجاح</h3>
+        <h3 className="mt-3 text-lg font-black text-[#26301C]">تم تسجيل طلبك بنجاح</h3>
         <p className="mt-1 text-sm font-bold text-neutral-500">طلب رقم #{orderNumber}</p>
-        <p className="mt-2 text-xs leading-relaxed text-neutral-500">ستكسب <b className="text-[#8A6A48]">{points} نقطة</b> عند إكمال الطلب. أرسل الطلب الآن إلى المحل عبر WhatsApp:</p>
+        <p className="mt-2 text-xs leading-relaxed text-neutral-500">ستكسب <b className="text-[#5C6B3C]">{points} نقطة</b> عند إكمال الطلب. أرسل الطلب الآن إلى المحل عبر WhatsApp:</p>
         <button onClick={send}
           className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#25D366] py-3.5 text-base font-black text-white shadow-lg shadow-green-500/30 transition active:scale-[.98]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Zm5.5 14.1c-.2.7-1.3 1.3-1.9 1.4-.5.1-1.1.1-1.8-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.7-4-4.8-4.2-.1-.2-1.2-1.6-1.2-3s.7-2.1 1-2.4c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.4.2.5.7 1.8.8 1.9.1.1.1.3 0 .5-.1.2-.1.3-.3.5l-.4.5c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1.1 2.2 1.4 2.5 1.5.3.1.5.1.6-.1.2-.2.7-.8.9-1.1.2-.3.4-.2.6-.1l1.8.9c.3.1.5.2.5.3.1.1.1.7-.1 1.3Z"/></svg>
@@ -1035,19 +1035,19 @@ function AboutPage({ catalog }: { catalog: Catalog | null }) {
   const phone = catalog?.settings?.store_phone ?? '0936107119';
   const contactRow = (icon: IconName, label: string, value: string, href: string) => (
     <a href={href} target={href.startsWith('http') ? '_blank' : undefined} rel="noopener"
-      className="flex w-full items-center gap-3 rounded-[1.4rem] bg-white p-4 shadow-sm ring-1 ring-[#EAD3A0] transition active:scale-[.98]">
-      <span className="grid size-10 place-items-center rounded-2xl bg-[#F1DCB0] text-[#8A6A48]"><Icon name={icon} size={17} /></span>
+      className="flex w-full items-center gap-3 rounded-[1.4rem] bg-white p-4 shadow-sm ring-1 ring-[#D5DEB4] transition active:scale-[.98]">
+      <span className="grid size-10 place-items-center rounded-2xl bg-[#E3E9C8] text-[#5C6B3C]"><Icon name={icon} size={17} /></span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[10px] font-bold text-[#94826A]">{label}</span>
-        <span className="block truncate text-sm font-extrabold text-[#221B12]" dir="ltr">{value}</span>
+        <span className="block text-[10px] font-bold text-[#7C8665]">{label}</span>
+        <span className="block truncate text-sm font-extrabold text-[#26301C]" dir="ltr">{value}</span>
       </span>
-      <span className="text-[#D9B171]"><Icon name="chevron" size={16} /></span>
+      <span className="text-[#A9B87F]"><Icon name="chevron" size={16} /></span>
     </a>
   );
   const credit = (name: string, role: string, phoneNum: string) => (
     <div className="rounded-[1.4rem] bg-white/10 p-4 text-right backdrop-blur">
       <p className="text-[15px] font-black">{name}</p>
-      <p className="mt-0.5 text-[11px] font-bold text-[#EAC98F]">{role}</p>
+      <p className="mt-0.5 text-[11px] font-bold text-[#C9D3A8]">{role}</p>
       <div className="mt-2.5 flex items-center gap-2" dir="ltr">
         <a href={`tel:${phoneNum}`} className="flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-[11px] font-extrabold transition hover:bg-white/25">
           <Icon name="phone" size={12} /> {phoneNum}
@@ -1062,22 +1062,22 @@ function AboutPage({ catalog }: { catalog: Catalog | null }) {
   );
   return (
     <div className="anim-rise">
-      <div className="rounded-[2rem] bg-gradient-to-bl from-[#7A5C3E] to-[#3E3222] p-6 text-center text-white shadow-xl shadow-[#8a6a48]/40">
+      <div className="rounded-[2rem] bg-gradient-to-bl from-[#414D36] to-[#23291B] p-6 text-center text-white shadow-xl shadow-[#8a6a48]/40">
         <img src="/logo.jpg" alt="Dose" className="mx-auto size-20 rounded-[1.6rem] object-cover shadow-2xl ring-4 ring-white/20" />
         <h2 className="mt-3 text-xl font-black">عن المحل</h2>
-        <p className="mt-1 text-xs font-bold text-[#EAC98F]" dir="ltr">Dose Cafe</p>
+        <p className="mt-1 text-xs font-bold text-[#C9D3A8]" dir="ltr">Dose Cafe</p>
       </div>
 
-      <div className="mt-4 rounded-[1.75rem] bg-white p-5 shadow-sm ring-1 ring-[#EAD3A0]">
-        <p className="text-sm leading-loose text-[#4A3A28]">
-          <b className="text-[#221B12]">Dose Cafe — أكثر من مجرد قهوة.</b>
+      <div className="mt-4 rounded-[1.75rem] bg-white p-5 shadow-sm ring-1 ring-[#D5DEB4]">
+        <p className="text-sm leading-loose text-[#333D25]">
+          <b className="text-[#26301C]">Dose Cafe — أكثر من مجرد قهوة.</b>
           <br />نقدّم لك قهوة مختصة ومشروبات ساخنة وباردة على أصولها، وحلويات طازجة تُخبز يوميًا،
           مع خدمة سريعة وأجواء مريحة تناسب كل الأوقات.
           <br />مع نظام نقاط ومكافآت خاص: اجمع النقاط مع كل طلب، واستبدلها بمشروبات وحلويات مجانية.
         </p>
       </div>
 
-      <h3 className="mb-2.5 mt-6 text-base font-black text-[#221B12]">تواصل معنا</h3>
+      <h3 className="mb-2.5 mt-6 text-base font-black text-[#26301C]">تواصل معنا</h3>
       <div className="space-y-2.5">
         {contactRow('phone', 'هاتف المحل', phone, `tel:${phone}`)}
         {contactRow('instagram', 'إنستغرام', '@dose__cafe', 'https://www.instagram.com/dose__cafe')}
@@ -1086,9 +1086,9 @@ function AboutPage({ catalog }: { catalog: Catalog | null }) {
         {contactRow('pin', 'موقع المحل', '35.1327334 , 36.7526210', 'https://www.google.com/maps?q=35.1327334,36.7526210')}
       </div>
 
-      <h3 className="mb-2.5 mt-7 text-base font-black text-[#221B12]">فريق العمل</h3>
-      <div className="overflow-hidden rounded-[2rem] bg-gradient-to-bl from-[#7A5C3E] via-[#5C4430] to-[#3E3222] p-5 text-white shadow-xl shadow-[#8a6a48]/40">
-        <p className="flex items-center justify-center gap-2 text-xs font-black tracking-wide text-[#EAC98F]">
+      <h3 className="mb-2.5 mt-7 text-base font-black text-[#26301C]">فريق العمل</h3>
+      <div className="overflow-hidden rounded-[2rem] bg-gradient-to-bl from-[#414D36] via-[#37422C] to-[#23291B] p-5 text-white shadow-xl shadow-[#8a6a48]/40">
+        <p className="flex items-center justify-center gap-2 text-xs font-black tracking-wide text-[#C9D3A8]">
           <Icon name="star" size={13} filled /> بطاقة مميزة
         </p>
         <div className="mt-4 space-y-3">

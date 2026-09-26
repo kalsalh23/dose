@@ -4,37 +4,37 @@
   --font-sans: "Tajawal", "Cairo", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-serif: "Playfair Display", Georgia, serif;
 
-  --color-coffee-950: #17110C;
-  --color-coffee-900: #241A12;
-  --color-coffee-800: #2E2118;
-  --color-coffee-700: #3B2A1A;
-  --color-cream: #F5EEE3;
-  --color-beige: #E8DCC7;
-  --color-gold: #D9A76C;
-  --color-gold-deep: #BC8050;
+  --color-coffee-950: #1E2416;
+  --color-coffee-900: #2A3223;
+  --color-coffee-800: #37422C;
+  --color-coffee-700: #414D36;
+  --color-cream: #F1F4E3;
+  --color-beige: #D5DEB4;
+  --color-gold: #A9B87F;
+  --color-gold-deep: #7C8F52;
 
-  --color-sand: #F3DEBA;
-  --color-mauve: #A9907E;
-  --color-sage: #ABC4AA;
-  --color-taupe: #675D50;
+  --color-sand: #DCE3C3;
+  --color-mauve: #8A9471;
+  --color-sage: #C9D3A8;
+  --color-taupe: #414D36;
 
-  /* هوية Dose الدافئة — كريمي · كراميل · بني داكن (مطابقة للتصميم المرجعي) */
-  --color-fresh-50: #F8EED6;
-  --color-fresh-100: #EAD3A0;
-  --color-fresh-200: #E0C288;
-  --color-fresh-300: #D9B171;
-  --color-fresh-500: #EAC98F;
-  --color-fresh-600: #D9B171;
-  --color-fresh-700: #8A6A48;
-  --color-fresh-900: #4A3A28;
-  --color-fresh-ink: #221B12;
+  /* هوية Dose — أخضر ميرمية فاتح + زيتوني داكن (مطابقة للمنيو) */
+  --color-fresh-50: #F0F4E4;
+  --color-fresh-100: #DCE3C3;
+  --color-fresh-200: #C4CF9E;
+  --color-fresh-300: #A9B87F;
+  --color-fresh-500: #7C8F52;
+  --color-fresh-600: #5C6B3C;
+  --color-fresh-700: #414D36;
+  --color-fresh-900: #2A3223;
+  --color-fresh-ink: #26301C;
 }
 
 html, body, #root { height: 100%; }
 body {
   font-family: var(--font-sans);
-  background: linear-gradient(180deg, #F9EDD2, #F3DFB6);
-  color: #221B12;
+  background: linear-gradient(180deg, #E9EDD6, #DCE3C3);
+  color: #26301C;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
 }

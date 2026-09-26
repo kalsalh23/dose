@@ -4,8 +4,8 @@
   "description": "منصة Dose Coffee & More — اطلب، اجمع النقاط، واستبدلها بمكافآت",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F4EDE1",
-  "theme_color": "#2A1C10",
+  "background_color": "#E9EDD6",
+  "theme_color": "#414D36",
   "dir": "rtl",
   "lang": "ar",
   "icons": [

@@ -30,7 +30,7 @@ export default function AdminApp() {
   if (!token) return <AdminLogin onLogged={(t) => { localStorage.setItem(ADMIN_KEY, t); setToken(t); }} />;
 
   return (
-    <div className="min-h-full bg-[#F3F0EA]">
+    <div className="min-h-full bg-[#F0F4E4]">
       <header className="sticky top-0 z-40 flex flex-wrap items-center justify-between gap-3 bg-coffee-950 px-5 py-3 text-cream shadow-lg">
         <div className="flex items-center gap-3">
           <img src="/logo.jpg" alt="Dose" className="size-10 rounded-xl border-2 border-gold/50 object-cover" />
@@ -45,7 +45,7 @@ export default function AdminApp() {
       <nav className="no-scrollbar sticky top-[68px] z-30 flex gap-2 overflow-x-auto border-b border-beige bg-white/90 px-4 py-2.5 backdrop-blur">
         {TABS.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            className={`flex flex-none items-center gap-1.5 rounded-full px-4 py-2 text-xs font-extrabold transition ${tab === t.id ? 'bg-coffee-900 text-cream shadow' : 'bg-[#F3EDE0] text-neutral-500 hover:text-neutral-800'}`}>
+            className={`flex flex-none items-center gap-1.5 rounded-full px-4 py-2 text-xs font-extrabold transition ${tab === t.id ? 'bg-coffee-900 text-cream shadow' : 'bg-[#E3E9C8] text-neutral-500 hover:text-neutral-800'}`}>
             <Icon name={t.icon} size={14} /> {t.label}
           </button>
         ))}
@@ -141,7 +141,7 @@ function ImageUploadField({ value, onChange, folder }: { value: string; onChange
       <div className="flex items-center gap-3">
         {value
           ? <img src={value} alt="" className="size-16 rounded-2xl object-cover shadow ring-1 ring-fresh-100" />
-          : <span className="grid size-16 place-items-center rounded-2xl bg-[#F3EDE0] text-neutral-400"><Icon name="package" size={20} /></span>}
+          : <span className="grid size-16 place-items-center rounded-2xl bg-[#E3E9C8] text-neutral-400"><Icon name="package" size={20} /></span>}
         <label className="cursor-pointer rounded-xl bg-coffee-900 px-4 py-2.5 text-[11px] font-extrabold text-cream transition active:scale-95">
           {busy ? 'جارٍ الرفع…' : value ? 'تغيير الصورة' : 'رفع صورة من الجهاز'}
           <input type="file" accept="image/*" className="hidden" disabled={busy}
@@ -229,7 +229,7 @@ function OrdersTab({ token }: { token: string }) {
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5 border-t border-dashed border-beige pt-2.5">
             {o.items.map((it: any, i: number) => (
-              <span key={i} className="rounded-full bg-[#F3EDE0] px-3 py-1 text-[11px] font-bold text-neutral-600">{it.name_ar} × {it.qty}</span>
+              <span key={i} className="rounded-full bg-[#E3E9C8] px-3 py-1 text-[11px] font-bold text-neutral-600">{it.name_ar} × {it.qty}</span>
             ))}
           </div>
         </Card>
@@ -271,7 +271,7 @@ function ProductsTab({ token }: { token: string }) {
               <p className="mt-1 text-xs font-extrabold text-gold-deep">{eur(p.price_cents, 'ل.س')} · ⭐ {p.points}</p>
               <p className="text-[10px] font-bold text-neutral-400">تصنيف: {p.category_slug}</p>
               <div className="mt-2 flex gap-2">
-                <button onClick={() => setEdit({ ...EMPTY_PRODUCT, ...p, category_slug: p.category_slug })} className="rounded-lg bg-[#F3EDE0] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
+                <button onClick={() => setEdit({ ...EMPTY_PRODUCT, ...p, category_slug: p.category_slug })} className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
                 {p.is_active && (
                   <button disabled={busy} onClick={() => wrap(async () => { await rpc('admin_delete_product', { p_token: token, p_id: p.id }); load(); })}
                     className="rounded-lg bg-red-50 px-3 py-1.5 text-[11px] font-extrabold text-red-600">تعطيل</button>
@@ -355,7 +355,7 @@ function CustomersTab({ token }: { token: string }) {
                 </td>
                 <td className="p-3">
                   <button disabled={busy} onClick={() => wrap(async () => { await rpc('admin_toggle_customer', { p_token: token, p_customer_id: c.id, p_active: !c.is_active }); load(); })}
-                    className="rounded-lg bg-[#F3EDE0] px-3 py-1.5 text-[10px] font-extrabold text-neutral-700">{c.is_active ? 'إيقاف' : 'تنشيط'}</button>
+                    className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[10px] font-extrabold text-neutral-700">{c.is_active ? 'إيقاف' : 'تنشيط'}</button>
                 </td>
               </tr>
             ))}
@@ -393,7 +393,7 @@ function RewardsTab({ token }: { token: string }) {
             <p className="text-xs font-extrabold text-gold-deep">⭐ {r.points_cost} نقطة</p>
             <p className="text-[11px] text-neutral-400">استبدالات: {r.redemptions_count}</p>
             <div className="mt-2 flex gap-2">
-              <button onClick={() => setEdit({ ...EMPTY_REWARD, ...r })} className="rounded-lg bg-[#F3EDE0] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
+              <button onClick={() => setEdit({ ...EMPTY_REWARD, ...r })} className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
               {r.is_active && <button disabled={busy} onClick={() => wrap(async () => { await rpc('admin_delete_reward', { p_token: token, p_id: r.id }); load(); })}
                 className="rounded-lg bg-red-50 px-3 py-1.5 text-[11px] font-extrabold text-red-600">تعطيل</button>}
             </div>
@@ -421,7 +421,7 @@ function RewardsTab({ token }: { token: string }) {
                 <td className="p-3">
                   {r.status === 'unused' && (
                     <button disabled={busy} onClick={() => wrap(async () => { await rpc('admin_set_redemption_status', { p_token: token, p_code: r.code, p_status: 'used' }); load(); })}
-                      className="rounded-lg bg-[#F3EDE0] px-3 py-1.5 text-[10px] font-extrabold text-neutral-700">تعليم كمستخدم</button>
+                      className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[10px] font-extrabold text-neutral-700">تعليم كمستخدم</button>
                   )}
                 </td>
               </tr>
@@ -481,7 +481,7 @@ function AdsTab({ token }: { token: string }) {
               </div>
             </div>
             <div className="mt-2 flex gap-2">
-              <button onClick={() => setEdit({ ...EMPTY_AD, ...a, starts_at: a.starts_at?.slice(0, 16), ends_at: a.ends_at ? a.ends_at.slice(0, 16) : '' })} className="rounded-lg bg-[#F3EDE0] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
+              <button onClick={() => setEdit({ ...EMPTY_AD, ...a, starts_at: a.starts_at?.slice(0, 16), ends_at: a.ends_at ? a.ends_at.slice(0, 16) : '' })} className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
               <button disabled={busy} onClick={() => wrap(async () => { await rpc('admin_delete_ad', { p_token: token, p_id: a.id }); load(); })}
                 className="rounded-lg bg-red-50 px-3 py-1.5 text-[11px] font-extrabold text-red-600">حذف</button>
             </div>
