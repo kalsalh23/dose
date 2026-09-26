@@ -13,7 +13,7 @@ export interface Catalog {
   settings: Record<string, string>;
 }
 export interface AppCustomer {
-  id: string; full_name: string; phone: string; points: number; orders_count: number;
+  id: string; full_name: string; phone: string; points: number; orders_count: number; avatar_url?: string;
 }
 export interface Session { token: string; customer: AppCustomer }
 export interface OrderItem { name_ar: string; qty: number; unit_price_cents: number }
@@ -23,5 +23,5 @@ export interface MyOrder {
 }
 export interface AppNotification { id: number; title: string; body: string; kind: string; is_read: boolean; created_at: string }
 export interface Redemption { code: string; reward_name: string; points_cost: number; status: 'unused' | 'used' | 'expired'; created_at: string }
-export interface MyData { customer: AppCustomer | null; orders: MyOrder[]; redemptions: Redemption[]; notifications: AppNotification[] }
+export interface MyData { customer: AppCustomer | null; favorites: (Product & { created_at: string })[]; orders: MyOrder[]; redemptions: Redemption[]; notifications: AppNotification[] }
 export interface CartLine { product: Product; qty: number; options?: string[] }
