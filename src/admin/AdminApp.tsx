@@ -12,7 +12,7 @@ const ADMIN_KEY = 'dose_admin_token_v1';
 
 /** استدعاء RPC إداري — إن انتهت الجلسة (null) خروج تلقائي لشاشة الدخول */
 async function arpc<T = any>(fn: string, args: Record<string, any> = {}): Promise<T> {
-  const d = await arpc<T>(fn, args);
+  const d = await rpc<T>(fn, args);
   if (d === null) {
     localStorage.removeItem(ADMIN_KEY);
     setTimeout(() => location.reload(), 600);
