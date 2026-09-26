@@ -9,6 +9,17 @@ import { Icon, type IconName } from '../components/Icons';
    ============================================================ */
 
 const ADMIN_KEY = 'dose_admin_token_v1';
+
+/** استدعاء RPC إداري — إن انتهت الجلسة (null) خروج تلقائي لشاشة الدخول */
+async function arpc<T = any>(fn: string, args: Record<string, any> = {}): Promise<T> {
+  const d = await arpc<T>(fn, args);
+  if (d === null) {
+    localStorage.removeItem(ADMIN_KEY);
+    setTimeout(() => location.reload(), 600);
+    throw new Error('انتهت صلاحية الجلسة — سجّل الدخول من جديد');
+  }
+  return d;
+}
 const TABS: { id: TabId; label: string; icon: IconName }[] = [
   { id: 'dashboard', label: 'الرئيسية', icon: 'chart' },
   { id: 'orders', label: 'الطلبات', icon: 'clipboard' },
@@ -75,7 +86,7 @@ function AdminLogin({ onLogged }: { onLogged: (t: string) => void }) {
     if (busy) return;
     setBusy(true); setErr('');
     try {
-      const r = await rpc<{ token: string }>('admin_login', { p_username: username, p_password: password });
+      const r = await arpc<{ token: string }>('admin_login', { p_username: username, p_password: password });
       onLogged(r.token);
     } catch (e: any) { setErr(e.message); setBusy(false); }
   };
@@ -158,7 +169,7 @@ function ImageUploadField({ value, onChange, folder }: { value: string; onChange
 function Dashboard({ token }: { token: string }) {
   const [stats, setStats] = useState<any>(null);
   useEffect(() => {
-    const load = () => rpc<any>('admin_stats', { p_token: token }).then(setStats).catch(() => {});
+    const load = () => arpc<any>('admin_stats', { p_token: token }).then(setStats).catch(() => {});
     load(); const t = setInterval(load, 20000); return () => clearInterval(t);
   }, [token]);
   const cards: { label: string; value: any; icon: IconName; color: string }[] = [
@@ -187,12 +198,12 @@ function Dashboard({ token }: { token: string }) {
 /* ============================ الطلبات ============================ */
 function OrdersTab({ token }: { token: string }) {
   const [orders, setOrders] = useState<any[]>([]);
-  const load = useCallback(() => { rpc<any[]>('admin_list_orders', { p_token: token, p_limit: 200 }).then(setOrders).catch(() => {}); }, [token]);
+  const load = useCallback(() => { arpc<any[]>('admin_list_orders', { p_token: token, p_limit: 200 }).then(setOrders).catch(() => {}); }, [token]);
   useEffect(() => { load(); const t = setInterval(load, 15000); return () => clearInterval(t); }, [load]);
   const { busy, wrap } = useAdminAction();
 
   const setStatus = (id: string, status: string) => wrap(async () => {
-    await rpc('admin_set_order_status', { p_token: token, p_order_id: id, p_status: status });
+    await arpc('admin_set_order_status', { p_token: token, p_order_id: id, p_status: status });
     load();
   });
 
@@ -246,12 +257,12 @@ const EMPTY_PRODUCT = { id: 0, category_slug: 'hot', name_ar: '', name_en: '', d
 function ProductsTab({ token }: { token: string }) {
   const [products, setProducts] = useState<any[]>([]);
   const [edit, setEdit] = useState<any>(null);
-  const load = useCallback(() => { rpc<any[]>('admin_list_products', { p_token: token }).then(setProducts).catch(() => {}); }, [token]);
+  const load = useCallback(() => { arpc<any[]>('admin_list_products', { p_token: token }).then(setProducts).catch(() => {}); }, [token]);
   useEffect(() => { load(); }, [load]);
   const { busy, wrap } = useAdminAction();
 
   const save = () => wrap(async () => {
-    await rpc('admin_save_product', { p_token: token, p_product: edit });
+    await arpc('admin_save_product', { p_token: token, p_product: edit });
     setEdit(null); load();
   });
 
@@ -273,7 +284,7 @@ function ProductsTab({ token }: { token: string }) {
               <div className="mt-2 flex gap-2">
                 <button onClick={() => setEdit({ ...EMPTY_PRODUCT, ...p, category_slug: p.category_slug })} className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
                 {p.is_active && (
-                  <button disabled={busy} onClick={() => wrap(async () => { await rpc('admin_delete_product', { p_token: token, p_id: p.id }); load(); })}
+                  <button disabled={busy} onClick={() => wrap(async () => { await arpc('admin_delete_product', { p_token: token, p_id: p.id }); load(); })}
                     className="rounded-lg bg-red-50 px-3 py-1.5 text-[11px] font-extrabold text-red-600">تعطيل</button>
                 )}
               </div>
@@ -325,7 +336,7 @@ function ProductsTab({ token }: { token: string }) {
 function CustomersTab({ token }: { token: string }) {
   const [rows, setRows] = useState<any[]>([]);
   const [q, setQ] = useState('');
-  const load = useCallback(() => { rpc<any[]>('admin_list_customers', { p_token: token }).then(setRows).catch(() => {}); }, [token]);
+  const load = useCallback(() => { arpc<any[]>('admin_list_customers', { p_token: token }).then(setRows).catch(() => {}); }, [token]);
   useEffect(() => { load(); }, [load]);
   const { busy, wrap } = useAdminAction();
   const filtered = rows.filter((r) => r.full_name.includes(q) || r.phone.includes(q));
@@ -354,7 +365,7 @@ function CustomersTab({ token }: { token: string }) {
                   <span className={`rounded-full px-2 py-1 text-[10px] font-extrabold ${c.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>{c.is_active ? 'نشط' : 'موقوف'}</span>
                 </td>
                 <td className="p-3">
-                  <button disabled={busy} onClick={() => wrap(async () => { await rpc('admin_toggle_customer', { p_token: token, p_customer_id: c.id, p_active: !c.is_active }); load(); })}
+                  <button disabled={busy} onClick={() => wrap(async () => { await arpc('admin_toggle_customer', { p_token: token, p_customer_id: c.id, p_active: !c.is_active }); load(); })}
                     className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[10px] font-extrabold text-neutral-700">{c.is_active ? 'إيقاف' : 'تنشيط'}</button>
                 </td>
               </tr>
@@ -373,8 +384,8 @@ function RewardsTab({ token }: { token: string }) {
   const [redemptions, setRedemptions] = useState<any[]>([]);
   const [edit, setEdit] = useState<any>(null);
   const load = useCallback(() => {
-    rpc<any[]>('admin_list_rewards', { p_token: token }).then(setRewards).catch(() => {});
-    rpc<any[]>('admin_list_redemptions', { p_token: token }).then(setRedemptions).catch(() => {});
+    arpc<any[]>('admin_list_rewards', { p_token: token }).then(setRewards).catch(() => {});
+    arpc<any[]>('admin_list_redemptions', { p_token: token }).then(setRedemptions).catch(() => {});
   }, [token]);
   useEffect(() => { load(); }, [load]);
   const { busy, wrap } = useAdminAction();
@@ -394,7 +405,7 @@ function RewardsTab({ token }: { token: string }) {
             <p className="text-[11px] text-neutral-400">استبدالات: {r.redemptions_count}</p>
             <div className="mt-2 flex gap-2">
               <button onClick={() => setEdit({ ...EMPTY_REWARD, ...r })} className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
-              {r.is_active && <button disabled={busy} onClick={() => wrap(async () => { await rpc('admin_delete_reward', { p_token: token, p_id: r.id }); load(); })}
+              {r.is_active && <button disabled={busy} onClick={() => wrap(async () => { await arpc('admin_delete_reward', { p_token: token, p_id: r.id }); load(); })}
                 className="rounded-lg bg-red-50 px-3 py-1.5 text-[11px] font-extrabold text-red-600">تعطيل</button>}
             </div>
           </Card>
@@ -420,7 +431,7 @@ function RewardsTab({ token }: { token: string }) {
                   {r.status === 'unused' ? 'غير مستخدم' : r.status === 'used' ? 'مستخدم' : 'منتهي'}</span></td>
                 <td className="p-3">
                   {r.status === 'unused' && (
-                    <button disabled={busy} onClick={() => wrap(async () => { await rpc('admin_set_redemption_status', { p_token: token, p_code: r.code, p_status: 'used' }); load(); })}
+                    <button disabled={busy} onClick={() => wrap(async () => { await arpc('admin_set_redemption_status', { p_token: token, p_code: r.code, p_status: 'used' }); load(); })}
                       className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[10px] font-extrabold text-neutral-700">تعليم كمستخدم</button>
                   )}
                 </td>
@@ -440,7 +451,7 @@ function RewardsTab({ token }: { token: string }) {
               <Field label="صورة المكافأة"><ImageUploadField value={edit.image_url} onChange={(url) => setEdit({ ...edit, image_url: url })} folder="rewards" /></Field>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3">
-              <button disabled={busy} onClick={() => wrap(async () => { await rpc('admin_save_reward', { p_token: token, p_reward: edit }); setEdit(null); load(); })}
+              <button disabled={busy} onClick={() => wrap(async () => { await arpc('admin_save_reward', { p_token: token, p_reward: edit }); setEdit(null); load(); })}
                 className="rounded-2xl bg-gradient-to-l from-gold to-gold-deep py-3 text-sm font-extrabold text-white disabled:opacity-50">حفظ</button>
               <button onClick={() => setEdit(null)} className="rounded-2xl bg-neutral-100 py-3 text-sm font-extrabold text-neutral-600">إلغاء</button>
             </div>
@@ -456,7 +467,7 @@ const EMPTY_AD = { id: 0, image_url: '/img/latte.jpg', title: '', description_ar
 function AdsTab({ token }: { token: string }) {
   const [ads, setAds] = useState<any[]>([]);
   const [edit, setEdit] = useState<any>(null);
-  const load = useCallback(() => { rpc<any[]>('admin_list_ads', { p_token: token }).then(setAds).catch(() => {}); }, [token]);
+  const load = useCallback(() => { arpc<any[]>('admin_list_ads', { p_token: token }).then(setAds).catch(() => {}); }, [token]);
   useEffect(() => { load(); }, [load]);
   const { busy, wrap } = useAdminAction();
 
@@ -482,7 +493,7 @@ function AdsTab({ token }: { token: string }) {
             </div>
             <div className="mt-2 flex gap-2">
               <button onClick={() => setEdit({ ...EMPTY_AD, ...a, starts_at: a.starts_at?.slice(0, 16), ends_at: a.ends_at ? a.ends_at.slice(0, 16) : '' })} className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
-              <button disabled={busy} onClick={() => wrap(async () => { await rpc('admin_delete_ad', { p_token: token, p_id: a.id }); load(); })}
+              <button disabled={busy} onClick={() => wrap(async () => { await arpc('admin_delete_ad', { p_token: token, p_id: a.id }); load(); })}
                 className="rounded-lg bg-red-50 px-3 py-1.5 text-[11px] font-extrabold text-red-600">حذف</button>
             </div>
           </Card>
@@ -520,7 +531,7 @@ function AdsTab({ token }: { token: string }) {
               <Field label="صورة الإعلان"><ImageUploadField value={edit.image_url} onChange={(url) => setEdit({ ...edit, image_url: url })} folder="ads" /></Field>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3">
-              <button disabled={busy} onClick={() => wrap(async () => { await rpc('admin_save_ad', { p_token: token, p_ad: edit }); setEdit(null); load(); })}
+              <button disabled={busy} onClick={() => wrap(async () => { await arpc('admin_save_ad', { p_token: token, p_ad: edit }); setEdit(null); load(); })}
                 className="rounded-2xl bg-gradient-to-l from-gold to-gold-deep py-3 text-sm font-extrabold text-white disabled:opacity-50">حفظ</button>
               <button onClick={() => setEdit(null)} className="rounded-2xl bg-neutral-100 py-3 text-sm font-extrabold text-neutral-600">إلغاء</button>
             </div>
@@ -557,7 +568,7 @@ function NotifyTab({ token }: { token: string }) {
         )}
         {msg && <p className="rounded-xl bg-green-50 px-3 py-2 text-center text-xs font-extrabold text-green-700">{msg}</p>}
         <button disabled={busy || !title} onClick={() => wrap(async () => {
-          const n = await rpc<number>('admin_send_notification', { p_token: token, p_title: title, p_body: body, p_customer_id: scope === 'one' ? customerId || null : null });
+          const n = await arpc<number>('admin_send_notification', { p_token: token, p_title: title, p_body: body, p_customer_id: scope === 'one' ? customerId || null : null });
           setMsg(`تم الإرسال إلى ${n} عميل ✓`); setTitle(''); setBody('');
           setTimeout(() => setMsg(''), 4000);
         })} className={`w-full rounded-2xl py-3 text-sm font-extrabold text-white shadow active:scale-[.98] disabled:opacity-40 ${btnCls}`} style={{ borderRadius: 16 }}>
@@ -571,7 +582,7 @@ function NotifyTab({ token }: { token: string }) {
 /* ============================ الإعدادات ============================ */
 function SettingsTab({ token }: { token: string }) {
   const [settings, setSettings] = useState<Record<string, string>>({});
-  const load = useCallback(() => { rpc<Record<string, string>>('admin_get_settings', { p_token: token }).then(setSettings).catch(() => {}); }, [token]);
+  const load = useCallback(() => { arpc<Record<string, string>>('admin_get_settings', { p_token: token }).then(setSettings).catch(() => {}); }, [token]);
   useEffect(() => { load(); }, [load]);
   const { busy, wrap } = useAdminAction();
   const fields = [
@@ -597,7 +608,7 @@ function SettingsTab({ token }: { token: string }) {
             )}
           </Field>
         ))}
-        <button disabled={busy} onClick={() => wrap(async () => { await rpc('admin_save_settings', { p_token: token, p_settings: settings }); load(); alert('تم الحفظ ✓'); })}
+        <button disabled={busy} onClick={() => wrap(async () => { await arpc('admin_save_settings', { p_token: token, p_settings: settings }); load(); alert('تم الحفظ ✓'); })}
           className={`w-full ${btnCls}`} style={{ borderRadius: 16, height: 44 }}>حفظ الإعدادات</button>
       </Card>
     </div>
