@@ -463,7 +463,7 @@ function RewardsTab({ token }: { token: string }) {
 }
 
 /* ============================ الإعلانات ============================ */
-const EMPTY_AD = { id: 0, image_url: '/img/latte.jpg', title: '', description_ar: '', old_price_cents: '', new_price_cents: '', discount_percent: '', starts_at: '', ends_at: '', is_active: true, full_screen: false };
+const EMPTY_AD = { id: 0, image_url: '/img/latte.jpg', title: '', description_ar: '', old_price_cents: '', new_price_cents: '', discount_percent: '', ends_at: '', is_active: true, full_screen: false };
 function AdsTab({ token }: { token: string }) {
   const [ads, setAds] = useState<any[]>([]);
   const [edit, setEdit] = useState<any>(null);
@@ -492,7 +492,7 @@ function AdsTab({ token }: { token: string }) {
               </div>
             </div>
             <div className="mt-2 flex gap-2">
-              <button onClick={() => setEdit({ ...EMPTY_AD, ...a, starts_at: a.starts_at?.slice(0, 16), ends_at: a.ends_at ? a.ends_at.slice(0, 16) : '' })} className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
+              <button onClick={() => setEdit({ ...EMPTY_AD, ...a, ends_at: a.ends_at ? a.ends_at.slice(0, 16) : '' })} className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
               <button disabled={busy} onClick={() => wrap(async () => { await arpc('admin_delete_ad', { p_token: token, p_id: a.id }); load(); })}
                 className="rounded-lg bg-red-50 px-3 py-1.5 text-[11px] font-extrabold text-red-600">حذف</button>
             </div>
@@ -512,10 +512,7 @@ function AdsTab({ token }: { token: string }) {
                 <Field label="السعر الجديد (ل.س)"><input type="number" className={inputCls} value={edit.new_price_cents} onChange={(e) => setEdit({ ...edit, new_price_cents: e.target.value })} /></Field>
                 <Field label="الخصم %"><input type="number" className={inputCls} value={edit.discount_percent} onChange={(e) => setEdit({ ...edit, discount_percent: e.target.value })} /></Field>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Field label="بداية العرض"><input type="datetime-local" className={inputCls} dir="ltr" value={edit.starts_at} onChange={(e) => setEdit({ ...edit, starts_at: e.target.value })} /></Field>
-                <Field label="نهاية العرض"><input type="datetime-local" className={inputCls} dir="ltr" value={edit.ends_at} onChange={(e) => setEdit({ ...edit, ends_at: e.target.value })} /></Field>
-              </div>
+              <Field label="نهاية العرض (اختياري — يبدأ فور الحفظ)"><input type="datetime-local" className={inputCls} dir="ltr" value={edit.ends_at} onChange={(e) => setEdit({ ...edit, ends_at: e.target.value })} /></Field>
               <div className="grid grid-cols-2 gap-2">
                 <Field label="نشط">
                   <select className={inputCls} value={String(edit.is_active)} onChange={(e) => setEdit({ ...edit, is_active: e.target.value === 'true' })}>
@@ -531,7 +528,11 @@ function AdsTab({ token }: { token: string }) {
               <Field label="صورة الإعلان"><ImageUploadField value={edit.image_url} onChange={(url) => setEdit({ ...edit, image_url: url })} folder="ads" /></Field>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3">
-              <button disabled={busy} onClick={() => wrap(async () => { await arpc('admin_save_ad', { p_token: token, p_ad: edit }); setEdit(null); load(); })}
+              <button disabled={busy} onClick={() => wrap(async () => {
+                const ad = { ...edit, ends_at: edit.ends_at ? new Date(edit.ends_at).toISOString() : '' };
+                await arpc('admin_save_ad', { p_token: token, p_ad: ad });
+                setEdit(null); load();
+              })}
                 className="rounded-2xl bg-gradient-to-l from-gold to-gold-deep py-3 text-sm font-extrabold text-white disabled:opacity-50">حفظ</button>
               <button onClick={() => setEdit(null)} className="rounded-2xl bg-neutral-100 py-3 text-sm font-extrabold text-neutral-600">إلغاء</button>
             </div>
