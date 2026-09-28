@@ -1129,12 +1129,6 @@ export default function CustomerApp() {
         </div>
       </header>
 
-      {pathname !== '/account' && pathname !== '/about' && (
-        <div className="px-4 pt-3">
-          <OfferBanners ads={ads} cur={cur} onOpen={(a) => setAdOpen(a)} />
-        </div>
-      )}
-
       <main className="flex-1 px-4 pb-36 pt-2">
         <Routes>
           <Route path="/" element={<Home catalog={catalog} openProduct={setProduct} />} />
