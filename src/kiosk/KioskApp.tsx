@@ -25,7 +25,11 @@ export default function KioskApp() {
   const [step, setStep] = useState<Step>('idle');
   const [pinErr, setPinErr] = useState('');
   const [pinBusy, setPinBusy] = useState(false);
-  const [done, setDone] = useState<{ orderNumber: number; points: number } | null>(null);
+  const [done, setDone] = useState<{ orderNumber: number; points: number; free: boolean } | null>(null);
+  const [codeInput, setCodeInput] = useState('');
+  const [appliedCode, setAppliedCode] = useState<{ code: string; name: string } | null>(null);
+  const [codeMsg, setCodeMsg] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [codeBusy, setCodeBusy] = useState(false);
   const [toast, setToast] = useState<{ msg: string; kind?: 'ok' | 'err' } | null>(null);
   const searchTimer = useRef<number | undefined>(undefined);
 
@@ -66,9 +70,27 @@ export default function KioskApp() {
     setStep('pin');
   };
 
+  const applyCode = async () => {
+    if (codeBusy) return;
+    if (!codeInput.trim()) { setCodeMsg({ msg: 'أدخل الرمز أولًا', ok: false }); return; }
+    setCodeBusy(true); setCodeMsg(null);
+    try {
+      const res = await rpc<any>('check_reward_code', { p_code: codeInput.trim() });
+      if (res.valid) {
+        setAppliedCode({ code: res.code, name: res.reward_name });
+        setCodeMsg({ msg: 'مطبق: ' + res.reward_name + ' — الطلب مجاني 🎁', ok: true });
+        showToast('تم تطبيق رمز الخصم — طلبك مجاني', 'ok');
+      } else {
+        setCodeMsg({ msg: res.reason, ok: false });
+      }
+    } catch { setCodeMsg({ msg: 'تعذر التحقق من الرمز', ok: false }); }
+    setCodeBusy(false);
+  };
+
   const reset = () => {
     setCart(new Map()); setCustomer(null); setQuery(''); setSuggestions('idle');
     setStep('idle'); setDone(null); setView('lookup');
+    setCodeInput(''); setAppliedCode(null); setCodeMsg(null);
   };
 
   const submitPin = async (pin: string) => {
@@ -81,6 +103,7 @@ export default function KioskApp() {
         p_fulfillment_type: 'pickup',
         p_items: items,
         p_source: 'kiosk',
+        p_reward_code: appliedCode?.code ?? null,
       });
       setDone({ orderNumber: res.order_number, points: res.total_points });
       setStep('success');
@@ -232,10 +255,30 @@ export default function KioskApp() {
                   <div className="text-[11px] font-medium" style={{ color: '#6B7357' }}>
                     {itemsCount === 0 ? '' : itemsCount === 1 ? 'صنف واحد في طلبك' : itemsCount === 2 ? 'صنفان في طلبك' : `${itemsCount} أصناف في طلبك`}
                   </div>
+                  {appliedCode ? (
+                    <div className="flex items-center justify-between rounded-xl px-3 py-2" style={{ background: '#E3E9C8', border: '1.5px solid #7C8F52' }}>
+                      <span className="text-[11.5px] font-extrabold" style={{ color: '#26301C' }}>🎁 {appliedCode.name} — الطلب مجاني</span>
+                      <button onClick={() => { setAppliedCode(null); setCodeMsg(null); setCodeInput(''); }}
+                        className="rounded-lg bg-white px-2 py-1 text-[10px] font-bold" style={{ color: '#6E6553' }}>إزالة</button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <input value={codeInput} onChange={(e) => setCodeInput(e.target.value.toUpperCase())} placeholder="رمز خصم؟ (من تطبيق Dose)"
+                        className="h-9 min-w-0 flex-1 rounded-lg border-[1.5px] bg-white px-2.5 text-[11.5px] font-bold outline-none"
+                        style={{ borderColor: '#D9C49C', color: '#221B12' }} />
+                      <button onClick={applyCode} disabled={codeBusy || !codeInput.trim()}
+                        className="flex-none rounded-lg px-3 py-2 text-[11px] font-extrabold disabled:opacity-40"
+                        style={{ background: '#E3E9C8', color: '#37422C' }}>{codeBusy ? '…' : 'تطبيق'}</button>
+                    </div>
+                  )}
+                  {codeMsg && (
+                    <p className="rounded-lg px-2.5 py-1.5 text-[10.5px] font-bold"
+                      style={{ background: codeMsg.ok ? '#E3E9C8' : '#FBEDE9', color: codeMsg.ok ? '#414D36' : '#C4482E' }}>{codeMsg.msg}</p>
+                  )}
                   <button onClick={orderNow} disabled={!cart.size || !customer}
                     className="w-full rounded-xl py-3 text-[15px] font-black shadow-md shadow-[#8a6a48]/30 transition active:scale-[.98] disabled:opacity-40"
                     style={{ background: '#C9D3A8', color: '#26301C' }}>
-                    اطلب الآن
+                    {appliedCode ? 'اطلب الآن — مجاني 🎁' : 'اطلب الآن'}
                   </button>
                 </div>
 
@@ -289,6 +332,11 @@ export default function KioskApp() {
             <p className="mt-2 inline-block rounded-full px-4 py-1.5 text-[15px] font-black" style={{ background: '#E3E9C8', color: '#5C6B3C' }}>
               ⭐ +{done.points} نقطة عند إكمال الطلب
             </p>
+            {done.free && (
+              <p className="mt-1.5 inline-block rounded-full px-4 py-1.5 text-[13px] font-black" style={{ background: '#C9D3A8', color: '#26301C' }}>
+                🎁 طلب مجاني برمز الخصم
+              </p>
+            )}
             <p className="mt-2 text-[11px] font-bold" style={{ color: '#7C8665' }}>
               ستظهر النقاط في حساب {customer?.name} داخل تطبيق Dose
             </p>

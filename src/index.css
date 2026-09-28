@@ -47,6 +47,7 @@ body {
 @keyframes shake-x { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(7px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(3px)} }
 @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(50%); } }
+@keyframes pulse-slow { 0%,100%{opacity:1} 50%{opacity:.75} }
 @keyframes welcome-progress { from { width: 0; } to { width: 100%; } }
 
 .anim-pop { animation: pop-in .28s cubic-bezier(.22,.8,.3,1) both; }

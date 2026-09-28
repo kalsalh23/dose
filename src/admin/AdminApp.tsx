@@ -38,6 +38,12 @@ export default function AdminApp() {
 
   const logout = () => { localStorage.removeItem(ADMIN_KEY); setToken(null); };
 
+  useEffect(() => {
+    if (token && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, [token]);
+
   if (!token) return <AdminLogin onLogged={(t) => { localStorage.setItem(ADMIN_KEY, t); setToken(t); }} />;
 
   return (
@@ -198,8 +204,34 @@ function Dashboard({ token }: { token: string }) {
 /* ============================ الطلبات ============================ */
 function OrdersTab({ token }: { token: string }) {
   const [orders, setOrders] = useState<any[]>([]);
-  const load = useCallback(() => { arpc<any[]>('admin_list_orders', { p_token: token, p_limit: 200 }).then(setOrders).catch(() => {}); }, [token]);
-  useEffect(() => { load(); const t = setInterval(load, 15000); return () => clearInterval(t); }, [load]);
+  const seenRef = useRef<Set<number>>(new Set(JSON.parse(localStorage.getItem('dose_seen_orders') || '[]')));
+  const firstLoad = useRef(true);
+  const load = useCallback(async () => {
+    try {
+      const rows = await arpc<any[]>('admin_list_orders', { p_token: token, p_limit: 200 });
+      if (!Array.isArray(rows)) return;
+      // اكتشاف الطلبات الجديدة (بعد أول تحميل)
+      if (!firstLoad.current) {
+        for (const o of rows) {
+          if (!seenRef.current.has(o.order_number) && o.status === 'pending') {
+            try {
+              if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                new Notification('🔔 طلب جديد #' + o.order_number, {
+                  body: o.customer_name + ' — ' + eur(o.total_cents) + ' (' + (o.fulfillment_type === 'delivery' ? 'توصيل' : 'استلام') + ')',
+                  icon: '/logo.jpg', tag: 'order-' + o.id,
+                });
+              }
+            } catch {}
+          }
+        }
+      }
+      rows.forEach((o) => seenRef.current.add(o.order_number));
+      firstLoad.current = false;
+      localStorage.setItem('dose_seen_orders', JSON.stringify([...seenRef.current].slice(-500)));
+      setOrders(rows);
+    } catch {}
+  }, [token]);
+  useEffect(() => { load(); const t = setInterval(load, 10000); return () => clearInterval(t); }, [load]);
   const { busy, wrap } = useAdminAction();
 
   const setStatus = (id: string, status: string) => wrap(async () => {
@@ -215,10 +247,11 @@ function OrdersTab({ token }: { token: string }) {
         <button onClick={load} className={btnCls}>تحديث</button>
       </div>
       {orders.map((o) => (
-        <Card key={o.id}>
+        <Card key={o.id} className={o.status === 'pending' ? '!ring-2 !ring-amber-400 !bg-amber-50/60 animate-pulse-slow' : ''}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <span className="text-sm font-black text-coffee-900">#{o.order_number}</span>
+              {o.status === 'pending' && <span className="ms-2 rounded-full bg-amber-400 px-2.5 py-1 text-[10px] font-black text-amber-950">جديد — بانتظار المعالجة</span>}
               <span className={`ms-2 rounded-full px-2.5 py-1 text-[11px] font-extrabold ${statusChip(o.status)}`}>{statusLabel(o.status)}</span>
               {o.points_awarded && <span className="ms-1 rounded-full bg-green-50 px-2 py-1 text-[10px] font-extrabold text-green-700">⭐ منحت</span>}
             </div>
