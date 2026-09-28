@@ -363,7 +363,7 @@ function Home({ catalog, openProduct }: { catalog: Catalog | null; openProduct: 
         <div className="grid grid-cols-2 gap-3.5 pb-4 sm:grid-cols-3">
           {menuItems.map((p) => (
             <button key={p.id} onClick={() => openProduct(p)}
-              className="rounded-[1.75rem] bg-[#F1DCB0] p-2.5 text-right shadow-sm shadow-[#8a6a48]/15 transition hover:-translate-y-1 hover:shadow-lg anim-rise">
+              className="rounded-[1.75rem] bg-white p-2.5 text-right shadow-sm shadow-[#8a6a48]/15 ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 hover:shadow-lg anim-rise">
               <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-28 w-full rounded-[1.3rem] object-cover" />
               <div className="flex items-end justify-between px-1 pb-0.5 pt-2.5">
                 <div className="min-w-0">
