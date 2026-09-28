@@ -699,6 +699,15 @@ function PromoTab({ token }: { token: string }) {
         })} className={`${btnCls} w-full`} style={{ borderRadius: 16, height: 46 }}>
           {busy ? 'جارٍ النشر…' : 'نشر الكود وإرسال الإشعارات'}
         </button>
+        {settings.promo_code && (
+          <button disabled={busy} onClick={() => wrap(async () => {
+            await arpc('admin_delete_promo', { p_token: token });
+            setMsg('حُذف كود الخصم — اختفى من التطبيق'); load();
+            setTimeout(() => setMsg(''), 5000);
+          })} className="w-full rounded-2xl bg-red-50 py-3 text-sm font-black text-[#C4482E] transition active:scale-[.98] disabled:opacity-40">
+            🗑️ حذف كود الخصم
+          </button>
+        )}
       </Card>
     </div>
   );
