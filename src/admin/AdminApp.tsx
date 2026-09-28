@@ -28,9 +28,10 @@ const TABS: { id: TabId; label: string; icon: IconName }[] = [
   { id: 'rewards', label: 'المكافآت', icon: 'gift' },
   { id: 'ads', label: 'الإعلانات', icon: 'megaphone' },
   { id: 'notify', label: 'إشعار', icon: 'bell' },
+  { id: 'promo', label: 'كود الخصم', icon: 'gift' },
   { id: 'settings', label: 'الإعدادات', icon: 'settings' },
 ];
-type TabId = 'dashboard' | 'orders' | 'products' | 'customers' | 'rewards' | 'ads' | 'notify' | 'settings';
+type TabId = 'dashboard' | 'orders' | 'products' | 'customers' | 'rewards' | 'ads' | 'notify' | 'settings' | 'promo';
 
 export default function AdminApp() {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(ADMIN_KEY));
@@ -131,6 +132,7 @@ export default function AdminApp() {
         {tab === 'ads' && <AdsTab token={token} />}
         {tab === 'notify' && <NotifyTab token={token} />}
         {tab === 'settings' && <SettingsTab token={token} />}
+        {tab === 'promo' && <PromoTab token={token} />}
       </main>
     </div>
   );
@@ -661,6 +663,41 @@ function NotifyTab({ token }: { token: string }) {
           setTimeout(() => setMsg(''), 4000);
         })} className={`w-full rounded-2xl py-3 text-sm font-extrabold text-white shadow active:scale-[.98] disabled:opacity-40 ${btnCls}`} style={{ borderRadius: 16 }}>
           {busy ? 'جارٍ الإرسال…' : 'إرسال الإشعار'}
+        </button>
+      </Card>
+    </div>
+  );
+}
+
+/* ============================ كود الخصم ============================ */
+function PromoTab({ token }: { token: string }) {
+  const [settings, setSettings] = useState<Record<string, string>>({});
+  const [msg, setMsg] = useState('');
+  const load = useCallback(() => { arpc<Record<string, string>>('admin_get_settings', { p_token: token }).then(setSettings).catch(() => {}); }, [token]);
+  useEffect(() => { load(); }, [load]);
+  const { busy, wrap } = useAdminAction();
+
+  return (
+    <div className="mx-auto max-w-md">
+      <h2 className="mb-1 text-base font-extrabold text-coffee-900">كود الخصم</h2>
+      <p className="mb-3 text-[11px] font-bold text-neutral-500">انشر كود خصم يظهر في الشاشة الرئيسية، ويستخدمه الزبون في الكشك للحصول على الخصم</p>
+      <Card className="space-y-3">
+        {settings.promo_code && settings.promo_discount && (
+          <div className="rounded-2xl bg-[#EEF2DC] p-3.5 text-center">
+            <p className="text-[10px] font-black text-[#7C8665]">الكود المنشور حاليًا</p>
+            <p className="mt-0.5 font-mono text-2xl font-black tracking-[.25em] text-coffee-900" dir="ltr">{settings.promo_code}</p>
+            <p className="mt-1 text-[11px] font-extrabold text-[#7C8F52]">خصم {settings.promo_discount}%</p>
+          </div>
+        )}
+        <Field label="الكود (حروف وأرقام)"><input className={inputCls} dir="ltr" value={settings.promo_code ?? ''} onChange={(e) => setSettings({ ...settings, promo_code: e.target.value.toUpperCase() })} placeholder="DOSE50" /></Field>
+        <Field label="نسبة الخصم % (1 - 90)"><input type="number" className={inputCls} value={settings.promo_discount ?? ''} onChange={(e) => setSettings({ ...settings, promo_discount: e.target.value })} placeholder="20" /></Field>
+        {msg && <p className="rounded-xl bg-green-50 px-3 py-2 text-center text-xs font-extrabold text-green-700">{msg}</p>}
+        <button disabled={busy || !(settings.promo_code ?? '').trim()} onClick={() => wrap(async () => {
+          const r = await arpc<{ notified: number }>('admin_publish_promo', { p_token: token, p_code: settings.promo_code, p_discount: Number(settings.promo_discount) });
+          setMsg('تم نشر الكود — أُرسل إشعار داخلي وفوري إلى ' + (r.notified ?? 'كل') + ' الزبائن ✓');
+          load(); setTimeout(() => setMsg(''), 6000);
+        })} className={`${btnCls} w-full`} style={{ borderRadius: 16, height: 46 }}>
+          {busy ? 'جارٍ النشر…' : 'نشر الكود وإرسال الإشعارات'}
         </button>
       </Card>
     </div>

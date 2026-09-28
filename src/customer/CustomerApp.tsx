@@ -212,10 +212,12 @@ function PopularStrip({ title, emoji, items, cur, openProduct }: {
 
 /* ============================ فئات مميزة ============================ */
 const CAT_IMAGES: Record<string, string> = {
-  hot: '/img/cappuccino.jpg',
-  cold: '/img/iced-latte.jpg',
+  hot_drinks: '/img/cappuccino.jpg',
+  cold_drinks: '/img/iced-latte.jpg',
+  matcha_tea: '/img/matcha.jpg',
+  fresh: '/img/juice.jpg',
+  mojito: '/img/mojito.jpg',
   dessert: '/img/chocolate-cake.jpg',
-  extras: '/img/caramel-macchiato.jpg',
 };
 
 function FeaturedCategories({ catalog, cat, setCat }: { catalog: Catalog | null; cat: string; setCat: (s: string) => void }) {
@@ -678,8 +680,8 @@ function OrdersPage({ myData, session }: { myData: MyData | null; session: Sessi
 }
 
 /* ============================ الإشعارات ============================ */
-function NotificationsPage({ myData, session, onSeen, onEnablePush, pushMsg }: {
-  myData: MyData | null; session: Session | null; onSeen: () => void; onEnablePush: () => void; pushMsg: string;
+function NotificationsPage({ myData, session, onSeen, onEnablePush, pushMsg, onDeleteNotif }: {
+  myData: MyData | null; session: Session | null; onSeen: () => void; onEnablePush: () => void; pushMsg: string; onDeleteNotif: (id: number) => void;
 }) {
   useEffect(() => { onSeen(); }, []);
   if (!session) return <NeedLogin />;
@@ -700,14 +702,16 @@ function NotificationsPage({ myData, session, onSeen, onEnablePush, pushMsg }: {
         </div>
       )}
       {items.map((n) => (
-        <div key={n.id} className={`rounded-[1.5rem] p-4 ${n.is_read ? 'bg-white/70' : 'bg-[#E3E9C8] shadow-sm'}`}>
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-extrabold text-[#26301C]">{n.title}</p>
-              {n.body && <p className="mt-1 text-xs leading-relaxed text-[#6B7357]">{n.body}</p>}
-            </div>
-            <span className="flex-none text-[10px] font-bold text-[#7C8665]">{fmtDateTime(n.created_at)}</span>
+        <div key={n.id} className={`flex items-start gap-2.5 rounded-[1.5rem] p-4 ${n.is_read ? 'bg-white/70' : 'bg-[#E3E9C8] shadow-sm'}`}>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-extrabold text-[#26301C]">{n.title}</p>
+            {n.body && <p className="mt-1 text-xs leading-relaxed text-[#6B7357]">{n.body}</p>}
+            <span className="mt-1 block text-[10px] font-bold text-[#7C8665]">{fmtDateTime(n.created_at)}</span>
           </div>
+          <button onClick={() => onDeleteNotif(n.id)}
+            className="grid size-9 flex-none place-items-center rounded-full bg-white/80 text-[#C4482E] transition active:scale-90" aria-label="حذف الإشعار">
+            <Icon name="trash" size={14} />
+          </button>
         </div>
       ))}
     </div>
@@ -1060,6 +1064,15 @@ export default function CustomerApp() {
     show('أُلغي الطلب — لم يُرسل أي شيء إلى المحل');
   };
 
+  const deleteNotif = async (id: number) => {
+    if (!session) return;
+    try {
+      await rpc('delete_notification', { p_token: session.token, p_notif_id: id });
+      refresh();
+      show('حُذف الإشعار', 'ok');
+    } catch (e: any) { show(e.message, 'err'); }
+  };
+
   const redeem = async (reward: any) => {
     if (!session) return;
     try {
@@ -1141,7 +1154,7 @@ export default function CustomerApp() {
           <Route path="/rewards" element={<RewardsPage catalog={catalog} myData={myData} session={session} onRedeem={redeem} />} />
           <Route path="/orders" element={<OrdersPage myData={myData} session={session} />} />
           <Route path="/notifications" element={
-            <NotificationsPage myData={myData} session={session} pushMsg={pushMsg}
+            <NotificationsPage myData={myData} session={session} pushMsg={pushMsg} onDeleteNotif={deleteNotif}
               onSeen={() => { if (session) rpc('mark_notifications_read', { p_token: session.token }).then(refresh).catch(() => {}); }}
               onEnablePush={enablePush} />} />
           <Route path="/account" element={session ? (
