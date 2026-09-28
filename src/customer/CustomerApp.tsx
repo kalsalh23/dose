@@ -221,25 +221,41 @@ const CAT_IMAGES: Record<string, string> = {
 function FeaturedCategories({ catalog, cat, setCat }: { catalog: Catalog | null; cat: string; setCat: (s: string) => void }) {
   const items = [{ slug: 'all', name_ar: 'الكل' }, ...(catalog?.categories ?? [])];
   return (
-    <section className="mt-7">
-      <h2 className="mb-3.5 text-[17px] font-black text-[#26301C]">فئات مميزة</h2>
-      <div className="no-scrollbar -mx-4 flex gap-5 overflow-x-auto px-4 pb-1">
+    <section className="mt-6">
+      <h2 className="mb-3 text-[17px] font-black text-[#26301C]">فئات مميزة</h2>
+      <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
         {items.map((c) => {
           const active = cat === c.slug;
           return (
-            <button key={c.slug} onClick={() => setCat(c.slug)} className="flex flex-none flex-col items-center gap-2 transition active:scale-95">
-              <span className={`grid size-[76px] place-items-center overflow-hidden rounded-full shadow-md shadow-[#8a6a48]/10 transition-all ${
-                active ? 'ring-2 ring-[#5C6B3C] ring-offset-2 ring-offset-[#E9EDD6]' : 'ring-1 ring-[#D5DEB4]'}`}>
-                {c.slug === 'all'
-                  ? <span className="grid size-full place-items-center bg-[#C9D3A8] text-[#26301C]"><Icon name="search" size={20} /></span>
-                  : <img src={CAT_IMAGES[c.slug] ?? '/img/latte.jpg'} alt={c.name_ar} className="size-full object-cover" loading="lazy" />}
-              </span>
-              <span className={`text-[11.5px] font-extrabold ${active ? 'text-[#26301C]' : 'text-[#7C8665]'}`}>{c.name_ar}</span>
+            <button key={c.slug} onClick={() => setCat(c.slug)}
+              className={`relative h-24 w-32 flex-none overflow-hidden rounded-[1.3rem] shadow-md transition active:scale-95 anim-rise ${active ? 'ring-[3px] ring-[#5C6B3C]' : 'ring-1 ring-[#D5DEB4]'}`}>
+              {c.slug === 'all'
+                ? <span className="grid size-full place-items-center bg-gradient-to-br from-[#414D36] to-[#26301C] text-[#C9D3A8]"><Icon name="package" size={24} /></span>
+                : <img src={CAT_IMAGES[c.slug] ?? '/img/latte.jpg'} alt={c.name_ar} className='size-full object-cover' loading='lazy' />}
+              <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
+              <span className="absolute inset-x-0 bottom-0 pb-2 text-center text-[12px] font-black text-white drop-shadow">{c.name_ar}</span>
             </button>
           );
         })}
       </div>
     </section>
+  );
+}
+
+/* بطاقة كود الخصم المنشور */
+function PromoBanner({ settings }: { settings: Record<string, string> }) {
+  const code = settings?.promo_code;
+  const disc = settings?.promo_discount;
+  if (!code || !disc) return null;
+  return (
+    <div className="mt-4 flex items-center justify-between gap-3 rounded-[1.4rem] border-2 border-dashed border-[#8A6A48] bg-[#F1DCB0] px-4 py-3.5">
+      <div>
+        <p className="text-[10px] font-black text-[#7C8665]">🎁 كود خصم حصري</p>
+        <p className='font-mono text-xl font-black tracking-[.2em] text-[#26301C]' dir='ltr'>{code}</p>
+        <p className="text-[10.5px] font-bold text-[#7C8665]">استخدمه في الكشك واحصل على خصم {disc}%</p>
+      </div>
+      <span className="rounded-full bg-[#26301C] px-3 py-1.5 text-[10px] font-black text-[#C9D3A8]">خصم {disc}%</span>
+    </div>
   );
 }
 
@@ -267,6 +283,8 @@ function Home({ catalog, openProduct, favorites, onToggleFav }: { catalog: Catal
       </div>
 
       <FeaturedCategories catalog={catalog} cat={cat} setCat={(c) => { setCat(c); setQ(''); }} />
+
+      <PromoBanner settings={catalog?.settings ?? {}} />
 
       <PopularStrip title="الأكثر مبيعًا" emoji="🔥" items={catalog?.best_sellers ?? []} cur={cur} openProduct={openProduct} />
       <PopularStrip title="الأكثر طلبًا" emoji="⭐" items={catalog?.most_ordered ?? []} cur={cur} openProduct={openProduct} />
@@ -1233,21 +1251,10 @@ function ConfirmOrderModal({ phase, lines, total, points, free, busy, done, onCo
       <div className="w-full max-w-sm rounded-[2rem] bg-white p-6 shadow-2xl anim-pop">
         {phase === 'review' ? (
           <>
-            <h3 className="text-center text-lg font-black text-[#26301C]">مراجعة طلبك</h3>
-            <p className="mt-1 text-center text-xs text-neutral-500">راجع طلبك ثم أكّد الإرسال عبر WhatsApp</p>
-            <div className="mt-4 max-h-52 space-y-1.5 overflow-y-auto rounded-[1.4rem] bg-[#EEF2DC] p-4">
-              {lines.map((l, i) => (
-                <p key={i} className="text-xs text-[#4A3A28]">
-                  • {l.product.name_ar} × {l.qty} — {eur(l.product.price_cents * l.qty, cur)}
-                  {(l.options || []).length > 0 && <span className="text-[#7C8665]"> ({l.options.join('، ')})</span>}
-                </p>
-              ))}
+            <div className="rounded-[1.6rem] bg-[#E3E9C8] px-5 py-4 text-center">
+              <span className="text-sm font-black text-[#26301C]">المبلغ</span>
+              <p className="mt-1 text-3xl font-black text-[#26301C]">{free ? 'مجاني 🎁' : eur(total, cur)}</p>
             </div>
-            <div className="mt-3 flex items-center justify-between rounded-2xl bg-[#E3E9C8] px-4 py-3">
-              <span className="text-sm font-black text-[#26301C]">الإجمالي</span>
-              <span className="text-lg font-black text-[#26301C]">{free ? 'مجاني 🎁' : eur(total, cur)}</span>
-            </div>
-            <p className="mt-2 text-center text-[11px] font-bold text-[#7C8665]">ستكسب ⭐ {points} نقطة عند إكمال الطلب</p>
             <button onClick={onConfirm} disabled={busy}
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#25D366] py-3.5 text-base font-black text-white shadow-lg shadow-green-500/30 transition active:scale-[.98] disabled:opacity-50">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Zm5.5 14.1c-.2.7-1.3 1.3-1.9 1.4-.5.1-1.1.1-1.8-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.7-4-4.8-4.2-.1-.2-1.2-1.6-1.2-3s.7-2.1 1-2.4c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.4.2.5.7 1.8.8 1.9.1.1.1.3 0 .5-.1.2-.1.3-.3.5l-.4.5c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1.1 2.2 1.4 2.5 1.5.3.1.5.1.6-.1.2-.2.7-.8.9-1.1.2-.3.4-.2.6-.1l1.8.9c.3.1.5.2.5.3.1.1.1.7-.1 1.3Z"/></svg>
@@ -1257,7 +1264,6 @@ function ConfirmOrderModal({ phase, lines, total, points, free, busy, done, onCo
               className="mt-3 w-full rounded-full bg-red-50 py-3 text-sm font-black text-[#C4482E] transition active:scale-[.98] disabled:opacity-50">
               إلغاء الطلب
             </button>
-            <p className="mt-2 text-center text-[10px] font-bold text-neutral-400">الإلغاء لا يُرسل الطلب إلى المحل إطلاقًا</p>
           </>
         ) : (
           <>
