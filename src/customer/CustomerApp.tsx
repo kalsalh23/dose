@@ -273,7 +273,8 @@ function Home({ catalog, openProduct }: { catalog: Catalog | null; openProduct: 
   const promoDisc = catalog?.settings?.promo_discount;
   const mostOrdered = catalog?.most_ordered ?? [];
   const items = [{ slug: 'all', name_ar: 'الكل' }, ...(catalog?.categories ?? [])];
-  const menuItems = showAll ? shown : shown.slice(0, 4);
+  const searching = q.trim() !== '';
+  const menuItems = searching || showAll ? shown : shown.slice(0, 4);
   const scrollToMenu = () => document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth' });
 
   return (
@@ -329,8 +330,10 @@ function Home({ catalog, openProduct }: { catalog: Catalog | null; openProduct: 
         </div>
       </section>
 
+      {!searching && <PromoBanner settings={catalog?.settings ?? {}} />}
+
       {/* الأكثر طلبًا — بطاقات أفقية */}
-      {mostOrdered.length > 0 && (
+      {!searching && mostOrdered.length > 0 && (
         <section className="mt-5">
           <h2 className="mb-3 flex items-center gap-1.5 text-[17px] font-black text-[#26301C]">
             <Icon name='star' size={15} filled className='text-[#B07C3A]' /> الأكثر طلبًا
@@ -360,7 +363,7 @@ function Home({ catalog, openProduct }: { catalog: Catalog | null; openProduct: 
       <section id='menu-section' className='mt-5'>
         <div className="mb-3 flex items-end justify-between px-1">
           <h2 className="text-[17px] font-black text-[#26301C]">استكشف المنيو</h2>
-          {shown.length > 4 && (
+          {!searching && shown.length > 4 && (
             <button onClick={() => setShowAll(!showAll)} className='rounded-full bg-white px-3.5 py-1.5 text-[11px] font-black text-[#26301C] shadow-sm ring-1 ring-[#EAD3A0] transition active:scale-95'>
               {showAll ? "عرض أقل" : "عرض الكل"}
             </button>
