@@ -270,6 +270,7 @@ function Home({ catalog, openProduct }: { catalog: Catalog | null; openProduct: 
   const promoCode = catalog?.settings?.promo_code;
   const promoDisc = catalog?.settings?.promo_discount;
   const mostOrdered = catalog?.most_ordered ?? [];
+  const items = [{ slug: 'all', name_ar: 'الكل' }, ...(catalog?.categories ?? [])];
   const menuItems = showAll ? shown : shown.slice(0, 4);
   const scrollToMenu = () => document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth' });
 
