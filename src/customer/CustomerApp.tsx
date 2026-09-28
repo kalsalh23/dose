@@ -260,52 +260,110 @@ function PromoBanner({ settings }: { settings: Record<string, string> }) {
 }
 
 /* ============================ الرئيسية ============================ */
-function Home({ catalog, openProduct, favorites, onToggleFav }: { catalog: Catalog | null; openProduct: (p: Product) => void; favorites: Set<number>; onToggleFav: (id: number) => void }) {
+function Home({ catalog, openProduct }: { catalog: Catalog | null; openProduct: (p: Product) => void }) {
   const [cat, setCat] = useState('all');
+  const [showAll, setShowAll] = useState(false);
   const [q, setQ] = useState('');
   const products = catalog?.products ?? [];
   let shown = cat === 'all' ? products : products.filter((p) => p.category === cat);
-  if (q.trim()) {
-    const needle = q.trim().toLowerCase();
-    shown = shown.filter((p) => p.name_ar.includes(needle) || p.name_en.toLowerCase().includes(needle));
-  }
   const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
-  const activeName = q.trim() ? `نتائج البحث عن "${q.trim()}"` : cat === 'all' ? 'كل المنتجات' : catalog?.categories?.find((c) => c.slug === cat)?.name_ar;
+  const promoCode = catalog?.settings?.promo_code;
+  const promoDisc = catalog?.settings?.promo_discount;
+  const mostOrdered = catalog?.most_ordered ?? [];
+  const menuItems = showAll ? shown : shown.slice(0, 4);
+  const scrollToMenu = () => document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth' });
 
   return (
     <div className="anim-rise">
+      {/* الهيرو */}
+      <div className="relative overflow-hidden rounded-[1.8rem] bg-gradient-to-bl from-[#414D36] to-[#26301C] p-5 text-white shadow-xl shadow-[#26301C]/40">
+        <div className="pointer-events-none absolute -bottom-16 -left-10 size-44 rounded-full bg-white/5 blur-2xl" />
+        <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-black text-[#C9D3A8]">قهوة مختصة في كل رشفة</span>
+        <h2 className="mt-2.5 text-[22px] font-black leading-snug">قهوتك على ذوقك،<br />وحلويات تُدللها</h2>
+        <p className="mt-1.5 text-[11px] font-medium text-white/75">اطلب من القهوة والحلويات من المنيو واستمتع بجمع النقاط</p>
+        <div className="mt-4 flex items-end justify-between gap-2">
+          {promoCode && promoDisc ? (
+            <div className="rounded-xl border-2 border-dashed border-[#C9D3A8]/70 px-2.5 py-1.5 text-center">
+              <p className="text-[8.5px] font-bold text-[#C9D3A8]">كود خصم {promoDisc}%</p>
+              <p className='font-mono text-[13px] font-black tracking-widest' dir='ltr'>{promoCode}</p>
+            </div>
+          ) : <span />}
+          <button onClick={scrollToMenu}
+            className='flex items-center gap-1.5 rounded-full bg-[#C9D3A8] px-4 py-2.5 text-[13px] font-black text-[#26301C] shadow-lg transition active:scale-95'>
+            اطلب الآن <Icon name="plus" size={14} strokeWidth={3} />
+          </button>
+        </div>
+      </div>
+
       {/* البحث */}
-      <div className="relative mb-4">
+      <div className="relative mt-4">
         <Icon name="search" size={16} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#7C8665]" />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث عن مشروب أو حلوى…"
           className="h-12 w-full rounded-full border-2 border-[#D5DEB4] bg-white pr-11 pl-4 text-sm font-bold text-[#26301C] outline-none focus:border-[#7C8F52]" />
         {q && <button onClick={() => setQ('')} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7C8665]" aria-label="مسح"><Icon name="x" size={15} /></button>}
       </div>
 
-      <FeaturedCategories catalog={catalog} cat={cat} setCat={(c) => { setCat(c); setQ(''); }} />
-
-      <PromoBanner settings={catalog?.settings ?? {}} />
-
-      <PopularStrip title="الأكثر مبيعًا" emoji="🔥" items={catalog?.best_sellers ?? []} cur={cur} openProduct={openProduct} />
-      <PopularStrip title="الأكثر طلبًا" emoji="⭐" items={catalog?.most_ordered ?? []} cur={cur} openProduct={openProduct} />
-
+      {/* الفئات — دوائر */}
       <section className="mt-5">
+        <div className="no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-1">
+          {items.map((c) => {
+            const active = cat === c.slug;
+            return (
+              <button key={c.slug} onClick={() => setCat(c.slug)} className="flex flex-none flex-col items-center gap-1.5 transition active:scale-95">
+                <span className={`grid size-[62px] place-items-center overflow-hidden rounded-full shadow-md shadow-[#8a6a48]/15 transition-all ${active ? 'ring-2 ring-[#5C6B3C] ring-offset-2 ring-offset-[#F6E7C9]' : 'ring-1 ring-[#EAD3A0]'}`}>
+                  {c.slug === 'all'
+                    ? <span className='grid size-full place-items-center bg-gradient-to-br from-[#414D36] to-[#26301C] text-[#C9D3A8]'><Icon name='package' size={20} /></span>
+                    : <img src={CAT_IMAGES[c.slug] ?? '/img/latte.jpg'} alt={c.name_ar} className='size-full object-cover' loading='lazy' />}
+                </span>
+                <span className={`text-[11px] font-extrabold ${active ? 'text-[#26301C]' : 'text-[#7C8665]'}`}>{c.name_ar}</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* الأكثر طلبًا — بطاقات أفقية */}
+      {mostOrdered.length > 0 && (
+        <section className="mt-5">
+          <h2 className="mb-3 flex items-center gap-1.5 text-[17px] font-black text-[#26301C]">
+            <Icon name='star' size={15} filled className='text-[#B07C3A]' /> الأكثر طلبًا
+          </h2>
+          <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
+            {mostOrdered.map((p, i) => (
+              <button key={p.id} onClick={() => openProduct(p as unknown as Product)}
+                className='w-40 flex-none rounded-[1.4rem] bg-white p-2.5 text-right shadow-sm ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 anim-rise'
+                style={{ animationDelay: `${i * 35}ms` }}>
+                <div className="relative">
+                  <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-24 w-full rounded-[1rem] object-cover" />
+                  <span className="absolute top-1.5 right-1.5 rounded-full bg-[#26301C] px-2 py-0.5 text-[8.5px] font-black text-[#C9D3A8] shadow">الأكثر طلبًا</span>
+                </div>
+                <h3 className="mt-1.5 truncate text-[13px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
+                <p className="truncate text-[9.5px] font-semibold uppercase tracking-wide text-[#94826A]">{p.name_en}</p>
+                <div className="mt-1 flex items-center justify-between">
+                  <span className="text-[13px] font-black text-[#26301C]">{eur(p.price_cents, cur)}</span>
+                  <span className="grid size-7 place-items-center rounded-full bg-[#C9D3A8] text-[#26301C]"><Icon name="plus" size={13} strokeWidth={3} /></span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* استكشف المنيو */}
+      <section id='menu-section' className='mt-5'>
         <div className="mb-3 flex items-end justify-between px-1">
-          <h2 className="text-[17px] font-black text-[#26301C]">{activeName}</h2>
-          <span className="text-[11px] font-bold text-[#7C8665]">{shown.length} منتج</span>
+          <h2 className="text-[17px] font-black text-[#26301C]">استكشف المنيو</h2>
+          {shown.length > 4 && (
+            <button onClick={() => setShowAll(!showAll)} className='rounded-full bg-white px-3.5 py-1.5 text-[11px] font-black text-[#26301C] shadow-sm ring-1 ring-[#EAD3A0] transition active:scale-95'>
+              {showAll ? "عرض أقل" : "عرض الكل"}
+            </button>
+          )}
         </div>
         <div className="grid grid-cols-2 gap-3.5 pb-4 sm:grid-cols-3">
-          {shown.map((p, i) => (
+          {menuItems.map((p) => (
             <button key={p.id} onClick={() => openProduct(p)}
-              className="rounded-[1.75rem] bg-[#E3E9C8] p-2.5 text-right shadow-sm shadow-[#8a6a48]/15 transition hover:-translate-y-1 hover:shadow-lg anim-rise"
-              style={{ animationDelay: `${i * 30}ms` }}>
-              <div className="relative">
-                <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-28 w-full rounded-[1.3rem] object-cover" />
-                <button onClick={(e) => { e.stopPropagation(); onToggleFav(p.id); }}
-                  className="absolute top-2 left-2 grid size-8 place-items-center rounded-full bg-white/95 shadow transition active:scale-90" aria-label="المفضلة">
-                  <Icon name="heart" size={14} filled={favorites.has(p.id)} className={favorites.has(p.id) ? 'text-[#C4482E]' : 'text-[#7C8665]'} />
-                </button>
-              </div>
+              className="rounded-[1.75rem] bg-[#F1DCB0] p-2.5 text-right shadow-sm shadow-[#8a6a48]/15 transition hover:-translate-y-1 hover:shadow-lg anim-rise">
+              <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-28 w-full rounded-[1.3rem] object-cover" />
               <div className="flex items-end justify-between px-1 pb-0.5 pt-2.5">
                 <div className="min-w-0">
                   <h3 className="truncate text-[13px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
@@ -318,7 +376,9 @@ function Home({ catalog, openProduct, favorites, onToggleFav }: { catalog: Catal
             </button>
           ))}
         </div>
-        <p className="pb-2 text-center text-[11px] text-[#7C8665]">اجمع النقاط مع كل طلب واستبدلها من صفحة «استبدل نقاطك»</p>
+        {cat !== "all" && (
+          <p className="pb-2 text-center text-[11px] text-[#94826A]">عرض فئة: {catalog?.categories?.find((c) => c.slug === cat)?.name_ar}</p>
+        )}
       </section>
     </div>
   );
@@ -1076,7 +1136,7 @@ export default function CustomerApp() {
 
       <main className="flex-1 px-4 pb-36 pt-2">
         <Routes>
-          <Route path="/" element={<Home catalog={catalog} openProduct={setProduct} favorites={favorites} onToggleFav={toggleFav} />} />
+          <Route path="/" element={<Home catalog={catalog} openProduct={setProduct} />} />
           <Route path="/cart" element={
             <CartPage lines={cart.lines} setQty={cart.setQty} remove={cart.remove}
               onOrder={() => startOrder(cart.lines)}
