@@ -97,7 +97,7 @@ function useToast() {
 }
 
 type Fulfillment = 'pickup' | 'delivery';
-interface OrderFlow { step: 'fulfillment' | 'location' | 'pin' | 'review' | null; lines: CartLine[]; fulfillment?: Fulfillment; loc?: { lat: number; lng: number; mapUrl: string }; pin?: string }
+interface OrderFlow { step: 'fulfillment' | 'location' | 'pin' | 'promo' | 'review' | null; lines: CartLine[]; fulfillment?: Fulfillment; loc?: { lat: number; lng: number; mapUrl: string }; pin?: string; usePromo?: boolean }
 
 /* ============================ الإشعارات الفورية ============================ */
 async function enablePushNotifications(session: Session): Promise<string> {
@@ -281,8 +281,9 @@ function Home({ catalog, openProduct }: { catalog: Catalog | null; openProduct: 
       {/* الهيرو */}
       <div className="relative overflow-hidden rounded-[1.8rem] p-5 text-white shadow-xl shadow-[#26301C]/40">
         <img src="/img/v60.jpg" alt="" className="absolute inset-0 size-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-bl from-[#414D36]/95 via-[#3A4531]/80 to-[#26301C]/90" />
+        <div className="absolute inset-0 bg-gradient-to-bl from-[#26301C]/75 via-[#3A4531]/55 to-[#414D36]/70" />
         <div className="pointer-events-none absolute -bottom-16 -left-10 size-44 rounded-full bg-white/5 blur-2xl" />
+        <div className="relative">
         <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-black text-[#C9D3A8]">قهوة مختصة في كل رشفة</span>
         <h2 className="mt-2.5 text-[22px] font-black leading-snug">قهوتك على ذوقك،<br />وحلويات تُدللها</h2>
         <p className="mt-1.5 text-[11px] font-medium text-white/75">اطلب من القهوة والحلويات من المنيو واستمتع بجمع النقاط</p>
@@ -297,6 +298,7 @@ function Home({ catalog, openProduct }: { catalog: Catalog | null; openProduct: 
             className='flex items-center gap-1.5 rounded-full bg-[#C9D3A8] px-4 py-2.5 text-[13px] font-black text-[#26301C] shadow-lg transition active:scale-95'>
             اطلب الآن <Icon name="plus" size={14} strokeWidth={3} />
           </button>
+        </div>
         </div>
       </div>
 
@@ -999,6 +1001,8 @@ export default function CustomerApp() {
     } catch (e: any) { show(e.message || 'فشل رفع الصورة', 'err'); }
     setUploadingAvatar(false);
   };
+  const promoCode = catalog?.settings?.promo_code;
+  const promoDisc = catalog?.settings?.promo_discount;
   const waNumber = catalog?.settings?.whatsapp_number ?? '963936107119';
   const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
 
@@ -1025,7 +1029,8 @@ export default function CustomerApp() {
     try {
       // تحقق من الرمز فقط — لا يُنشأ الطلب قبل التأكيد
       await rpc('verify_customer_pin', { p_customer_id: session.customer.id, p_pin: pin });
-      setFlow((st) => ({ ...st, step: 'review', pin }));
+      if (promoCode && promoDisc) setFlow((st) => ({ ...st, step: 'promo', pin }));
+      else setFlow((st) => ({ ...st, step: 'review', pin }));
     } catch (e: any) {
       setPinErr(e.message);
       setPinAttempt((a) => a + 1);
@@ -1042,6 +1047,7 @@ export default function CustomerApp() {
         p_items: flow.lines.map((l) => ({ product_id: l.product.id, qty: l.qty, options: (l.options || []).join('، ') })),
         p_latitude: flow.loc?.lat ?? null, p_longitude: flow.loc?.lng ?? null, p_map_url: flow.loc?.mapUrl ?? null,
         p_source: 'customer',
+        p_reward_code: flow.usePromo && promoCode ? promoCode : null,
       });
       const msg = buildOrderMessage({
         orderNumber: res.order_number, customerName: res.customer_name, customerPhone: res.customer_phone,
@@ -1208,6 +1214,11 @@ export default function CustomerApp() {
           onBack={() => setFlow((s) => ({ ...s, step: 'fulfillment' }))}
           onDone={(loc) => setFlow((s) => ({ ...s, step: 'pin', loc }))} />
       )}
+      {flow.step === 'promo' && (
+        <PromoChoiceModal code={promoCode} disc={promoDisc} busy={pinBusyConfirm}
+          onUse={() => { setFlow((st) => ({ ...st, step: 'review', usePromo: true })); }}
+          onSkip={() => { setFlow((st) => ({ ...st, step: 'review', usePromo: false })); }} />
+      )}
       {flow.step === 'pin' && (
         <PinPad title="تأكيد هويتك" subtitle="أدخل رمز PIN المكوّن من 4 أرقام لتأكيد طلبك"
           loading={pinBusy} error={pinErr} attemptKey={pinAttempt} onFill={submitPin}
@@ -1217,7 +1228,9 @@ export default function CustomerApp() {
         <ConfirmOrderModal
           phase={doneOrder ? 'done' : 'review'}
           lines={flow.lines}
-          total={flow.lines.reduce((a, l) => a + l.product.price_cents * l.qty, 0)}
+          total={flow.usePromo && promoCode && promoDisc
+            ? Math.round(flow.lines.reduce((a, l) => a + l.product.price_cents * l.qty, 0) * (100 - Number(promoDisc)) / 100)
+            : flow.lines.reduce((a, l) => a + l.product.price_cents * l.qty, 0)}
           points={flow.lines.reduce((a, l) => a + l.product.points * l.qty, 0)}
           free={false}
           busy={pinBusyConfirm || pinBusy}
@@ -1297,6 +1310,30 @@ function LocationModal({ onDone, onClose, onBack }: { onDone: (loc: { lat: numbe
           {busy ? 'جارٍ تحديد موقعك…' : 'مشاركة موقعي'}
         </button>
         <button onClick={onBack} className="mt-3 w-full rounded-2xl py-2.5 text-sm font-bold text-neutral-500 hover:text-neutral-800">إلغاء</button>
+      </div>
+    </div>
+  );
+}
+
+/* ============================ بطاقة كود الخصم (استخدام / عدم الاستخدام) ============================ */
+function PromoChoiceModal({ code, disc, busy, onUse, onSkip }: {
+  code: string; disc: string; busy: boolean; onUse: () => void; onSkip: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[125] grid place-items-center bg-black/50 p-4 backdrop-blur-sm anim-fade">
+      <div className="w-full max-w-sm rounded-[2rem] bg-white p-6 text-center shadow-2xl anim-pop">
+        <span className="mx-auto grid size-16 place-items-center rounded-full bg-[#E3E9C8] text-[#5C6B3C]"><Icon name="gift" size={28} /></span>
+        <h3 className="mt-3 text-lg font-black text-[#26301C]">لديك كود خصم 🎉</h3>
+        <p className="mt-3 rounded-2xl bg-[#F1DCB0] px-4 py-2.5 font-mono text-2xl font-black tracking-[.3em] text-[#26301C]" dir="ltr">{code}</p>
+        <p className="mt-2 text-sm font-extrabold text-[#7C8F52]">استخدمه الآن واحصل على خصم {disc}% على طلبك</p>
+        <button onClick={onUse} disabled={busy}
+          className="mt-5 w-full rounded-full bg-gradient-to-l from-[#EAC98F] to-[#D9B171] py-3.5 text-base font-black text-[#26301C] shadow-lg shadow-[#8a6a48]/35 transition active:scale-[.98] disabled:opacity-50">
+          {busy ? 'جارٍ التطبيق…' : 'استخدام الكود'}
+        </button>
+        <button onClick={onSkip} disabled={busy}
+          className="mt-3 w-full rounded-full bg-neutral-100 py-3 text-sm font-black text-neutral-600 transition active:scale-[.98] disabled:opacity-50">
+          عدم الاستخدام
+        </button>
       </div>
     </div>
   );
