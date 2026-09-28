@@ -268,6 +268,10 @@ function Home({ catalog, openProduct }: { catalog: Catalog | null; openProduct: 
   const [q, setQ] = useState('');
   const products = catalog?.products ?? [];
   let shown = cat === 'all' ? products : products.filter((p) => p.category === cat);
+  if (q.trim()) {
+    const needle = q.trim().toLowerCase();
+    shown = shown.filter((p) => p.name_ar.includes(needle) || p.name_en.toLowerCase().includes(needle));
+  }
   const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
   const promoCode = catalog?.settings?.promo_code;
   const promoDisc = catalog?.settings?.promo_discount;
