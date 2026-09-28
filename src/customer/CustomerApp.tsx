@@ -835,6 +835,7 @@ export default function CustomerApp() {
   const [product, setProduct] = useState<Product | null>(null);
   const [flow, setFlow] = useState<OrderFlow>({ step: null, lines: [] });
   const [pinErr, setPinErr] = useState('');
+  const [pinAttempt, setPinAttempt] = useState(0);
   const [pinBusy, setPinBusy] = useState(false);
   const [doneOrder, setDoneOrder] = useState<{ orderNumber: number; points: number; free: boolean } | null>(null);
   const [pinBusyConfirm, setPinBusyConfirm] = useState(false);
@@ -897,6 +898,7 @@ export default function CustomerApp() {
       setFlow((st) => ({ ...st, step: 'review', pin }));
     } catch (e: any) {
       setPinErr(e.message);
+      setPinAttempt((a) => a + 1);
     } finally { setPinBusy(false); }
   };
 
@@ -1075,8 +1077,8 @@ export default function CustomerApp() {
       )}
       {flow.step === 'pin' && (
         <PinPad title="تأكيد هويتك" subtitle="أدخل رمز PIN المكوّن من 4 أرقام لتأكيد طلبك"
-          loading={pinBusy} error={pinErr} onFill={submitPin}
-          onClose={() => { setFlow({ step: null, lines: [] }); setPinErr(''); }} />
+          loading={pinBusy} error={pinErr} attemptKey={pinAttempt} onFill={submitPin}
+          onClose={() => { setFlow({ step: null, lines: [] }); setPinErr(''); setPinAttempt(0); }} />
       )}
       {flow.step === 'review' && (
         <ConfirmOrderModal

@@ -1,18 +1,30 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 /** لوحة إدخال PIN (4 أرقام) — مشتركة بين الكشك وتطبيق العميل */
 export default function PinPad({
-  title, subtitle, loading, error, onFill, onClose,
+  title, subtitle, loading, error, attemptKey, onFill, onClose,
 }: {
   title: string;
   subtitle?: string;
   loading?: boolean;
   error?: string;
+  /** رقم يزيد بمقدار 1 عند كل محاولة فاشلة — يمسح الإدخال ويهز النافذة */
+  attemptKey?: number;
   onFill: (pin: string) => void;
   onClose: () => void;
 }) {
   const [pin, setPin] = useState('');
   const [shake, setShake] = useState(false);
+
+  // عند فشل محاولة: تفريغ الإدخال + هز النافذة (مرة واحدة لكل محاولة)
+  useEffect(() => {
+    if (attemptKey && attemptKey > 0) {
+      setPin('');
+      setShake(true);
+      const t = setTimeout(() => setShake(false), 450);
+      return () => clearTimeout(t);
+    }
+  }, [attemptKey]);
 
   const push = (k: string) => {
     if (loading) return;
@@ -24,14 +36,6 @@ export default function PinPad({
   const confirm = () => {
     if (pin.length === 4 && !loading) onFill(pin);
   };
-
-  // عند تغيّر الخطأ: هز النافذة وتفريغ الإدخال
-  useState;
-  if (error && !shake) {
-    setShake(true);
-    setPin('');
-    setTimeout(() => setShake(false), 450);
-  }
 
   return (
     <div className="fixed inset-0 z-[120] grid place-items-center bg-black/50 backdrop-blur-sm p-4 anim-fade" onClick={onClose}>

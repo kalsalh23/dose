@@ -24,6 +24,7 @@ export default function KioskApp() {
   const [view, setView] = useState<'lookup' | 'signup'>('lookup');
   const [step, setStep] = useState<Step>('idle');
   const [pinErr, setPinErr] = useState('');
+  const [pinAttempt, setPinAttempt] = useState(0);
   const [pinBusy, setPinBusy] = useState(false);
   const [done, setDone] = useState<{ orderNumber: number; points: number; free: boolean } | null>(null);
   const [codeInput, setCodeInput] = useState('');
@@ -109,6 +110,7 @@ export default function KioskApp() {
       setStep('success');
     } catch (e: any) {
       setPinErr(e.message);
+      setPinAttempt((a) => a + 1);
     } finally { setPinBusy(false); }
   };
 
@@ -314,6 +316,7 @@ export default function KioskApp() {
       {/* ===== نافذة PIN ===== */}
       {step === 'pin' && (
         <PinPad
+          attemptKey={pinAttempt}
           title="تأكيد هويتك"
           subtitle={`أدخل رمز PIN الخاص بك يا ${customer?.name ?? ''} لتأكيد الطلب`}
           loading={pinBusy} error={pinErr} onFill={submitPin}
