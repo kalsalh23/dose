@@ -8,8 +8,10 @@ export interface Ad {
   id: number; image_url: string; title: string; description_ar: string;
   old_price_cents: number | null; new_price_cents: number | null; discount_percent: number | null; full_screen: boolean;
 }
+export interface PopularProduct { id: number; name_ar: string; name_en: string; price_cents: number; points: number; image_url: string; sold_qty?: number; order_count?: number }
 export interface Catalog {
   categories: Category[]; products: Product[]; rewards: Reward[]; ads: Ad[];
+  best_sellers?: PopularProduct[]; most_ordered?: PopularProduct[];
   settings: Record<string, string>;
 }
 export interface AppCustomer {
