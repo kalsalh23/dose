@@ -279,7 +279,9 @@ function Home({ catalog, openProduct }: { catalog: Catalog | null; openProduct: 
   return (
     <div className="anim-rise">
       {/* الهيرو */}
-      <div className="relative overflow-hidden rounded-[1.8rem] bg-gradient-to-bl from-[#414D36] to-[#26301C] p-5 text-white shadow-xl shadow-[#26301C]/40">
+      <div className="relative overflow-hidden rounded-[1.8rem] p-5 text-white shadow-xl shadow-[#26301C]/40">
+        <img src="/img/v60.jpg" alt="" className="absolute inset-0 size-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-bl from-[#414D36]/95 via-[#3A4531]/80 to-[#26301C]/90" />
         <div className="pointer-events-none absolute -bottom-16 -left-10 size-44 rounded-full bg-white/5 blur-2xl" />
         <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-black text-[#C9D3A8]">قهوة مختصة في كل رشفة</span>
         <h2 className="mt-2.5 text-[22px] font-black leading-snug">قهوتك على ذوقك،<br />وحلويات تُدللها</h2>
