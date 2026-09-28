@@ -105,7 +105,7 @@ export default function KioskApp() {
         p_source: 'kiosk',
         p_reward_code: appliedCode?.code ?? null,
       });
-      setDone({ orderNumber: res.order_number, points: res.total_points });
+      setDone({ orderNumber: res.order_number, points: res.total_points, free: !!res.free });
       setStep('success');
     } catch (e: any) {
       setPinErr(e.message);
