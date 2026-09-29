@@ -695,7 +695,7 @@ function PromoTab({ token }: { token: string }) {
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState('');
   const [catalog, setCatalog] = useState<any>(null);
-  useEffect(() => { fetch('https://mqstsxuscqbxnyejhixk.supabase.co/rest/v1/rpc/get_catalog', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then((r) => r.json()).then(setCatalog).catch(() => {}); }, []);
+  useEffect(() => { sb.rpc('get_catalog').then(({ data }) => setCatalog(data as any)).catch(() => {}); }, []);
   const load = useCallback(() => { arpc<Record<string, string>>('admin_get_settings', { p_token: token }).then(setSettings).catch(() => {}); }, [token]);
   useEffect(() => { load(); }, [load]);
   const { busy, wrap } = useAdminAction();
