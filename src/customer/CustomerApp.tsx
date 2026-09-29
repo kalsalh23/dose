@@ -123,8 +123,8 @@ function SplashAd({ ad, cur, onClose }: { ad: Ad; cur: string; onClose: () => vo
   const [p, setP] = useState(0);
   useEffect(() => {
     const start = Date.now();
-    const t = setInterval(() => setP(Math.min(1, (Date.now() - start) / 5000)), 80);
-    const end = setTimeout(onClose, 5000);
+    const t = setInterval(() => setP(Math.min(1, (Date.now() - start) / 10000)), 80);
+    const end = setTimeout(onClose, 10000);
     return () => { clearInterval(t); clearTimeout(end); };
   }, []);
   return (
