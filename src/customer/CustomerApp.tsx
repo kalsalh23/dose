@@ -262,7 +262,7 @@ function PromoBanner({ settings }: { settings: Record<string, string> }) {
 }
 
 /* ============================ الرئيسية ============================ */
-function Home({ catalog, openProduct }: { catalog: Catalog | null; openProduct: (p: Product) => void }) {
+function Home({ catalog, openProduct, ads, onOpenAd }: { catalog: Catalog | null; openProduct: (p: Product) => void; ads: Ad[]; onOpenAd: (a: Ad) => void }) {
   const [cat, setCat] = useState('all');
   const [showAll, setShowAll] = useState(false);
   const [q, setQ] = useState('');
@@ -279,34 +279,57 @@ function Home({ catalog, openProduct }: { catalog: Catalog | null; openProduct: 
   const items = [{ slug: 'all', name_ar: 'الكل' }, ...(catalog?.categories ?? [])];
   const searching = q.trim() !== '';
   const menuItems = searching || showAll ? shown : shown.slice(0, 4);
+
+  // الهيرو المتنقل — إعلان كل 7 ثوانٍ
+  const [heroIdx, setHeroIdx] = useState(0);
+  useEffect(() => {
+    if (ads.length <= 1) return;
+    const t = setInterval(() => setHeroIdx((i) => (i + 1) % ads.length), 7000);
+    return () => clearInterval(t);
+  }, [ads.length]);
+  const currentAd = ads[heroIdx];
   const scrollToMenu = () => document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth' });
 
   return (
     <div className="anim-rise">
-      {/* الهيرو */}
-      <div className="relative overflow-hidden rounded-[1.8rem] p-5 text-white shadow-xl shadow-[#26301C]/40">
-        <img src="/img/v60.jpg" alt="" className="absolute inset-0 size-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-bl from-[#26301C]/75 via-[#3A4531]/55 to-[#414D36]/70" />
-        <div className="pointer-events-none absolute -bottom-16 -left-10 size-44 rounded-full bg-white/5 blur-2xl" />
-        <div className="relative">
-        <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-black text-[#C9D3A8]">قهوة مختصة في كل رشفة</span>
-        <h2 className="mt-2.5 text-[22px] font-black leading-snug">قهوتك على ذوقك،<br />وحلويات تُدللها</h2>
-        <p className="mt-1.5 text-[11px] font-medium text-white/75">اطلب من القهوة والحلويات من المنيو واستمتع بجمع النقاط</p>
-        <div className="mt-4 flex items-end justify-between gap-2">
-          {promoCode && promoDisc ? (
-            <div className="rounded-xl border-2 border-dashed border-[#C9D3A8]/70 px-2.5 py-1.5 text-center">
-              <p className="text-[8.5px] font-bold text-[#C9D3A8]">كود خصم {promoDisc}%</p>
+      {/* الهيرو — يتنقل بين الإعلانات كل 7 ثوانٍ */}
+      <div className='relative overflow-hidden rounded-[1.8rem] p-5 text-white shadow-xl shadow-[#26301C]/40'>
+        {ads.map((a, i) => (
+          <img key={a.id} src={a.image_url} alt='' className={`absolute inset-0 size-full object-cover transition-opacity duration-1000 ${heroIdx === i ? 'opacity-100' : 'opacity-0'}`} />
+        ))}
+        {ads.length === 0 && <img src='/img/v60.jpg' alt='' className='absolute inset-0 size-full object-cover' />}
+        <div className='absolute inset-0 bg-gradient-to-bl from-[#26301C]/80 via-[#3A4531]/60 to-[#414D36]/75' />
+        <div className='pointer-events-none absolute -bottom-16 -left-10 size-44 rounded-full bg-white/5 blur-2xl' />
+        <div className='relative'>
+          {currentAd ? (
+            <>
+              <span className='rounded-full bg-white/10 px-3 py-1 text-[10px] font-black text-[#C9D3A8]'>عرض حصري</span>
+              <h2 className='mt-2.5 text-[22px] font-black leading-snug'>{currentAd.title}</h2>
+              <p className='mt-1.5 text-[11px] font-medium text-white/80'>{currentAd.description_ar}</p>
+            </>
+          ) : (
+            <>
+              <span className='rounded-full bg-white/10 px-3 py-1 text-[10px] font-black text-[#C9D3A8]'>قهوة مختصة في كل رشفة</span>
+              <h2 className='mt-2.5 text-[22px] font-black leading-snug'>قهوتك على ذوقك،<br />وحلويات تُدللها</h2>
+              <p className='mt-1.5 text-[11px] font-medium text-white/75'>اطلب من القهوة والحلويات من المنيو واستمتع بجمع النقاط</p>
+            </>
+          )}
+          <div className='mt-4 flex items-end justify-between gap-2'>
+            {promoCode && promoDisc ? (
+              <div className='rounded-xl border-2 border-dashed border-[#C9D3A8]/80 bg-[#26301C]/70 px-2.5 py-1.5 text-center backdrop-blur-sm'>
+              <p className='text-[8.5px] font-bold text-[#C9D3A8]'>كود خصم {promoDisc}%</p>
               <p className='font-mono text-[13px] font-black tracking-widest' dir='ltr'>{promoCode}</p>
-            </div>
-          ) : <span />}
-          <button onClick={scrollToMenu}
+              </div>
+            ) : <span />}
+            <button onClick={scrollToMenu}
             className='flex items-center gap-1.5 rounded-full bg-[#C9D3A8] px-4 py-2.5 text-[13px] font-black text-[#26301C] shadow-lg transition active:scale-95'>
             اطلب الآن <Icon name="plus" size={14} strokeWidth={3} />
           </button>
-        </div>
+          </div>
         </div>
       </div>
 
+      {/* البحث */}
       {/* البحث */}
       <div className="relative mt-4">
         <Icon name="search" size={16} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#7C8665]" />
@@ -1158,7 +1181,7 @@ export default function CustomerApp() {
 
       <main className="flex-1 px-4 pb-36 pt-2">
         <Routes>
-          <Route path="/" element={<Home catalog={catalog} openProduct={setProduct} />} />
+          <Route path="/" element={<Home catalog={catalog} openProduct={setProduct} ads={ads} onOpenAd={(a) => setAdOpen(a)} />} />
           <Route path="/cart" element={
             <CartPage lines={cart.lines} setQty={cart.setQty} remove={cart.remove}
               onOrder={() => startOrder(cart.lines)}
