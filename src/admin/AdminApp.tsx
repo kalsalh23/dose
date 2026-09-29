@@ -592,8 +592,16 @@ function AdsTab({ token }: { token: string }) {
             <div className="flex gap-3">
               <img src={a.image_url} alt="" className="size-20 rounded-2xl object-cover" />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-extrabold text-coffee-900">{a.title} {a.full_screen && <span className="ms-1 rounded-full bg-gold/20 px-2 py-0.5 text-[9px] font-black text-gold-deep">ملء الشاشة</span>}</p>
+                <p className="text-sm font-extrabold text-coffee-900">{a.title}
+                  <span className={`ms-2 rounded-full px-2 py-0.5 text-[9px] font-black ${a.full_screen ? 'bg-[#414D36] text-[#C9D3A8]' : 'bg-[#D5DEB4] text-[#414D36]'}`}>
+                    {a.full_screen ? 'ملء الشاشة' : 'ضمن الهيرو'}
+                  </span>
+                </p>
                 <p className="mt-0.5 text-xs text-neutral-500">{a.description_ar}</p>
+                <p className="mt-0.5 text-[10px] font-bold text-neutral-400">
+                  {a.full_screen ? '🖥️ يظهر بملء الشاشة عند الدخول' : '📱 يظهر ضمن الهيرو المتنقل'}
+                  {a.ends_at ? ' · حتى ' + new Date(a.ends_at).toLocaleDateString('ar-SY', { day: 'numeric', month: 'short' }) : ' · بلا نهاية'}
+                </p>
                 <p className="mt-1 text-xs font-extrabold text-gold-deep">
                   {a.new_price_cents != null ? eur(a.new_price_cents, 'ل.س') : ''} {a.old_price_cents != null && <span className="font-bold text-neutral-400 line-through">{eur(a.old_price_cents, 'ل.س')}</span>}
                   {a.discount_percent != null && <span className="ms-1">(-{a.discount_percent}%)</span>}
