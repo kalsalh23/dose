@@ -6,7 +6,7 @@ export interface Product {
 export interface Reward { id: number; name_ar: string; name_en: string; image_url: string; points_cost: number; sort_order: number }
 export interface Ad {
   id: number; image_url: string; title: string; description_ar: string;
-  old_price_cents: number | null; new_price_cents: number | null; discount_percent: number | null; full_screen: boolean;
+  old_price_cents: number | null; new_price_cents: number | null; discount_percent: number | null; full_screen: boolean; show_in_hero?: boolean;
 }
 export interface PopularProduct { id: number; name_ar: string; name_en: string; price_cents: number; points: number; image_url: string; sold_qty?: number; order_count?: number }
 export interface Catalog {

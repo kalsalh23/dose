@@ -1041,6 +1041,7 @@ export default function CustomerApp() {
   const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
 
   const ads = catalog?.ads ?? [];
+  const heroAds = useMemo(() => ads.filter((ad) => ad.show_in_hero !== false), [catalog]);
   const unread = (myData?.notifications ?? []).filter((n) => !n.is_read).length;
 
   /* تفعيل الإشعارات تلقائيًا بعد الدخول (إن كانت مسموحة مسبقًا) */
@@ -1186,7 +1187,7 @@ export default function CustomerApp() {
 
       <main className="flex-1 px-4 pb-36 pt-2">
         <Routes>
-          <Route path="/" element={<Home catalog={catalog} openProduct={setProduct} ads={ads} onOpenAd={(a) => setAdOpen(a)} />} />
+          <Route path="/" element={<Home catalog={catalog} openProduct={setProduct} ads={heroAds} onOpenAd={(a) => setAdOpen(a)} />} />
           <Route path="/cart" element={
             <CartPage lines={cart.lines} setQty={cart.setQty} remove={cart.remove}
               onOrder={() => startOrder(cart.lines)}

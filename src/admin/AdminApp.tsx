@@ -572,7 +572,7 @@ function RewardsTab({ token }: { token: string }) {
 }
 
 /* ============================ الإعلانات ============================ */
-const EMPTY_AD = { id: 0, image_url: '/img/latte.jpg', title: '', description_ar: '', old_price_cents: '', new_price_cents: '', discount_percent: '', ends_at: '', is_active: true, full_screen: false };
+const EMPTY_AD = { id: 0, image_url: '/img/latte.jpg', title: '', description_ar: '', old_price_cents: '', new_price_cents: '', discount_percent: '', ends_at: '', is_active: true, full_screen: false, show_in_hero: true };
 function AdsTab({ token }: { token: string }) {
   const [ads, setAds] = useState<any[]>([]);
   const [edit, setEdit] = useState<any>(null);
@@ -628,9 +628,10 @@ function AdsTab({ token }: { token: string }) {
                     <option value="true">نعم</option><option value="false">لا</option>
                   </select>
                 </Field>
-                <Field label="ملء الشاشة عند الدخول">
-                  <select className={inputCls} value={String(edit.full_screen)} onChange={(e) => setEdit({ ...edit, full_screen: e.target.value === 'true' })}>
-                    <option value="false">لا</option><option value="true">نعم</option>
+                <Field label="مكان الظهور">
+                  <select className={inputCls} value={edit.full_screen ? 'both' : 'hero'} onChange={(e) => setEdit({ ...edit, full_screen: e.target.value === 'both', show_in_hero: true })}>
+                    <option value="hero">ضمن الهيرو فقط</option>
+                    <option value="both">ملء الشاشة + الهيرو</option>
                   </select>
                 </Field>
               </div>
