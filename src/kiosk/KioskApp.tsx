@@ -34,6 +34,19 @@ export default function KioskApp() {
   const [toast, setToast] = useState<{ msg: string; kind?: 'ok' | 'err' } | null>(null);
   const searchTimer = useRef<number | undefined>(undefined);
 
+  // هل المحل مفتوح الآن؟ (بتوقيت دمشق)
+  const shopClosed = (() => {
+    const open = catalog?.settings?.work_open, close = catalog?.settings?.work_close;
+    if (!open || !close) return false;
+    const now = new Date();
+    const local = new Date(now.getTime() + (3 * 60 + now.getTimezoneOffset()) * 60000);
+    const t = local.getHours() * 60 + local.getMinutes();
+    const [oh, om] = open.split(':').map(Number);
+    const [ch, cm] = close.split(':').map(Number);
+    const om2 = oh * 60 + om, cm2 = ch * 60 + cm;
+    return om2 <= cm2 ? (t < om2 || t >= cm2) : (t < om2 && t >= cm2);
+  })();
+
   const showToast = (msg: string, kind?: 'ok' | 'err') => {
     setToast({ msg, kind });
     setTimeout(() => setToast(null), 3200);
@@ -277,10 +290,16 @@ export default function KioskApp() {
                     <p className="rounded-lg px-2.5 py-1.5 text-[10.5px] font-bold"
                       style={{ background: codeMsg.ok ? '#E3E9C8' : '#FBEDE9', color: codeMsg.ok ? '#414D36' : '#C4482E' }}>{codeMsg.msg}</p>
                   )}
-                  <button onClick={orderNow} disabled={!cart.size || !customer}
+                  {shopClosed && (
+                    <div className="flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[12.5px] font-black"
+                      style={{ background: '#FBEDE9', color: '#C4482E' }}>
+                      🌙 المحل مغلق ليلة سعيدة — نستقبلكم غدًا
+                    </div>
+                  )}
+                  <button onClick={orderNow} disabled={!cart.size || !customer || shopClosed}
                     className="w-full rounded-xl py-3 text-[15px] font-black shadow-md shadow-[#8a6a48]/30 transition active:scale-[.98] disabled:opacity-40"
-                    style={{ background: '#C9D3A8', color: '#26301C' }}>
-                    {appliedCode ? 'اطلب الآن — مجاني 🎁' : 'اطلب الآن'}
+                    style={{ background: shopClosed ? '#D5DEB4' : '#C9D3A8', color: '#26301C' }}>
+                    {shopClosed ? 'الطلب متاح أثناء الدوام' : appliedCode ? 'اطلب الآن — مجاني 🎁' : 'اطلب الآن'}
                   </button>
                 </div>
 

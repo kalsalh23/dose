@@ -12,6 +12,7 @@ export async function rpc<T = any>(fn: string, args: Record<string, any> = {}): 
   if (error) {
     const m = error.message || '';
     if (m.includes('phone_exists')) throw new Error('هذا الرقم مسجّل مسبقًا');
+    if (m.includes('shop_closed')) throw new Error('المحل مغلق ليلة سعدة 🌙 — نستقبلكم غدًا');
     if (m.includes('wrong_pin')) throw new Error('رمز PIN غير صحيح، حاول مرة أخرى');
     if (m.includes('pin_locked')) throw new Error('تم قفل المحاولات مؤقتًا — انتظر 5 دقائق ثم أعد المحاولة');
     if (m.includes('insufficient_points')) throw new Error('نقاطك غير كافية لهذه المكافأة');
