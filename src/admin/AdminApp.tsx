@@ -10,6 +10,15 @@ import { Icon, type IconName } from '../components/Icons';
 
 const ADMIN_KEY = 'dose_admin_token_v1';
 
+function urlBase64ToUint8Array(base64: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64.length % 4)) % 4);
+  const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(b64);
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+
 /** استدعاء RPC إداري — إن انتهت الجلسة (null) خروج تلقائي لشاشة الدخول */
 async function arpc<T = any>(fn: string, args: Record<string, any> = {}): Promise<T> {
   const d = await rpc<T>(fn, args);
@@ -40,9 +49,20 @@ export default function AdminApp() {
   const logout = () => { localStorage.removeItem(ADMIN_KEY); setToken(null); };
 
   useEffect(() => {
-    if (token && typeof Notification !== 'undefined' && Notification.permission === 'default') {
-      Notification.requestPermission().catch(() => {});
-    }
+    if (!token) return;
+    (async () => {
+      try {
+        if (typeof Notification === 'undefined' || !('PushManager' in window)) return;
+        const perm = Notification.permission === 'default' ? await Notification.requestPermission() : Notification.permission;
+        if (perm !== 'granted') return;
+        const reg = await navigator.serviceWorker.ready;
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) {
+          sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUB) });
+        }
+        await rpc('save_admin_push_subscription', { p_token: token, p_sub: JSON.stringify(sub) });
+      } catch {}
+    })();
   }, [token]);
 
   /* المراقبة المستمرة — تعمل على كل التبويبات ولا تتوقف */
@@ -673,6 +693,8 @@ function NotifyTab({ token }: { token: string }) {
 function PromoTab({ token }: { token: string }) {
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState('');
+  const [catalog, setCatalog] = useState<any>(null);
+  useEffect(() => { fetch('https://mqstsxuscqbxnyejhixk.supabase.co/rest/v1/rpc/get_catalog', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then((r) => r.json()).then(setCatalog).catch(() => {}); }, []);
   const load = useCallback(() => { arpc<Record<string, string>>('admin_get_settings', { p_token: token }).then(setSettings).catch(() => {}); }, [token]);
   useEffect(() => { load(); }, [load]);
   const { busy, wrap } = useAdminAction();
@@ -691,9 +713,32 @@ function PromoTab({ token }: { token: string }) {
         )}
         <Field label="الكود (حروف وأرقام)"><input className={inputCls} dir="ltr" value={settings.promo_code ?? ''} onChange={(e) => setSettings({ ...settings, promo_code: e.target.value.toUpperCase() })} placeholder="DOSE50" /></Field>
         <Field label="نسبة الخصم % (1 - 90)"><input type="number" className={inputCls} value={settings.promo_discount ?? ''} onChange={(e) => setSettings({ ...settings, promo_discount: e.target.value })} placeholder="20" /></Field>
+        <Field label="نطاق الكود">
+          <select className={inputCls} value={settings.promo_scope ?? 'all'} onChange={(e) => setSettings({ ...settings, promo_scope: e.target.value, promo_target: '' })}>
+            <option value="all">على الطلب كاملًا</option>
+            <option value="product">منتج محدد فقط</option>
+            <option value="category">فئة محددة فقط</option>
+          </select>
+        </Field>
+        {settings.promo_scope === 'product' && (
+          <Field label="اختر المنتج">
+            <select className={inputCls} value={settings.promo_target ?? ''} onChange={(e) => setSettings({ ...settings, promo_target: e.target.value })}>
+              <option value="">— اختر —</option>
+              {(catalog?.products ?? []).map((p: any) => <option key={p.id} value={String(p.id)}>{p.name_ar}</option>)}
+            </select>
+          </Field>
+        )}
+        {settings.promo_scope === 'category' && (
+          <Field label="اختر الفئة">
+            <select className={inputCls} value={settings.promo_target ?? ''} onChange={(e) => setSettings({ ...settings, promo_target: e.target.value })}>
+              <option value="">— اختر —</option>
+              {(catalog?.categories ?? []).map((c: any) => <option key={c.id} value={c.slug}>{c.name_ar}</option>)}
+            </select>
+          </Field>
+        )}
         {msg && <p className="rounded-xl bg-green-50 px-3 py-2 text-center text-xs font-extrabold text-green-700">{msg}</p>}
         <button disabled={busy || !(settings.promo_code ?? '').trim()} onClick={() => wrap(async () => {
-          const r = await arpc<{ notified: number }>('admin_publish_promo', { p_token: token, p_code: settings.promo_code, p_discount: Number(settings.promo_discount) });
+          const r = await arpc<{ notified: number }>('admin_publish_promo', { p_token: token, p_code: settings.promo_code, p_discount: Number(settings.promo_discount), p_scope: settings.promo_scope ?? 'all', p_target: settings.promo_scope === 'all' ? null : (settings.promo_target ?? null) });
           setMsg('تم نشر الكود — أُرسل إشعار داخلي وفوري إلى ' + (r.notified ?? 'كل') + ' الزبائن ✓');
           load(); setTimeout(() => setMsg(''), 6000);
         })} className={`${btnCls} w-full`} style={{ borderRadius: 16, height: 46 }}>

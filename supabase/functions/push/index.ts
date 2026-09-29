@@ -10,13 +10,15 @@ const SR_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('method', { status: 405 });
-  const { customer_id, all, title, body } = await req.json().catch(() => ({} as any));
+  const { customer_id, all, admin, title, body } = await req.json().catch(() => ({} as any));
   if (!title) return new Response('bad request', { status: 400 });
 
-  // الجماعي: كل الأجهزة المشتركة | الفردي: أجهزة عميل محدد
-  const url = all
-    ? `${SB_URL}/rest/v1/device_tokens?select=token`
-    : `${SB_URL}/rest/v1/device_tokens?customer_id=eq.${customer_id}&select=token`;
+  // الإدارة: أجهزة لوحة التحكم | الجماعي: كل أجهزة الزبائن | الفردي: أجهزة عميل محدد
+  const url = admin
+    ? `${SB_URL}/rest/v1/device_tokens?select=token&is_admin=eq.true`
+    : all
+    ? `${SB_URL}/rest/v1/device_tokens?select=token&is_admin=eq.false`
+    : `${SB_URL}/rest/v1/device_tokens?customer_id=eq.${customer_id}&select=token&is_admin=eq.false`;
   const res = await fetch(url, { headers: { apikey: SR_KEY, Authorization: `Bearer ${SR_KEY}` } });
   const rows = await res.json().catch(() => []);
   if (!Array.isArray(rows) || rows.length === 0) return Response.json({ sent: 0 });
