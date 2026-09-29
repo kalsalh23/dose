@@ -334,7 +334,6 @@ function Home({ catalog, openProduct }: { catalog: Catalog | null; openProduct: 
         </div>
       </section>
 
-      {!searching && <PromoBanner settings={catalog?.settings ?? {}} />}
 
       {/* الأكثر طلبًا — بطاقات أفقية */}
       {!searching && mostOrdered.length > 0 && (
