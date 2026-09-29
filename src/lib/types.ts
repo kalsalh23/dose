@@ -15,7 +15,7 @@ export interface Catalog {
   settings: Record<string, string>;
 }
 export interface AppCustomer {
-  id: string; full_name: string; phone: string; points: number; orders_count: number; avatar_url?: string;
+  id: string; full_name: string; phone: string; points: number; orders_count: number; avatar_url?: string; points_expires_at?: string;
 }
 export interface Session { token: string; customer: AppCustomer }
 export interface OrderItem { name_ar: string; qty: number; unit_price_cents: number }

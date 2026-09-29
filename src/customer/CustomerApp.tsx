@@ -615,6 +615,11 @@ function RewardsPage({ catalog, myData, session, onRedeem }: any) {
       <div className="rounded-[2rem] bg-gradient-to-bl from-[#414D36] to-[#23291B] p-6 text-center text-white shadow-xl shadow-[#8a6a48]/40">
         <p className="flex items-center justify-center gap-1.5 text-xs font-bold text-[#C9D3A8]"><Icon name="star" size={13} filled /> رصيد نقاطك</p>
         <p className="mt-1 text-5xl font-black">{myData?.customer?.points ?? session.customer.points}</p>
+        {(() => {
+          const exp = myData?.customer?.points_expires_at;
+          if (!exp) return null;
+          return <p className="mt-2 text-[11px] font-extrabold text-[#EAC98F]">⏳ النقاط صالحة إلى التاريخ: {new Date(exp).toLocaleDateString('ar-SY', { day: 'numeric', month: 'long', year: 'numeric' })}</p>;
+        })()}
         <p className="mt-1 text-[11px] text-white/70">استبدل نقاطك بمشروبات وحلويات مجانية</p>
       </div>
       <div className="mt-5 space-y-3">
@@ -814,7 +819,7 @@ function AccountPage({ session, myData, waNumber, onLogout, onPush, pushMsg, onA
         <h2 className="mt-3 text-lg font-black">{c.full_name}</h2>
         <p className="mt-0.5 text-xs text-white/70" dir="ltr">{c.phone}</p>
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-3xl bg-white/10 py-3"><p className="text-xl font-black text-[#C9D3A8]">{c.points}</p><p className="text-[10px] font-bold text-white/70">نقطة</p></div>
+          <div className="rounded-3xl bg-white/10 py-3"><p className="text-xl font-black text-[#C9D3A8]">{c.points}</p><p className="text-[9px] font-bold text-white/60">{c.points_expires_at ? 'صالحة إلى ' + new Date(c.points_expires_at).toLocaleDateString('ar-SY', { day: 'numeric', month: 'short' }) : 'نقطة'}</p></div>
           <div className="rounded-3xl bg-white/10 py-3"><p className="text-xl font-black text-[#C9D3A8]">{c.orders_count}</p><p className="text-[10px] font-bold text-white/70">طلب</p></div>
         </div>
       </div>
