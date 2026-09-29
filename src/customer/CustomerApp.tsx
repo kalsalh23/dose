@@ -320,7 +320,9 @@ function Home({ catalog, openProduct, ads, onOpenAd }: { catalog: Catalog | null
   const mostOrdered = catalog?.most_ordered ?? [];
   const items = [{ slug: 'all', name_ar: 'الكل' }, ...(catalog?.categories ?? [])];
   const searching = q.trim() !== '';
-  const menuItems = searching || showAll ? shown : shown.slice(0, 4);
+  /* عند اختيار فئة محددة تُعرض كل منتجاتها فورًا، ويظهر «عرض الكل» فقط مع فئة الكل */
+  const menuItems = searching || showAll || cat !== 'all' ? shown : shown.slice(0, 4);
+  const jumpToMenu = () => setTimeout(() => document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
 
   // الهيرو المتنقل — إعلان كل 7 ثوانٍ
   const [heroIdx, setHeroIdx] = useState(0);
@@ -386,7 +388,7 @@ function Home({ catalog, openProduct, ads, onOpenAd }: { catalog: Catalog | null
           {items.map((c) => {
             const active = cat === c.slug;
             return (
-              <button key={c.slug} onClick={() => setCat(c.slug)} className="flex flex-none flex-col items-center gap-1.5 transition active:scale-95">
+              <button key={c.slug} onClick={() => { setCat(c.slug); setShowAll(false); jumpToMenu(); }} className="flex flex-none flex-col items-center gap-1.5 transition active:scale-95">
                 <span className={`grid size-[62px] place-items-center overflow-hidden rounded-full shadow-md shadow-[#8a6a48]/15 transition-all ${active ? 'ring-2 ring-[#5C6B3C] ring-offset-2 ring-offset-[#F6E7C9]' : 'ring-1 ring-[#EAD3A0]'}`}>
                   {c.slug === 'all'
                     ? <span className='grid size-full place-items-center bg-gradient-to-br from-[#414D36] to-[#26301C] text-[#C9D3A8]'><Icon name='package' size={20} /></span>
@@ -431,7 +433,7 @@ function Home({ catalog, openProduct, ads, onOpenAd }: { catalog: Catalog | null
       <section id='menu-section' className='mt-5'>
         <div className="mb-3 flex items-end justify-between px-1">
           <h2 className="text-[17px] font-black text-[#26301C]">استكشف المنيو</h2>
-          {!searching && shown.length > 4 && (
+          {!searching && cat === 'all' && shown.length > 4 && (
             <button onClick={() => setShowAll(!showAll)} className='rounded-full bg-white px-3.5 py-1.5 text-[11px] font-black text-[#26301C] shadow-sm ring-1 ring-[#EAD3A0] transition active:scale-95'>
               {showAll ? "عرض أقل" : "عرض الكل"}
             </button>
@@ -1081,8 +1083,27 @@ export default function CustomerApp() {
   };
   const promoCode = catalog?.settings?.promo_code;
   const promoDisc = catalog?.settings?.promo_discount;
+  const promoScope = catalog?.settings?.promo_scope ?? 'all';
+  const promoTarget = catalog?.settings?.promo_target ?? '';
   const waNumber = catalog?.settings?.whatsapp_number ?? '963936107119';
   const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
+
+  /* نطاق كود الخصم: مجموع الأصناف المشمولة بالخصم داخل السلة */
+  const promoEligibleSubtotal = (lines: CartLine[]) => {
+    if (promoScope === 'product')
+      return lines.filter((l) => String(l.product.id) === String(promoTarget)).reduce((a, l) => a + l.product.price_cents * l.qty, 0);
+    if (promoScope === 'category')
+      return lines.filter((l) => l.product.category === promoTarget).reduce((a, l) => a + l.product.price_cents * l.qty, 0);
+    return lines.reduce((a, l) => a + l.product.price_cents * l.qty, 0);
+  };
+  /* وصف نطاق الكود للعرض: على طلبك كاملًا / على اسم منتج / على فئة */
+  const promoWhereLabel = () => {
+    if (promoScope === 'product')
+      return 'على ' + ((catalog?.products ?? []).find((p) => String(p.id) === String(promoTarget))?.name_ar ?? 'منتج محدد');
+    if (promoScope === 'category')
+      return 'على فئة ' + ((catalog?.categories ?? []).find((c) => c.slug === promoTarget)?.name_ar ?? 'محددة');
+    return 'على طلبك كاملًا';
+  };
 
   const ads = catalog?.ads ?? [];
   const heroAds = useMemo(() => ads.filter((ad) => ad.show_in_hero !== false), [catalog]);
@@ -1108,7 +1129,7 @@ export default function CustomerApp() {
     try {
       // تحقق من الرمز فقط — لا يُنشأ الطلب قبل التأكيد
       await rpc('verify_customer_pin', { p_customer_id: session.customer.id, p_pin: pin });
-      if (promoCode && promoDisc) setFlow((st) => ({ ...st, step: 'promo', pin }));
+      if (promoCode && promoDisc && promoEligibleSubtotal(flow.lines) > 0) setFlow((st) => ({ ...st, step: 'promo', pin }));
       else setFlow((st) => ({ ...st, step: 'review', pin }));
     } catch (e: any) {
       setPinErr(e.message);
@@ -1294,7 +1315,7 @@ export default function CustomerApp() {
           onDone={(loc) => setFlow((s) => ({ ...s, step: 'pin', loc }))} />
       )}
       {flow.step === 'promo' && (
-        <PromoChoiceModal code={promoCode} disc={promoDisc} busy={pinBusyConfirm}
+        <PromoChoiceModal code={promoCode} disc={promoDisc} where={promoWhereLabel()} busy={pinBusyConfirm}
           onUse={() => { setFlow((st) => ({ ...st, step: 'review', usePromo: true })); }}
           onSkip={() => { setFlow((st) => ({ ...st, step: 'review', usePromo: false })); }} />
       )}
@@ -1307,9 +1328,10 @@ export default function CustomerApp() {
         <ConfirmOrderModal
           phase={doneOrder ? 'done' : 'review'}
           lines={flow.lines}
-          total={flow.usePromo && promoCode && promoDisc
-            ? Math.round(flow.lines.reduce((a, l) => a + l.product.price_cents * l.qty, 0) * (100 - Number(promoDisc)) / 100)
-            : flow.lines.reduce((a, l) => a + l.product.price_cents * l.qty, 0)}
+          total={flow.lines.reduce((a, l) => a + l.product.price_cents * l.qty, 0)
+            - (flow.usePromo && promoCode && promoDisc
+              ? Math.round(promoEligibleSubtotal(flow.lines) * Number(promoDisc) / 100)
+              : 0)}
           points={flow.lines.reduce((a, l) => a + l.product.points * l.qty, 0)}
           free={false}
           busy={pinBusyConfirm || pinBusy}
@@ -1396,8 +1418,8 @@ function LocationModal({ onDone, onClose, onBack }: { onDone: (loc: { lat: numbe
 }
 
 /* ============================ بطاقة كود الخصم (استخدام / عدم الاستخدام) ============================ */
-function PromoChoiceModal({ code, disc, busy, onUse, onSkip }: {
-  code: string; disc: string; busy: boolean; onUse: () => void; onSkip: () => void;
+function PromoChoiceModal({ code, disc, where, busy, onUse, onSkip }: {
+  code: string; disc: string; where: string; busy: boolean; onUse: () => void; onSkip: () => void;
 }) {
   return (
     <div className="fixed inset-0 z-[125] grid place-items-center bg-black/50 p-4 backdrop-blur-sm anim-fade">
@@ -1405,7 +1427,7 @@ function PromoChoiceModal({ code, disc, busy, onUse, onSkip }: {
         <span className="mx-auto grid size-16 place-items-center rounded-full bg-[#E3E9C8] text-[#5C6B3C]"><Icon name="gift" size={28} /></span>
         <h3 className="mt-3 text-lg font-black text-[#26301C]">لديك كود خصم 🎉</h3>
         <p className="mt-3 rounded-2xl bg-[#F1DCB0] px-4 py-2.5 font-mono text-2xl font-black tracking-[.3em] text-[#26301C]" dir="ltr">{code}</p>
-        <p className="mt-2 text-sm font-extrabold text-[#7C8F52]">استخدمه الآن واحصل على خصم {disc}% على طلبك</p>
+        <p className="mt-2 text-sm font-extrabold text-[#7C8F52]">استخدمه الآن واحصل على خصم {disc}% {where}</p>
         <button onClick={onUse} disabled={busy}
           className="mt-5 w-full rounded-full bg-gradient-to-l from-[#EAC98F] to-[#D9B171] py-3.5 text-base font-black text-[#26301C] shadow-lg shadow-[#8a6a48]/35 transition active:scale-[.98] disabled:opacity-50">
           {busy ? 'جارٍ التطبيق…' : 'استخدام الكود'}

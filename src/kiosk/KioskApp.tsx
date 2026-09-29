@@ -91,9 +91,35 @@ export default function KioskApp() {
     try {
       const res = await rpc<any>('check_reward_code', { p_code: codeInput.trim() });
       if (res.valid) {
-        setAppliedCode({ code: res.code, name: res.reward_name });
-        setCodeMsg({ msg: 'مطبق: ' + res.reward_name + ' — الطلب مجاني 🎁', ok: true });
-        showToast('تم تطبيق رمز الخصم — طلبك مجاني', 'ok');
+        if (res.type === 'promo') {
+          // كود خصم بنسبة مئوية — تحقق من نطاقه (كل الطلب / منتج / فئة) ضد محتويات السلة
+          const scope: string = res.scope ?? 'all';
+          const target: string = res.target ?? '';
+          const products = catalog?.products ?? [];
+          const cartLines = [...cart.entries()].map(([id, qty]) => ({ id, qty, p: products.find((x) => x.id === id) }));
+          const eligible = scope === 'product'
+            ? cartLines.filter((l) => String(l.id) === String(target)).reduce((a, l) => a + (l.p?.price_cents ?? 0) * l.qty, 0)
+            : scope === 'category'
+            ? cartLines.filter((l) => l.p?.category === target).reduce((a, l) => a + (l.p?.price_cents ?? 0) * l.qty, 0)
+            : 1;
+          if (eligible === 0) {
+            setCodeMsg({ msg: 'الكود لا ينطبق على منتجات طلبك الحالية', ok: false });
+            setCodeBusy(false);
+            return;
+          }
+          const where = scope === 'product'
+            ? 'على ' + (products.find((p) => String(p.id) === String(target))?.name_ar ?? 'منتج محدد')
+            : scope === 'category'
+            ? 'على فئة ' + ((catalog?.categories ?? []).find((c) => c.slug === target)?.name_ar ?? 'محددة')
+            : 'على الطلب كاملًا';
+          setAppliedCode({ code: res.code, name: 'خصم ' + res.discount_percent + '%' });
+          setCodeMsg({ msg: 'مطبق: خصم ' + res.discount_percent + '% ' + where, ok: true });
+          showToast('تم تطبيق كود الخصم', 'ok');
+        } else {
+          setAppliedCode({ code: res.code, name: res.reward_name });
+          setCodeMsg({ msg: 'مطبق: ' + res.reward_name + ' — الطلب مجاني 🎁', ok: true });
+          showToast('تم تطبيق رمز المكافأة — طلبك مجاني', 'ok');
+        }
       } else {
         setCodeMsg({ msg: res.reason, ok: false });
       }

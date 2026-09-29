@@ -110,7 +110,7 @@ const tree = await api(`/repos/${OWNER}/${REPO}/git/trees`, {
 if (!tree.ok) { console.error('Tree failed:', JSON.stringify(tree.body)); process.exit(1); }
 
 const commitBody = {
-  message: 'Dose Coffee & More — Tablet kiosk loyalty app\n\n- RTL premium coffee UI for in-store tablet\n- Supabase backend (customers, orders, PIN verification RPCs)\n- Points loyalty flow with on-screen PIN confirmation',
+  message: process.env.COMMIT_MSG || 'Dose Coffee & More — Tablet kiosk loyalty app\n\n- RTL premium coffee UI for in-store tablet\n- Supabase backend (customers, orders, PIN verification RPCs)\n- Points loyalty flow with on-screen PIN confirmation',
   tree: tree.body.sha,
   parents: parentCommit ? [parentCommit] : [],
   author: { name: OWNER, email: `${OWNER}@users.noreply.github.com`, date: new Date().toISOString() },
