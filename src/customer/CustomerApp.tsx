@@ -1067,10 +1067,11 @@ export default function CustomerApp() {
   const [welcomeDone, setWelcomeDone] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
   const [midAdDue, setMidAdDue] = useState(false);
-  /* الإعلان الوسطي: بعد دقيقتين من بدء التصفح */
+  /* الإعلان الوسطي: بعد دقيقتين من بدء التصفح (?adtest=1 يجعله بعد 8 ثوانٍ للاختبار) */
   useEffect(() => {
     if (!welcomeDone) return;
-    const t = setTimeout(() => setMidAdDue(true), 120000);
+    const delay = new URLSearchParams(location.search).has('adtest') ? 8000 : 120000;
+    const t = setTimeout(() => setMidAdDue(true), delay);
     return () => clearTimeout(t);
   }, [welcomeDone]);
   const fsAd = useMemo(() => (catalog?.ads ?? []).find((a) => a.full_screen), [catalog]);
