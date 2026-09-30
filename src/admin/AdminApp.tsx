@@ -364,7 +364,7 @@ const statusLabel = (s: string) => ({ pending: 'قيد المراجعة', confir
 const statusChip = (s: string) => ({ pending: 'bg-amber-100 text-amber-800', confirmed: 'bg-blue-100 text-blue-800', preparing: 'bg-orange-100 text-orange-800', ready: 'bg-emerald-100 text-emerald-800', completed: 'bg-green-100 text-green-700', cancelled: 'bg-red-100 text-red-700' } as any)[s] ?? 'bg-neutral-100';
 
 /* ============================ المنتجات ============================ */
-const EMPTY_PRODUCT = { id: 0, category_slug: 'hot', name_ar: '', name_en: '', description_ar: '', price_cents: 0, points: 0, image_url: '', options: '', is_active: true, sort_order: 0 };
+const EMPTY_PRODUCT = { id: 0, category_slug: 'hot', name_ar: '', name_en: '', description_ar: '', price_cents: 0, points: 0, image_url: '', options: '', is_active: true, is_available: true, sort_order: 0 };
 function ProductsTab({ token }: { token: string }) {
   const [products, setProducts] = useState<any[]>([]);
   const [edit, setEdit] = useState<any>(null);
@@ -394,6 +394,10 @@ function ProductsTab({ token }: { token: string }) {
               <p className="text-[10px] font-bold text-neutral-400">تصنيف: {p.category_slug}</p>
               <div className="mt-2 flex gap-2">
                 <button onClick={() => setEdit({ ...EMPTY_PRODUCT, ...p, category_slug: p.category_slug })} className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
+                <button disabled={busy} onClick={() => wrap(async () => { await arpc('admin_set_product_availability', { p_token: token, p_product_id: p.id, p_available: p.is_available === false }); load(); })}
+                  className={`rounded-lg px-3 py-1.5 text-[11px] font-extrabold ${p.is_available === false ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                  {p.is_available === false ? 'غير متوفر' : 'متوفر'}
+                </button>
                 {p.is_active && (
                   <button disabled={busy} onClick={() => wrap(async () => { await arpc('admin_delete_product', { p_token: token, p_id: p.id }); load(); })}
                     className="rounded-lg bg-red-50 px-3 py-1.5 text-[11px] font-extrabold text-red-600">تعطيل</button>
@@ -431,6 +435,12 @@ function ProductsTab({ token }: { token: string }) {
                   </select>
                 </Field>
               </div>
+              <Field label="التوفر — غير المتوفر يُقفل طلب المنتج في تطبيق الزبون">
+                <select className={inputCls} value={String(edit.is_available !== false)} onChange={(e) => setEdit({ ...edit, is_available: e.target.value === 'true' })}>
+                  <option value="true">متوفر ✅</option>
+                  <option value="false">غير متوفر (نفذت الكمية) 🔴</option>
+                </select>
+              </Field>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3">
               <button onClick={save} disabled={busy} className="rounded-2xl bg-gradient-to-l from-gold to-gold-deep py-3 text-sm font-extrabold text-white shadow disabled:opacity-50">حفظ</button>

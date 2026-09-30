@@ -443,7 +443,12 @@ function Home({ catalog, openProduct, ads, onOpenAd }: { catalog: Catalog | null
           {menuItems.map((p) => (
             <button key={p.id} onClick={() => openProduct(p)}
               className="rounded-[1.75rem] bg-white p-2.5 text-right shadow-sm shadow-[#8a6a48]/15 ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 hover:shadow-lg anim-rise">
-              <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-28 w-full rounded-[1.3rem] object-cover" />
+              <div className="relative">
+                <img src={p.image_url} alt={p.name_ar} loading="lazy" className={`h-28 w-full rounded-[1.3rem] object-cover ${p.is_available === false ? 'opacity-50 grayscale' : ''}`} />
+                {p.is_available === false && (
+                  <span className="absolute top-1.5 right-1.5 rounded-full bg-[#C4482E] px-2.5 py-1 text-[9px] font-black text-white shadow">نفذت الكمية</span>
+                )}
+              </div>
               <div className="flex items-end justify-between px-1 pb-0.5 pt-2.5">
                 <div className="min-w-0">
                   <h3 className="truncate text-[13px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
@@ -543,16 +548,23 @@ function ProductSheet({ product, catalog, onClose, onAdd, onOrderNow, isFav, onT
       </div>
 
       <div className="flex-none bg-white px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_32px_-18px_rgba(38,48,28,.35)]">
-        <div className="grid grid-cols-2 gap-3">
-          <button onClick={() => onAdd({ product, qty, options: opts })}
-            className="rounded-full border-2 border-[#C9D3A8] py-4 text-sm font-black text-[#26301C] transition active:scale-[.98]">
-            أضف إلى السلة
-          </button>
-          <button onClick={() => onOrderNow({ product, qty, options: opts })}
-            className="rounded-full bg-gradient-to-l from-[#C9D3A8] to-[#A9B87F] py-4 text-sm font-black text-[#26301C] shadow-lg shadow-[#8a6a48]/35 transition active:scale-[.98]">
-            اطلب الآن
-          </button>
-        </div>
+        {product.is_available === false ? (
+          <div className="rounded-[1.6rem] bg-[#FBEDE9] p-4 text-center">
+            <p className="text-sm font-black text-[#C4482E]">😔 نفذت كمية هذا المنتج حاليًا</p>
+            <p className="mt-1 text-[11px] font-bold text-[#A05B47]">يتوفر قريبًا — جرّب مشروبًا أو حلوى أخرى من المنيو</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            <button onClick={() => onAdd({ product, qty, options: opts })}
+              className="rounded-full border-2 border-[#C9D3A8] py-4 text-sm font-black text-[#26301C] transition active:scale-[.98]">
+              أضف إلى السلة
+            </button>
+            <button onClick={() => onOrderNow({ product, qty, options: opts })}
+              className="rounded-full bg-gradient-to-l from-[#C9D3A8] to-[#A9B87F] py-4 text-sm font-black text-[#26301C] shadow-lg shadow-[#8a6a48]/35 transition active:scale-[.98]">
+              اطلب الآن
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1121,6 +1133,7 @@ export default function CustomerApp() {
   const startOrder = (lines: CartLine[]) => {
     if (!lines.length) { show('سلتك فارغة'); return; }
     if (shopStatus(catalog?.settings).closed) { setClosedOpen(true); return; }
+    if (lines.some((l) => l.product.is_available === false)) { show('نفذت كمية أحد منتجات سلتك — احذفه وأكمل طلبك', 'err'); return; }
     if (!session) { nav('/login'); show('سجّل دخولك أولًا لإتمام الطلب'); return; }
     setFlow({ step: 'fulfillment', lines });
   };

@@ -72,6 +72,7 @@ export default function KioskApp() {
   const itemsCount = [...cart.values()].reduce((a, b) => a + b, 0);
 
   const addProduct = (p: Product) => {
+    if (p.is_available === false) { showToast('نفذت كمية هذا المنتج 😔 — جرّب ما شابه'); return; }
     setCart((m) => new Map(m).set(p.id, (m.get(p.id) ?? 0) + 1));
   };
   const decProduct = (p: Product) => {
