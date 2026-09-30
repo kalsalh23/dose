@@ -51,3 +51,26 @@ export function urlBase64ToUint8Array(base64: string): Uint8Array {
   for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
   return arr;
 }
+
+/** تاريخ بصيغة رقمية فقط: 10/2/2026 */
+export const fmtDateNum = (iso?: string | null) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+};
+
+/** حالة الدوام الآن (بتوقيت دمشق UTC+3) من إعدادات work_open / work_close */
+export function shopStatus(settings?: Record<string, string>): { closed: boolean; open: string; close: string } {
+  const open = settings?.work_open ?? '';
+  const close = settings?.work_close ?? '';
+  if (!open || !close || !/^\d{1,2}:\d{2}$/.test(open) || !/^\d{1,2}:\d{2}$/.test(close))
+    return { closed: false, open, close };
+  const now = new Date();
+  const local = new Date(now.getTime() + (3 * 60 + now.getTimezoneOffset()) * 60000);
+  const t = local.getHours() * 60 + local.getMinutes();
+  const [oh, om] = open.split(':').map(Number);
+  const [ch, cm] = close.split(':').map(Number);
+  const o = oh * 60 + om, c = ch * 60 + cm;
+  const closed = o <= c ? (t < o || t >= c) : (t < o && t >= c);
+  return { closed, open, close };
+}

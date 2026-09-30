@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { rpc, sb } from '../lib/supabase';
 import type { Ad, CartLine, Catalog, MyData, MyOrder, PopularProduct, Product, Redemption, Session } from '../lib/types';
-import { eur, fmtDateTime, deviceId, getCurrentLocation, urlBase64ToUint8Array } from '../lib/utils';
+import { eur, fmtDateTime, deviceId, getCurrentLocation, urlBase64ToUint8Array, shopStatus, fmtDateNum } from '../lib/utils';
 import { buildOrderMessage, waChatLink, whatsapp } from '../lib/whatsapp';
 import PinPad from '../components/PinPad';
 import { Icon, type IconName } from '../components/Icons';
@@ -662,7 +662,7 @@ function RewardsPage({ catalog, myData, session, onRedeem }: any) {
         {(() => {
           const exp = myData?.customer?.points_expires_at;
           if (!exp) return null;
-          return <p className="mt-2 text-[11px] font-extrabold text-[#EAC98F]">⏳ النقاط صالحة إلى التاريخ: {new Date(exp).toLocaleDateString('ar-SY', { day: 'numeric', month: 'long', year: 'numeric' })}</p>;
+          return <p className="mt-2 text-[11px] font-extrabold text-[#EAC98F]">⏳ النقاط صالحة إلى التاريخ: {fmtDateNum(exp)}</p>;
         })()}
         <p className="mt-1 text-[11px] text-white/70">استبدل نقاطك بمشروبات وحلويات مجانية</p>
       </div>
@@ -863,7 +863,7 @@ function AccountPage({ session, myData, waNumber, onLogout, onPush, pushMsg, onA
         <h2 className="mt-3 text-lg font-black">{c.full_name}</h2>
         <p className="mt-0.5 text-xs text-white/70" dir="ltr">{c.phone}</p>
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-3xl bg-white/10 py-3"><p className="text-xl font-black text-[#C9D3A8]">{c.points}</p><p className="text-[9px] font-bold text-white/60">{c.points_expires_at ? 'صالحة إلى ' + new Date(c.points_expires_at).toLocaleDateString('ar-SY', { day: 'numeric', month: 'short' }) : 'نقطة'}</p></div>
+          <div className="rounded-3xl bg-white/10 py-3"><p className="text-xl font-black text-[#C9D3A8]">{c.points}</p><p className="text-[9px] font-bold text-white/60">{c.points_expires_at ? 'صالحة إلى ' + fmtDateNum(c.points_expires_at) : 'نقطة'}</p></div>
           <div className="rounded-3xl bg-white/10 py-3"><p className="text-xl font-black text-[#C9D3A8]">{c.orders_count}</p><p className="text-[10px] font-bold text-white/70">طلب</p></div>
         </div>
       </div>
@@ -1050,6 +1050,7 @@ export default function CustomerApp() {
   const [doneOrder, setDoneOrder] = useState<{ orderNumber: number; points: number; free: boolean } | null>(null);
   const [pinBusyConfirm, setPinBusyConfirm] = useState(false);
   const [adOpen, setAdOpen] = useState<Ad | null>(null);
+  const [closedOpen, setClosedOpen] = useState(false);
   const [welcomeDone, setWelcomeDone] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
   const fsAd = useMemo(() => (catalog?.ads ?? []).find((a) => a.full_screen), [catalog]);
@@ -1119,6 +1120,7 @@ export default function CustomerApp() {
 
   const startOrder = (lines: CartLine[]) => {
     if (!lines.length) { show('سلتك فارغة'); return; }
+    if (shopStatus(catalog?.settings).closed) { setClosedOpen(true); return; }
     if (!session) { nav('/login'); show('سجّل دخولك أولًا لإتمام الطلب'); return; }
     setFlow({ step: 'fulfillment', lines });
   };
@@ -1362,6 +1364,7 @@ export default function CustomerApp() {
       )}
       {!welcomeDone && <WelcomeScreen onClose={() => setWelcomeDone(true)} />}
       {welcomeDone && fsAd && !splashDone && <SplashAd ad={fsAd} cur={cur} onClose={() => setSplashDone(true)} />}
+      {closedOpen && <ClosedModal open={catalog?.settings?.work_open ?? ''} onClose={() => setClosedOpen(false)} />}
       {toastNode}
     </div>
   );
@@ -1435,6 +1438,33 @@ function PromoChoiceModal({ code, disc, where, busy, onUse, onSkip }: {
         <button onClick={onSkip} disabled={busy}
           className="mt-3 w-full rounded-full bg-neutral-100 py-3 text-sm font-black text-neutral-600 transition active:scale-[.98] disabled:opacity-50">
           عدم الاستخدام
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ============================ نافذة المحل مغلق ============================ */
+function ClosedModal({ open, onClose }: { open: string; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[135] grid place-items-center bg-black/55 p-4 backdrop-blur-sm anim-fade" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-[2rem] bg-gradient-to-b from-[#FFF9EC] to-[#F6E7C9] p-7 text-center shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
+        <span className="mx-auto grid size-20 place-items-center rounded-full bg-[#26301C] text-[#EAC98F] shadow-lg shadow-[#26301C]/30">
+          <Icon name="clock" size={34} />
+        </span>
+        <h3 className="mt-4 text-xl font-black text-[#26301C]">المحل مغلق الآن 🌙</h3>
+        <p className="mt-2 text-sm font-bold leading-relaxed text-[#7C8665]">
+          خلاص وصفنا اليوم… تراني فتحنا بساعات جديدة ☕
+        </p>
+        {open && (
+          <div className="mx-auto mt-4 w-fit rounded-2xl border-2 border-dashed border-[#C9A96A] bg-white/70 px-6 py-3">
+            <p className="text-[10px] font-black tracking-wide text-[#94826A]">موعد الفتح</p>
+            <p className="mt-0.5 text-2xl font-black text-[#26301C]" dir="ltr">{open}</p>
+          </div>
+        )}
+        <button onClick={onClose}
+          className="mt-5 w-full rounded-full bg-[#26301C] py-3.5 text-base font-black text-[#E9EDD6] shadow-lg transition active:scale-[.98]">
+          حسنًا، باجهزكم
         </button>
       </div>
     </div>

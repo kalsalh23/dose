@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { rpc, sb } from '../lib/supabase';
-import { eur, fmtDateTime } from '../lib/utils';
+import { eur, fmtDateTime, shopStatus } from '../lib/utils';
 import { Icon, type IconName } from '../components/Icons';
 
 /* ============================================================
@@ -37,10 +37,11 @@ const TABS: { id: TabId; label: string; icon: IconName }[] = [
   { id: 'rewards', label: 'المكافآت', icon: 'gift' },
   { id: 'ads', label: 'الإعلانات', icon: 'megaphone' },
   { id: 'notify', label: 'إشعار', icon: 'bell' },
+  { id: 'hours', label: 'توقيت دوامي', icon: 'clock' },
   { id: 'promo', label: 'كود الخصم', icon: 'gift' },
   { id: 'settings', label: 'الإعدادات', icon: 'settings' },
 ];
-type TabId = 'dashboard' | 'orders' | 'products' | 'customers' | 'rewards' | 'ads' | 'notify' | 'settings' | 'promo';
+type TabId = 'dashboard' | 'orders' | 'products' | 'customers' | 'rewards' | 'ads' | 'notify' | 'hours' | 'settings' | 'promo';
 
 export default function AdminApp() {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(ADMIN_KEY));
@@ -151,6 +152,7 @@ export default function AdminApp() {
         {tab === 'rewards' && <RewardsTab token={token} />}
         {tab === 'ads' && <AdsTab token={token} />}
         {tab === 'notify' && <NotifyTab token={token} />}
+        {tab === 'hours' && <HoursTab token={token} />}
         {tab === 'settings' && <SettingsTab token={token} />}
         {tab === 'promo' && <PromoTab token={token} />}
       </main>
@@ -762,6 +764,56 @@ function PromoTab({ token }: { token: string }) {
             🗑️ حذف كود الخصم
           </button>
         )}
+      </Card>
+    </div>
+  );
+}
+
+/* ============================ توقيت دوامي ============================ */
+function HoursTab({ token }: { token: string }) {
+  const [workOpen, setWorkOpen] = useState('');
+  const [workClose, setWorkClose] = useState('');
+  const [msg, setMsg] = useState('');
+  const [, setTick] = useState(0);
+  const load = useCallback(() => { arpc<Record<string, string>>('admin_get_settings', { p_token: token }).then((s) => { setWorkOpen(s.work_open ?? ''); setWorkClose(s.work_close ?? ''); }).catch(() => {}); }, [token]);
+  useEffect(() => { load(); }, [load]);
+  /* تحديث حالة «مفتوح/مغلق» الحية كل دقيقة */
+  useEffect(() => { const t = setInterval(() => setTick((x) => x + 1), 60000); return () => clearInterval(t); }, []);
+  const { busy, wrap } = useAdminAction();
+  const st = shopStatus({ work_open: workOpen, work_close: workClose });
+  const norm = (t: string) => (t ? t.split(':').map((x, i) => (i === 0 ? String(Number(x)).padStart(2, '0') : x)).join(':') : '');
+
+  return (
+    <div className="mx-auto max-w-md">
+      <h2 className="mb-1 text-base font-extrabold text-coffee-900">توقيت دوامي</h2>
+      <p className="mb-3 text-[11px] font-bold text-neutral-500">حدّد وقت فتح المحل وغلقه — يُمنع الطلب خارج الدوام في التطبيق والكشك تلقائيًا</p>
+      <Card className="space-y-4">
+        {/* الحالة الحية */}
+        <div className={`rounded-2xl p-4 text-center ${st.closed ? 'bg-[#FBEDE9]' : 'bg-[#EEF2DC]'}`}>
+          <p className={`text-lg font-black ${st.closed ? 'text-[#C4482E]' : 'text-[#414D36]'}`}>
+            {st.closed ? '🌙 المحل مغلق الآن' : '🟢 المحل مفتوح الآن'}
+          </p>
+          <p className="mt-1 text-[11px] font-bold text-neutral-500" dir="ltr">
+            {workOpen || '--:--'} → {workClose || '--:--'} (بتوقيت دمشق)
+          </p>
+        </div>
+        <Field label="وقت الفتح">
+          <input type="time" className={inputCls} dir="ltr" value={workOpen} onChange={(e) => setWorkOpen(e.target.value)} />
+        </Field>
+        <Field label="وقت الإغلاق">
+          <input type="time" className={inputCls} dir="ltr" value={workClose} onChange={(e) => setWorkClose(e.target.value)} />
+        </Field>
+        {msg && <p className="rounded-xl bg-green-50 px-3 py-2 text-center text-xs font-extrabold text-green-700">{msg}</p>}
+        <button disabled={busy} onClick={() => wrap(async () => {
+          await arpc('admin_save_settings', { p_token: token, p_settings: { work_open: norm(workOpen), work_close: norm(workClose) } });
+          setMsg('حُفظ التوقيت — سارٍ فورًا في التطبيق والكشك ✓');
+          setTimeout(() => setMsg(''), 5000);
+        })} className={`${btnCls} w-full`} style={{ borderRadius: 16, height: 46 }}>
+          {busy ? 'جارٍ الحفظ…' : 'حفظ التوقيت'}
+        </button>
+        <p className="rounded-xl bg-[#EEF2DC] px-3 py-2 text-[10.5px] font-bold leading-relaxed text-[#77825E]">
+          عند الإغلاق يظهر للزبون رسالة أنيقة مع موعد الفتح، ولا يستطيع النقر على زر الطلب — كما يُرفض أي طلب خارج الدوام من الخادم حتى لو تجاوزت الواجهة.
+        </p>
       </Card>
     </div>
   );

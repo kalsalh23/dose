@@ -52,6 +52,7 @@ async function walk(dir, acc = []) {
       if (SKIP_DIRS.has(entry.name)) continue;
       await walk(join(dir, entry.name), acc);
     } else if (entry.isFile()) {
+      if (entry.name.startsWith('.')) continue; // لا ترفع ملفات الرموز المؤقتة
       acc.push(join(dir, entry.name));
     }
   }

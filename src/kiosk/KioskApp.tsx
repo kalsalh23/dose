@@ -317,9 +317,9 @@ export default function KioskApp() {
                       style={{ background: codeMsg.ok ? '#E3E9C8' : '#FBEDE9', color: codeMsg.ok ? '#414D36' : '#C4482E' }}>{codeMsg.msg}</p>
                   )}
                   {shopClosed && (
-                    <div className="flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[12.5px] font-black"
+                    <div className="rounded-xl px-3 py-2.5 text-center text-[12.5px] font-black"
                       style={{ background: '#FBEDE9', color: '#C4482E' }}>
-                      🌙 المحل مغلق ليلة سعيدة — نستقبلكم غدًا
+                      🌙 المحل مغلق الآن — نستقبلكم مرة أخرى الساعة {catalog?.settings?.work_open ?? 'بداية الدوام'}
                     </div>
                   )}
                   <button onClick={orderNow} disabled={!cart.size || !customer || shopClosed}
