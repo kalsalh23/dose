@@ -118,8 +118,8 @@ async function enablePushNotifications(session: Session): Promise<string> {
   return 'تم تفعيل الإشعارات على هذا الجهاز';
 }
 
-/* ============================ إعلان ملء الشاشة — 5 ثوانٍ ============================ */
-function SplashAd({ ad, cur, onClose }: { ad: Ad; cur: string; onClose: () => void }) {
+/* ============================ إعلان وسط الشاشة — يظهر بعد دقيقتين من التصفح ============================ */
+function MidAd({ ad, cur, onClose }: { ad: Ad; cur: string; onClose: () => void }) {
   const [p, setP] = useState(0);
   useEffect(() => {
     const start = Date.now();
@@ -128,33 +128,34 @@ function SplashAd({ ad, cur, onClose }: { ad: Ad; cur: string; onClose: () => vo
     return () => { clearInterval(t); clearTimeout(end); };
   }, []);
   return (
-    <div className="fixed inset-0 z-[200] bg-[#26301C] anim-fade">
-      <img src={ad.image_url} alt={ad.title} className="absolute inset-0 size-full object-cover" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/50" />
-
-      <div className="absolute inset-x-4 top-4 flex gap-1.5">
-        <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/25">
-          <div className="h-full rounded-full bg-white" style={{ width: p * 100 + '%', transition: 'width .1s linear' }} />
+    <div className="fixed inset-0 z-[200] grid place-items-center bg-black/60 p-5 backdrop-blur-sm anim-fade" onClick={onClose}>
+      <div className="relative w-full max-w-sm overflow-hidden rounded-[2rem] bg-white shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
+        <div className="relative">
+          <img src={ad.image_url} alt={ad.title} className="h-56 w-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/25" />
+          <span className="absolute right-4 top-4 rounded-full bg-[#C9D3A8] px-3.5 py-1.5 text-[11px] font-black text-[#26301C] shadow-lg">عرض حصري ✨</span>
+          <button onClick={onClose} className="absolute left-4 top-4 grid size-9 place-items-center rounded-full bg-black/45 text-white transition active:scale-90" aria-label="إغلاق">
+            <Icon name="x" size={16} />
+          </button>
+          <div className="absolute inset-x-0 bottom-0 h-1 bg-white/25">
+            <div className="h-full bg-[#EAC98F]" style={{ width: p * 100 + '%', transition: 'width .1s linear' }} />
+          </div>
         </div>
-      </div>
-      <button onClick={onClose} className="absolute left-4 top-8 rounded-full bg-white/15 px-4 py-2 text-xs font-extrabold text-white backdrop-blur transition active:scale-95">
-        تخطي
-      </button>
-      <span className="absolute right-4 top-8 rounded-full bg-white px-3.5 py-1.5 text-[11px] font-black text-[#26301C] shadow-lg">
-        عرض حصري
-      </span>
-
-      <div className="absolute inset-x-0 bottom-0 p-6 pb-10 text-white">
-        <h2 className="text-[26px] font-black leading-tight drop-shadow-lg">{ad.title}</h2>
-        <p className="mt-1.5 text-sm font-medium text-white/85">{ad.description_ar}</p>
-        <div className="mt-3 flex items-baseline gap-3">
-          {ad.old_price_cents != null && <span className="text-base font-bold text-white/60 line-through">{eur(ad.old_price_cents, cur)}</span>}
-          {ad.new_price_cents != null && <span className="text-3xl font-black text-[#C9D3A8] drop-shadow">{eur(ad.new_price_cents, cur)}</span>}
+        <div className="p-5 text-center">
+          <h2 className="text-xl font-black text-[#26301C]">{ad.title}</h2>
+          {ad.description_ar && <p className="mt-1 text-xs font-bold text-[#7C8665]">{ad.description_ar}</p>}
+          {(ad.old_price_cents != null || ad.new_price_cents != null) && (
+            <div className="mt-3 flex items-baseline justify-center gap-3">
+              {ad.old_price_cents != null && <span className="text-sm font-bold text-neutral-400 line-through">{eur(ad.old_price_cents, cur)}</span>}
+              {ad.new_price_cents != null && <span className="text-3xl font-black text-[#26301C]">{eur(ad.new_price_cents, cur)}</span>}
+            </div>
+          )}
+          <button onClick={onClose}
+            className="mt-4 w-full rounded-full bg-gradient-to-l from-[#C9D3A8] to-[#A9B87F] py-3.5 text-base font-black text-[#26301C] shadow-lg shadow-[#8a6a48]/30 transition active:scale-[.98]">
+            اطلب الآن
+          </button>
+          <p className="mt-2 text-[10px] font-bold text-neutral-400">يُغلق تلقائيًا بعد 10 ثوانٍ</p>
         </div>
-        <button onClick={onClose}
-          className="mt-5 w-full rounded-full bg-white py-4 text-base font-black text-[#26301C] shadow-xl transition active:scale-[.97]">
-          اطلب الآن
-        </button>
       </div>
     </div>
   );
@@ -1065,6 +1066,13 @@ export default function CustomerApp() {
   const [closedOpen, setClosedOpen] = useState(false);
   const [welcomeDone, setWelcomeDone] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
+  const [midAdDue, setMidAdDue] = useState(false);
+  /* الإعلان الوسطي: بعد دقيقتين من بدء التصفح */
+  useEffect(() => {
+    if (!welcomeDone) return;
+    const t = setTimeout(() => setMidAdDue(true), 120000);
+    return () => clearTimeout(t);
+  }, [welcomeDone]);
   const fsAd = useMemo(() => (catalog?.ads ?? []).find((a) => a.full_screen), [catalog]);
   const [pushMsg, setPushMsg] = useState('');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -1376,8 +1384,8 @@ export default function CustomerApp() {
         </div>
       )}
       {!welcomeDone && <WelcomeScreen onClose={() => setWelcomeDone(true)} />}
-      {welcomeDone && fsAd && !splashDone && <SplashAd ad={fsAd} cur={cur} onClose={() => setSplashDone(true)} />}
-      {closedOpen && <ClosedModal open={catalog?.settings?.work_open ?? ''} onClose={() => setClosedOpen(false)} />}
+      {welcomeDone && fsAd && !splashDone && midAdDue && <MidAd ad={fsAd} cur={cur} onClose={() => setSplashDone(true)} />}
+      {closedOpen && <ClosedModal open={catalog?.settings?.work_open ?? ''} note={catalog?.settings?.closed_message ?? ''} onClose={() => setClosedOpen(false)} />}
       {toastNode}
     </div>
   );
@@ -1458,7 +1466,7 @@ function PromoChoiceModal({ code, disc, where, busy, onUse, onSkip }: {
 }
 
 /* ============================ نافذة المحل مغلق ============================ */
-function ClosedModal({ open, onClose }: { open: string; onClose: () => void }) {
+function ClosedModal({ open, note, onClose }: { open: string; note: string; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[135] grid place-items-center bg-black/55 p-4 backdrop-blur-sm anim-fade" onClick={onClose}>
       <div className="w-full max-w-sm rounded-[2rem] bg-gradient-to-b from-[#FFF9EC] to-[#F6E7C9] p-7 text-center shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
@@ -1466,9 +1474,13 @@ function ClosedModal({ open, onClose }: { open: string; onClose: () => void }) {
           <Icon name="clock" size={34} />
         </span>
         <h3 className="mt-4 text-xl font-black text-[#26301C]">المحل مغلق الآن 🌙</h3>
-        <p className="mt-2 text-sm font-bold leading-relaxed text-[#7C8665]">
-          خلاص وصفنا اليوم… تراني فتحنا بساعات جديدة ☕
-        </p>
+        {note ? (
+          <p className="mt-2 whitespace-pre-line text-sm font-bold leading-relaxed text-[#7C8665]">{note}</p>
+        ) : (
+          <p className="mt-2 text-sm font-bold leading-relaxed text-[#7C8665]">
+            خلاص وصفنا اليوم… تراني فتحنا بساعات جديدة ☕
+          </p>
+        )}
         {open && (
           <div className="mx-auto mt-4 w-fit rounded-2xl border-2 border-dashed border-[#C9A96A] bg-white/70 px-6 py-3">
             <p className="text-[10px] font-black tracking-wide text-[#94826A]">موعد الفتح</p>

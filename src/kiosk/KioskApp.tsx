@@ -320,7 +320,9 @@ export default function KioskApp() {
                   {shopClosed && (
                     <div className="rounded-xl px-3 py-2.5 text-center text-[12.5px] font-black"
                       style={{ background: '#FBEDE9', color: '#C4482E' }}>
-                      🌙 المحل مغلق الآن — نستقبلكم مرة أخرى الساعة {catalog?.settings?.work_open ?? 'بداية الدوام'}
+                      {catalog?.settings?.closed_message
+                        ? catalog.settings.closed_message
+                        : <>🌙 المحل مغلق الآن — نستقبلكم مرة أخرى الساعة {catalog?.settings?.work_open ?? 'بداية الدوام'}</>}
                     </div>
                   )}
                   <button onClick={orderNow} disabled={!cart.size || !customer || shopClosed}

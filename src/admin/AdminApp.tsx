@@ -606,12 +606,12 @@ function AdsTab({ token }: { token: string }) {
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-extrabold text-coffee-900">{a.title}
                   <span className={`ms-2 rounded-full px-2 py-0.5 text-[9px] font-black ${a.full_screen ? 'bg-[#414D36] text-[#C9D3A8]' : 'bg-[#D5DEB4] text-[#414D36]'}`}>
-                    {a.full_screen ? 'ملء الشاشة' : 'ضمن الهيرو'}
+                    {a.full_screen ? 'إعلان وسط الشاشة' : 'ضمن الهيرو'}
                   </span>
                 </p>
                 <p className="mt-0.5 text-xs text-neutral-500">{a.description_ar}</p>
                 <p className="mt-0.5 text-[10px] font-bold text-neutral-400">
-                  {a.full_screen ? '🖥️ يظهر بملء الشاشة عند الدخول' : '📱 يظهر ضمن الهيرو المتنقل'}
+                  {a.full_screen ? '🖥️ إعلان وسط الشاشة — يظهر بعد دقيقتين من التصفح' : '📱 يظهر ضمن الهيرو المتنقل'}
                   {a.ends_at ? ' · حتى ' + new Date(a.ends_at).toLocaleDateString('ar-SY', { day: 'numeric', month: 'short' }) : ' · بلا نهاية'}
                 </p>
                 <p className="mt-1 text-xs font-extrabold text-gold-deep">
@@ -651,7 +651,7 @@ function AdsTab({ token }: { token: string }) {
                 <Field label="مكان الظهور">
                   <select className={inputCls} value={edit.full_screen ? 'both' : 'hero'} onChange={(e) => setEdit({ ...edit, full_screen: e.target.value === 'both', show_in_hero: true })}>
                     <option value="hero">ضمن الهيرو فقط</option>
-                    <option value="both">ملء الشاشة + الهيرو</option>
+                    <option value="both">إعلان وسط الشاشة + الهيرو</option>
                   </select>
                 </Field>
               </div>
@@ -783,9 +783,10 @@ function PromoTab({ token }: { token: string }) {
 function HoursTab({ token }: { token: string }) {
   const [workOpen, setWorkOpen] = useState('');
   const [workClose, setWorkClose] = useState('');
+  const [closedMessage, setClosedMessage] = useState('');
   const [msg, setMsg] = useState('');
   const [, setTick] = useState(0);
-  const load = useCallback(() => { arpc<Record<string, string>>('admin_get_settings', { p_token: token }).then((s) => { setWorkOpen(s.work_open ?? ''); setWorkClose(s.work_close ?? ''); }).catch(() => {}); }, [token]);
+  const load = useCallback(() => { arpc<Record<string, string>>('admin_get_settings', { p_token: token }).then((s) => { setWorkOpen(s.work_open ?? ''); setWorkClose(s.work_close ?? ''); setClosedMessage(s.closed_message ?? ''); }).catch(() => {}); }, [token]);
   useEffect(() => { load(); }, [load]);
   /* تحديث حالة «مفتوح/مغلق» الحية كل دقيقة */
   useEffect(() => { const t = setInterval(() => setTick((x) => x + 1), 60000); return () => clearInterval(t); }, []);
@@ -813,16 +814,20 @@ function HoursTab({ token }: { token: string }) {
         <Field label="وقت الإغلاق">
           <input type="time" className={inputCls} dir="ltr" value={workClose} onChange={(e) => setWorkClose(e.target.value)} />
         </Field>
+        <Field label="رسالة الإغلاق (اختياري — بأسلوبك ومزاجك)">
+          <textarea className={`${inputCls} h-24 py-2`} value={closedMessage} onChange={(e) => setClosedMessage(e.target.value)}
+            placeholder="مثال: خلاص قفلنا اليوم 🌙 عساك من أهل الجنة، باجهزكم الساعة 10 صباحًا ☕" />
+        </Field>
         {msg && <p className="rounded-xl bg-green-50 px-3 py-2 text-center text-xs font-extrabold text-green-700">{msg}</p>}
         <button disabled={busy} onClick={() => wrap(async () => {
-          await arpc('admin_save_settings', { p_token: token, p_settings: { work_open: norm(workOpen), work_close: norm(workClose) } });
-          setMsg('حُفظ التوقيت — سارٍ فورًا في التطبيق والكشك ✓');
+          await arpc('admin_save_settings', { p_token: token, p_settings: { work_open: norm(workOpen), work_close: norm(workClose), closed_message: closedMessage } });
+          setMsg('حُفظ التوقيت والرسالة — سارٍ فورًا في التطبيق والكشك ✓');
           setTimeout(() => setMsg(''), 5000);
         })} className={`${btnCls} w-full`} style={{ borderRadius: 16, height: 46 }}>
           {busy ? 'جارٍ الحفظ…' : 'حفظ التوقيت'}
         </button>
         <p className="rounded-xl bg-[#EEF2DC] px-3 py-2 text-[10.5px] font-bold leading-relaxed text-[#77825E]">
-          عند الإغلاق يظهر للزبون رسالة أنيقة مع موعد الفتح، ولا يستطيع النقر على زر الطلب — كما يُرفض أي طلب خارج الدوام من الخادم حتى لو تجاوزت الواجهة.
+          عند الإغلاق يظهر للزبون رسالتك (أو الرسالة الافتراضية إذا تركت الحقل فارغًا) مع موعد الفتح، ولا يستطيع النقر على زر الطلب — كما يُرفض أي طلب خارج الدوام من الخادم.
         </p>
       </Card>
     </div>
