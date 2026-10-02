@@ -1139,6 +1139,25 @@ export default function CustomerApp() {
     }
   }, [session?.token]);
 
+  /* إشعار الاقتراب من المحل: فحص موقع الزبون كل 90 ثانية أثناء التصفح — بلا تخزين للإحداثيات */
+  const refreshRef = useRef(refresh);
+  useEffect(() => { refreshRef.current = refresh; });
+  useEffect(() => {
+    if (!session?.token) return;
+    let stopped = false;
+    const check = async () => {
+      try {
+        const loc = await getCurrentLocation();
+        if (stopped) return;
+        const r = await rpc<any>('check_geo_proximity', { p_token: session.token, p_lat: loc.lat, p_lng: loc.lng });
+        if (r?.notified) refreshRef.current();
+      } catch { /* صامت — الموقع غير متاح أو مرفوض */ }
+    };
+    const t0 = setTimeout(check, 15000);
+    const iv = setInterval(check, 90000);
+    return () => { stopped = true; clearTimeout(t0); clearInterval(iv); };
+  }, [session?.token]);
+
   const startOrder = (lines: CartLine[]) => {
     if (!lines.length) { show('سلتك فارغة'); return; }
     if (shopStatus(catalog?.settings).closed) { setClosedOpen(true); return; }
@@ -1600,7 +1619,9 @@ function AboutPage({ catalog }: { catalog: Catalog | null }) {
         {contactRow('instagram', 'إنستغرام', '@dose__cafe', 'https://www.instagram.com/dose__cafe')}
         {contactRow('tiktok', 'تيك توك', '@dose__cafe', 'https://www.tiktok.com/@dose__cafe')}
         {contactRow('facebook', 'فيسبوك', 'Dose Cafe', 'https://www.facebook.com/share/1DhShCC3Fm/')}
-        {contactRow('pin', 'موقع المحل', '35.1327334 , 36.7526210', 'https://www.google.com/maps?q=35.1327334,36.7526210')}
+        {contactRow('pin', 'موقع المحل',
+          (catalog?.settings?.shop_lat ?? '35.1327334') + ' , ' + (catalog?.settings?.shop_lng ?? '36.7526210'),
+          'https://www.google.com/maps?q=' + (catalog?.settings?.shop_lat ?? '35.1327334') + ',' + (catalog?.settings?.shop_lng ?? '36.7526210'))}
       </div>
 
       <h3 className="mb-2.5 mt-7 text-base font-black text-[#26301C]">فريق العمل</h3>
