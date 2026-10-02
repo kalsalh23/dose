@@ -18,6 +18,9 @@ export async function rpc<T = any>(fn: string, args: Record<string, any> = {}): 
     if (m.includes('insufficient_points')) throw new Error('نقاطك غير كافية لهذه المكافأة');
     if (m.includes('code_not_applicable')) throw new Error('هذا الكود لا ينطبق على محتويات طلبك الحالية');
     if (m.includes('product_unavailable')) throw new Error('نفذت كمية أحد المنتجات المطلوبة — احذفه من سلتك أو جرّب بديلًا');
+    if (m.includes('code_used')) throw new Error('هذا الرمز مستخدم سابقًا');
+    if (m.includes('code_expired')) throw new Error('انتهت صلاحية هذا الرمز');
+    if (m.includes('invalid_code')) throw new Error('الرمز غير صحيح');
     if (m.includes('bad_credentials')) throw new Error('بيانات الدخول غير صحيحة');
     if (m.includes('location_required')) throw new Error('نحتاج إلى موقعك لإتمام طلب التوصيل');
     if (m.includes('Failed to fetch') || m.includes('network'))
