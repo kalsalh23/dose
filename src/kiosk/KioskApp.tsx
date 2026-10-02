@@ -69,6 +69,10 @@ export default function KioskApp() {
   };
 
   const products = (catalog?.products ?? []).filter((p) => p.category === cat);
+  const effPrice = (p: { price_cents: number; sale_price_cents?: number | null }) =>
+    p.sale_price_cents != null && p.sale_price_cents < p.price_cents ? p.sale_price_cents : p.price_cents;
+  const hasOffer = (p: { price_cents: number; sale_price_cents?: number | null }) =>
+    p.sale_price_cents != null && p.sale_price_cents < p.price_cents;
   const itemsCount = [...cart.values()].reduce((a, b) => a + b, 0);
 
   const addProduct = (p: Product) => {
@@ -211,6 +215,9 @@ export default function KioskApp() {
                     }}>
                     <div className="relative min-h-0 flex-1 overflow-hidden" style={{ background: '#D5DEB4' }}>
                       <img src={p.image_url} alt={p.name_ar} className="size-full object-cover" loading="lazy" />
+                      {hasOffer(p) && (
+                        <span className="absolute top-1.5 left-1.5 rounded-full px-2 py-0.5 text-[10px] font-extrabold text-white" style={{ background: '#C4482E' }}>عرض</span>
+                      )}
                       {qty > 0 && (
                         <span className="absolute top-1.5 right-1.5 grid min-w-6 place-items-center rounded-full border-2 border-white px-1.5 py-0.5 text-[11.5px] font-extrabold text-white"
                           style={{ background: '#26301C' }}>×{qty}</span>

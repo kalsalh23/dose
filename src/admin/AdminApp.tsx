@@ -370,6 +370,8 @@ const EMPTY_PRODUCT = { id: 0, category_slug: 'hot', name_ar: '', name_en: '', d
 function ProductsTab({ token }: { token: string }) {
   const [products, setProducts] = useState<any[]>([]);
   const [edit, setEdit] = useState<any>(null);
+  const [offerId, setOfferId] = useState<number | null>(null);
+  const [offerVal, setOfferVal] = useState('');
   const load = useCallback(() => { arpc<any[]>('admin_list_products', { p_token: token }).then(setProducts).catch(() => {}); }, [token]);
   useEffect(() => { load(); }, [load]);
   const { busy, wrap } = useAdminAction();
@@ -392,7 +394,15 @@ function ProductsTab({ token }: { token: string }) {
             <div className="min-w-0 flex-1">
               <p className="text-sm font-extrabold text-coffee-900">{p.name_ar} <span className="text-[10px] font-bold text-neutral-400">{p.name_en}</span></p>
               <p className="mt-0.5 text-xs text-neutral-500">{p.description_ar}</p>
-              <p className="mt-1 text-xs font-extrabold text-gold-deep">{eur(p.price_cents, 'ل.س')} · ⭐ {p.points}</p>
+              <p className="mt-1 text-xs font-extrabold text-gold-deep">
+                {p.sale_price_cents != null ? (
+                  <>
+                    <span className="me-1 rounded-full bg-[#C4482E] px-2 py-0.5 text-[9px] font-black text-white">عرض</span>
+                    {eur(p.sale_price_cents, 'ل.س')} <span className="font-bold text-neutral-400 line-through">{eur(p.price_cents, 'ل.س')}</span>
+                  </>
+                ) : eur(p.price_cents, 'ل.س')}
+                {' '}· ⭐ {p.points}
+              </p>
               <p className="text-[10px] font-bold text-neutral-400">تصنيف: {p.category_slug}</p>
               <div className="mt-2 flex gap-2">
                 <button onClick={() => setEdit({ ...EMPTY_PRODUCT, ...p, category_slug: p.category_slug })} className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
@@ -400,11 +410,30 @@ function ProductsTab({ token }: { token: string }) {
                   className={`rounded-lg px-3 py-1.5 text-[11px] font-extrabold ${p.is_available === false ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
                   {p.is_available === false ? 'غير متوفر' : 'متوفر'}
                 </button>
+                <button disabled={busy} onClick={() => { setOfferId(offerId === p.id ? null : p.id); setOfferVal(p.sale_price_cents != null ? String(p.sale_price_cents) : ''); }}
+                  className={`rounded-lg px-3 py-1.5 text-[11px] font-extrabold ${p.sale_price_cents != null ? 'bg-[#C4482E] text-white' : 'bg-[#F1DCB0] text-[#7A5A22]'}`}>
+                  عرض
+                </button>
                 {p.is_active && (
                   <button disabled={busy} onClick={() => wrap(async () => { await arpc('admin_delete_product', { p_token: token, p_id: p.id }); load(); })}
                     className="rounded-lg bg-red-50 px-3 py-1.5 text-[11px] font-extrabold text-red-600">تعطيل</button>
                 )}
               </div>
+              {offerId === p.id && (
+                <div className="mt-2 rounded-xl bg-[#FFF9EC] p-3 ring-1 ring-[#EAD3A0]">
+                  <p className="text-[10px] font-black text-[#7A5A22]">السعر الجديد (ل.س) — القديم يُمشَّط ويظهر شارة «عرض» للزبون</p>
+                  <div className="mt-2 flex gap-2">
+                    <input type="number" className={inputCls} value={offerVal} onChange={(e) => setOfferVal(e.target.value)} placeholder="مثال: 12000" />
+                    <button disabled={busy || !offerVal} onClick={() => wrap(async () => { await arpc('admin_set_product_sale', { p_token: token, p_product_id: p.id, p_sale_cents: Number(offerVal) }); setOfferId(null); load(); })}
+                      className="flex-none rounded-lg bg-[#414D36] px-3 py-1.5 text-[11px] font-extrabold text-[#C9D3A8]">حفظ</button>
+                    {p.sale_price_cents != null && (
+                      <button disabled={busy} onClick={() => wrap(async () => { await arpc('admin_set_product_sale', { p_token: token, p_product_id: p.id, p_sale_cents: null }); setOfferId(null); load(); })}
+                        className="flex-none rounded-lg bg-red-50 px-3 py-1.5 text-[11px] font-extrabold text-red-600">إزالة العرض</button>
+                    )}
+                    <button onClick={() => setOfferId(null)} className="flex-none rounded-lg bg-neutral-100 px-3 py-1.5 text-[11px] font-extrabold text-neutral-600">إلغاء</button>
+                  </div>
+                </div>
+              )}
             </div>
           </Card>
         ))}
@@ -586,13 +615,16 @@ function RewardsTab({ token }: { token: string }) {
 }
 
 /* ============================ الإعلانات ============================ */
-const EMPTY_AD = { id: 0, image_url: '/img/latte.jpg', title: '', description_ar: '', old_price_cents: '', new_price_cents: '', discount_percent: '', ends_at: '', is_active: true, full_screen: false, show_in_hero: true };
+const EMPTY_AD = { id: 0, image_url: '/img/latte.jpg', category_slug: '', description_ar: '', ends_at: '', is_active: true, full_screen: false, show_in_hero: true };
 function AdsTab({ token }: { token: string }) {
   const [ads, setAds] = useState<any[]>([]);
+  const [cats, setCats] = useState<any[]>([]);
   const [edit, setEdit] = useState<any>(null);
   const load = useCallback(() => { arpc<any[]>('admin_list_ads', { p_token: token }).then(setAds).catch(() => {}); }, [token]);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { sb.rpc('get_catalog').then(({ data }: any) => setCats(data?.categories ?? [])).catch(() => {}); }, []);
   const { busy, wrap } = useAdminAction();
+  const catName = (slug: string) => cats.find((c) => c.slug === slug)?.name_ar ?? slug;
 
   return (
     <div className="space-y-3">
@@ -600,6 +632,7 @@ function AdsTab({ token }: { token: string }) {
         <h2 className="text-base font-extrabold text-coffee-900">الإعلانات ({ads.length})</h2>
         <button onClick={() => setEdit({ ...EMPTY_AD })} className={btnCls}>+ إعلان جديد</button>
       </div>
+      <p className="text-[11px] font-bold text-neutral-500">الإعلان موجّه لفئة كاملة من المنتجات — يظهر في الهيرو/وسط الشاشة، وعروض الأصناف الفردية تُحدَّد من زر «عرض» في تبويب المنتجات</p>
       <div className="grid gap-3 md:grid-cols-2">
         {ads.map((a) => (
           <Card key={a.id} className={a.is_active ? '' : 'opacity-50'}>
@@ -616,10 +649,9 @@ function AdsTab({ token }: { token: string }) {
                   {a.full_screen ? '🖥️ إعلان وسط الشاشة — يظهر بعد دقيقتين من التصفح' : '📱 يظهر ضمن الهيرو المتنقل'}
                   {a.ends_at ? ' · حتى ' + new Date(a.ends_at).toLocaleDateString('ar-SY', { day: 'numeric', month: 'short' }) : ' · بلا نهاية'}
                 </p>
-                <p className="mt-1 text-xs font-extrabold text-gold-deep">
-                  {a.new_price_cents != null ? eur(a.new_price_cents, 'ل.س') : ''} {a.old_price_cents != null && <span className="font-bold text-neutral-400 line-through">{eur(a.old_price_cents, 'ل.س')}</span>}
-                  {a.discount_percent != null && <span className="ms-1">(-{a.discount_percent}%)</span>}
-                </p>
+                {a.category_slug && (
+                  <span className="mt-1 inline-block rounded-full bg-[#EEF2DC] px-2.5 py-1 text-[10px] font-black text-[#414D36]">🏷️ فئة: {catName(a.category_slug)}</span>
+                )}
               </div>
             </div>
             <div className="mt-2 flex gap-2">
@@ -636,13 +668,13 @@ function AdsTab({ token }: { token: string }) {
           <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl anim-pop">
             <h3 className="text-base font-extrabold text-coffee-900">{edit.id ? 'تعديل إعلان' : 'إعلان جديد'}</h3>
             <div className="mt-4 space-y-3">
-              <Field label="العنوان"><input className={inputCls} value={edit.title} onChange={(e) => setEdit({ ...edit, title: e.target.value })} /></Field>
-              <Field label="الوصف"><textarea className={`${inputCls} h-20 py-2`} value={edit.description_ar} onChange={(e) => setEdit({ ...edit, description_ar: e.target.value })} /></Field>
-              <div className="grid grid-cols-3 gap-2">
-                <Field label="السعر القديم (ل.س)"><input type="number" className={inputCls} value={edit.old_price_cents} onChange={(e) => setEdit({ ...edit, old_price_cents: e.target.value })} /></Field>
-                <Field label="السعر الجديد (ل.س)"><input type="number" className={inputCls} value={edit.new_price_cents} onChange={(e) => setEdit({ ...edit, new_price_cents: e.target.value })} /></Field>
-                <Field label="الخصم %"><input type="number" className={inputCls} value={edit.discount_percent} onChange={(e) => setEdit({ ...edit, discount_percent: e.target.value })} /></Field>
-              </div>
+              <Field label="فئة المنتجات المستهدفة — العنوان يُشتق منها تلقائيًا (مثال: عروض الموهيتو)">
+                <select className={inputCls} value={edit.category_slug ?? ''} onChange={(e) => setEdit({ ...edit, category_slug: e.target.value })}>
+                  <option value="">— اختر الفئة —</option>
+                  {cats.map((c) => <option key={c.slug} value={c.slug}>{c.name_ar}</option>)}
+                </select>
+              </Field>
+              <Field label="الوصف"><textarea className={`${inputCls} h-20 py-2`} value={edit.description_ar} onChange={(e) => setEdit({ ...edit, description_ar: e.target.value })} placeholder="مثال: عرض حصري على أغلب أصناف الموهيتو" /></Field>
               <Field label="نهاية العرض (اختياري — يبدأ فور الحفظ)"><input type="datetime-local" className={inputCls} dir="ltr" value={edit.ends_at} onChange={(e) => setEdit({ ...edit, ends_at: e.target.value })} /></Field>
               <div className="grid grid-cols-2 gap-2">
                 <Field label="نشط">
@@ -660,7 +692,7 @@ function AdsTab({ token }: { token: string }) {
               <Field label="صورة الإعلان"><ImageUploadField value={edit.image_url} onChange={(url) => setEdit({ ...edit, image_url: url })} folder="ads" /></Field>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3">
-              <button disabled={busy} onClick={() => wrap(async () => {
+              <button disabled={busy || !(edit.category_slug ?? '').trim()} onClick={() => wrap(async () => {
                 const ad = { ...edit, ends_at: edit.ends_at ? new Date(edit.ends_at).toISOString() : '' };
                 await arpc('admin_save_ad', { p_token: token, p_ad: ad });
                 setEdit(null); load();
@@ -668,6 +700,9 @@ function AdsTab({ token }: { token: string }) {
                 className="rounded-2xl bg-gradient-to-l from-gold to-gold-deep py-3 text-sm font-extrabold text-white disabled:opacity-50">حفظ</button>
               <button onClick={() => setEdit(null)} className="rounded-2xl bg-neutral-100 py-3 text-sm font-extrabold text-neutral-600">إلغاء</button>
             </div>
+            <p className="mt-3 rounded-xl bg-[#EEF2DC] px-3 py-2 text-[10.5px] font-bold leading-relaxed text-[#77825E]">
+              لحسم أسعار أصناف محددة داخل الفئة (سعر مشطوب + شارة «عرض» للزبون) استخدم زر «عرض» في تبويب المنتجات.
+            </p>
           </div>
         </div>
       )}

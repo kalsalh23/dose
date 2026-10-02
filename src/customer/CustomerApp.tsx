@@ -97,6 +97,11 @@ function useToast() {
 }
 
 type Fulfillment = 'pickup' | 'delivery';
+/* السعر الفعلي: سعر العرض إن وُجد وأقل من الأصلي */
+const effPrice = (p: { price_cents: number; sale_price_cents?: number | null }) =>
+  p.sale_price_cents != null && p.sale_price_cents < p.price_cents ? p.sale_price_cents : p.price_cents;
+const hasOffer = (p: { price_cents: number; sale_price_cents?: number | null }) =>
+  p.sale_price_cents != null && p.sale_price_cents < p.price_cents;
 interface OrderFlow { step: 'fulfillment' | 'location' | 'pin' | 'promo' | 'review' | null; lines: CartLine[]; fulfillment?: Fulfillment; loc?: { lat: number; lng: number; mapUrl: string }; pin?: string; usePromo?: boolean }
 
 /* ============================ الإشعارات الفورية ============================ */
@@ -119,7 +124,7 @@ async function enablePushNotifications(session: Session): Promise<string> {
 }
 
 /* ============================ إعلان وسط الشاشة — يظهر بعد دقيقتين من التصفح ============================ */
-function MidAd({ ad, cur, onClose }: { ad: Ad; cur: string; onClose: () => void }) {
+function MidAd({ ad, cur, onClose, onBrowse }: { ad: Ad; cur: string; onClose: () => void; onBrowse?: (slug: string) => void }) {
   const [p, setP] = useState(0);
   useEffect(() => {
     const start = Date.now();
@@ -150,9 +155,9 @@ function MidAd({ ad, cur, onClose }: { ad: Ad; cur: string; onClose: () => void 
               {ad.new_price_cents != null && <span className="text-3xl font-black text-[#26301C]">{eur(ad.new_price_cents, cur)}</span>}
             </div>
           )}
-          <button onClick={onClose}
+          <button onClick={() => (onBrowse && ad.category_slug ? onBrowse(ad.category_slug) : onClose())}
             className="mt-4 w-full rounded-full bg-gradient-to-l from-[#C9D3A8] to-[#A9B87F] py-3.5 text-base font-black text-[#26301C] shadow-lg shadow-[#8a6a48]/30 transition active:scale-[.98]">
-            اطلب الآن
+            {ad.category_slug ? 'تصفح عروض الفئة 🏷️' : 'اطلب الآن'}
           </button>
           <p className="mt-2 text-[10px] font-bold text-neutral-400">يُغلق تلقائيًا بعد 30 ثانية</p>
         </div>
@@ -245,7 +250,9 @@ function PopularStrip({ title, emoji, items, cur, openProduct }: {
             style={{ animationDelay: `${i * 35}ms` }}>
             <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-24 w-full rounded-[1rem] object-cover" />
             <h3 className="mt-1.5 truncate px-1 text-[12px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
-            <p className="px-1 pb-0.5 text-[12px] font-black text-[#5C6B3C]">{eur(p.price_cents, cur)}</p>
+            <p className="px-1 pb-0.5 text-[12px] font-black text-[#5C6B3C]">
+              {hasOffer(p) ? <><span className="me-1 rounded-full bg-[#C4482E] px-1.5 py-0.5 text-[8px] font-black text-white">عرض</span>{eur(effPrice(p), cur)} <span className="text-[10px] font-bold text-neutral-400 line-through">{eur(p.price_cents, cur)}</span></> : eur(p.price_cents, cur)}
+            </p>
           </button>
         ))}
       </div>
@@ -305,8 +312,9 @@ function PromoBanner({ settings }: { settings: Record<string, string> }) {
 }
 
 /* ============================ الرئيسية ============================ */
-function Home({ catalog, openProduct, ads, onOpenAd }: { catalog: Catalog | null; openProduct: (p: Product) => void; ads: Ad[]; onOpenAd: (a: Ad) => void }) {
-  const [cat, setCat] = useState('all');
+function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }: { catalog: Catalog | null; openProduct: (p: Product) => void; ads: Ad[]; onOpenAd: (a: Ad) => void; selectedCat: string; onSelectCat: (s: string) => void }) {
+  const cat = selectedCat;
+  const setCat = onSelectCat;
   const [showAll, setShowAll] = useState(false);
   const [q, setQ] = useState('');
   const products = catalog?.products ?? [];
@@ -416,12 +424,15 @@ function Home({ catalog, openProduct, ads, onOpenAd }: { catalog: Catalog | null
                 style={{ animationDelay: `${i * 35}ms` }}>
                 <div className="relative">
                   <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-24 w-full rounded-[1rem] object-cover" />
-                  <span className="absolute top-1.5 right-1.5 rounded-full bg-[#26301C] px-2 py-0.5 text-[8.5px] font-black text-[#C9D3A8] shadow">الأكثر طلبًا</span>
+                  <span className="absolute top-1.5 left-1.5 rounded-full bg-[#26301C] px-2 py-0.5 text-[8.5px] font-black text-[#C9D3A8] shadow">الأكثر طلبًا</span>
+                  {hasOffer(p) && <span className="absolute top-1.5 right-1.5 rounded-full bg-[#C4482E] px-2 py-0.5 text-[8.5px] font-black text-white shadow">عرض</span>}
                 </div>
                 <h3 className="mt-1.5 truncate text-[13px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
                 <p className="truncate text-[9.5px] font-semibold uppercase tracking-wide text-[#94826A]">{p.name_en}</p>
                 <div className="mt-1 flex items-center justify-between">
-                  <span className="text-[13px] font-black text-[#26301C]">{eur(p.price_cents, cur)}</span>
+                  <span className="text-[13px] font-black text-[#26301C]">
+                    {hasOffer(p) ? <><span className="text-neutral-400 line-through">{eur(p.price_cents, cur)}</span> {eur(effPrice(p), cur)}</> : eur(p.price_cents, cur)}
+                  </span>
                   <span className="grid size-7 place-items-center rounded-full bg-[#C9D3A8] text-[#26301C]"><Icon name="plus" size={13} strokeWidth={3} /></span>
                 </div>
               </button>
@@ -446,14 +457,21 @@ function Home({ catalog, openProduct, ads, onOpenAd }: { catalog: Catalog | null
               className="rounded-[1.75rem] bg-white p-2.5 text-right shadow-sm shadow-[#8a6a48]/15 ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 hover:shadow-lg anim-rise">
               <div className="relative">
                 <img src={p.image_url} alt={p.name_ar} loading="lazy" className={`h-28 w-full rounded-[1.3rem] object-cover ${p.is_available === false ? 'opacity-50 grayscale' : ''}`} />
-                {p.is_available === false && (
-                  <span className="absolute top-1.5 right-1.5 rounded-full bg-[#C4482E] px-2.5 py-1 text-[9px] font-black text-white shadow">نفذت الكمية</span>
-                )}
+                <div className="absolute top-1.5 right-1.5 flex flex-col items-end gap-1">
+                  {p.is_available === false && (
+                    <span className="rounded-full bg-[#C4482E] px-2.5 py-1 text-[9px] font-black text-white shadow">نفذت الكمية</span>
+                  )}
+                  {hasOffer(p) && (
+                    <span className="rounded-full bg-[#C4482E] px-2.5 py-1 text-[9px] font-black text-white shadow">عرض</span>
+                  )}
+                </div>
               </div>
               <div className="flex items-end justify-between px-1 pb-0.5 pt-2.5">
                 <div className="min-w-0">
                   <h3 className="truncate text-[13px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
-                  <p className="mt-0.5 text-[13px] font-black text-[#26301C]">{eur(p.price_cents, cur)}</p>
+                  <p className="mt-0.5 text-[13px] font-black text-[#26301C]">
+                    {hasOffer(p) ? <><span className="text-[11px] font-bold text-neutral-400 line-through">{eur(p.price_cents, cur)}</span> {eur(effPrice(p), cur)}</> : eur(p.price_cents, cur)}
+                  </p>
                 </div>
                 <span className="grid size-9 flex-none place-items-center rounded-full bg-white shadow-md">
                   <Icon name="plus" size={15} className="text-[#26301C]" />
@@ -496,9 +514,14 @@ function ProductSheet({ product, catalog, onClose, onAdd, onOrderNow, isFav, onT
           style={{ color: '#26301C' }} aria-label="رجوع">
           <Icon name="chevron" size={20} />
         </button>
-        <span className="absolute bottom-5 left-5 rounded-full bg-[#C9D3A8] px-5 py-2.5 text-xl font-black shadow-xl" style={{ color: '#26301C' }}>
-          {eur(product.price_cents, cur)}
-        </span>
+        <div className="absolute bottom-5 left-5 flex items-center gap-2">
+          {hasOffer(product) && <span className="rounded-full bg-[#C4482E] px-3 py-1.5 text-[11px] font-black text-white shadow-lg">عرض</span>}
+          <span className="rounded-full bg-[#C9D3A8] px-5 py-2.5 text-xl font-black shadow-xl" style={{ color: '#26301C' }}>
+            {hasOffer(product)
+              ? <><span className="text-sm font-bold text-[#414D36] line-through">{eur(product.price_cents, cur)}</span> {eur(effPrice(product), cur)}</>
+              : eur(product.price_cents, cur)}
+          </span>
+        </div>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-40 pt-5">
@@ -580,7 +603,7 @@ function CartPage({ lines, setQty, remove, onOrder, onBrowse }: {
   onBrowse: () => void;
 }) {
   const cur = 'ل.س';
-  const total = lines.reduce((a, l) => a + l.product.price_cents * l.qty, 0);
+  const total = lines.reduce((a, l) => a + effPrice(l.product) * l.qty, 0);
   const points = lines.reduce((a, l) => a + l.product.points * l.qty, 0);
 
   if (!lines.length) return (
@@ -600,7 +623,9 @@ function CartPage({ lines, setQty, remove, onOrder, onBrowse }: {
           <div className="min-w-0 flex-1">
             <h3 className="truncate text-sm font-extrabold text-[#26301C]">{l.product.name_ar}</h3>
             {(l.options || []).length > 0 && <p className="mt-0.5 truncate text-[10.5px] font-bold text-[#5C6B3C]">✓ {l.options.join('، ')}</p>}
-            <p className="mt-1 text-sm font-black text-[#26301C]">{eur(l.product.price_cents * l.qty, cur)}</p>
+            <p className="mt-1 text-sm font-black text-[#26301C]">
+              {hasOffer(l.product) ? <><span className="text-xs font-bold text-neutral-400 line-through">{eur(effPrice(l.product) * l.qty, cur)}</span> {eur(effPrice(l.product) * l.qty, cur)}</> : eur(effPrice(l.product) * l.qty, cur)}
+            </p>
           </div>
           <div className="flex flex-none items-center gap-2.5" dir="ltr">
             <button onClick={() => setQty(i, l.qty - 1)} disabled={l.qty <= 1}
@@ -649,7 +674,9 @@ function FavoritesPage({ myData, session, openProduct, onToggleFav }: any) {
             <img src={p.image_url} alt="" className="size-16 flex-none rounded-[1rem] object-cover" />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-extrabold text-[#26301C]">{p.name_ar}</span>
-              <span className="mt-0.5 block text-sm font-black text-[#5C6B3C]">{eur(p.price_cents)}</span>
+              <span className="mt-0.5 block text-sm font-black text-[#5C6B3C]">
+                {hasOffer(p) ? <><span className="text-[11px] font-bold text-neutral-400 line-through">{eur(p.price_cents)}</span> {eur(effPrice(p))}</> : eur(p.price_cents)}
+              </span>
             </span>
           </button>
           <button onClick={() => onToggleFav(p.id)}
@@ -1064,6 +1091,7 @@ export default function CustomerApp() {
   const [pinBusyConfirm, setPinBusyConfirm] = useState(false);
   const [adOpen, setAdOpen] = useState<Ad | null>(null);
   const [closedOpen, setClosedOpen] = useState(false);
+  const [selectedCat, setSelectedCat] = useState('all');
   const [welcomeDone, setWelcomeDone] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
   const [midAdDue, setMidAdDue] = useState(false);
@@ -1113,10 +1141,10 @@ export default function CustomerApp() {
   /* نطاق كود الخصم: مجموع الأصناف المشمولة بالخصم داخل السلة */
   const promoEligibleSubtotal = (lines: CartLine[]) => {
     if (promoScope === 'product')
-      return lines.filter((l) => String(l.product.id) === String(promoTarget)).reduce((a, l) => a + l.product.price_cents * l.qty, 0);
+      return lines.filter((l) => String(l.product.id) === String(promoTarget)).reduce((a, l) => a + effPrice(l.product) * l.qty, 0);
     if (promoScope === 'category')
-      return lines.filter((l) => l.product.category === promoTarget).reduce((a, l) => a + l.product.price_cents * l.qty, 0);
-    return lines.reduce((a, l) => a + l.product.price_cents * l.qty, 0);
+      return lines.filter((l) => l.product.category === promoTarget).reduce((a, l) => a + effPrice(l.product) * l.qty, 0);
+    return lines.reduce((a, l) => a + effPrice(l.product) * l.qty, 0);
   };
   /* وصف نطاق الكود للعرض: على طلبك كاملًا / على اسم منتج / على فئة */
   const promoWhereLabel = () => {
@@ -1195,7 +1223,7 @@ export default function CustomerApp() {
       const msg = buildOrderMessage({
         orderNumber: res.order_number, customerName: res.customer_name, customerPhone: res.customer_phone,
         fulfillmentType: flow.fulfillment ?? 'pickup',
-        items: flow.lines.map((l) => ({ name: l.product.name_ar, qty: l.qty, unitPriceCents: l.product.price_cents, options: (l.options || []).join('، ') })),
+        items: flow.lines.map((l) => ({ name: l.product.name_ar, qty: l.qty, unitPriceCents: effPrice(l.product), options: (l.options || []).join('، ') })),
         totalCents: res.total_cents, totalPoints: res.total_points,
         mapUrl: flow.loc?.mapUrl, createdAt: res.created_at,
         currencySymbol: cur,
@@ -1295,7 +1323,7 @@ export default function CustomerApp() {
 
       <main className="flex-1 px-4 pb-36 pt-2">
         <Routes>
-          <Route path="/" element={<Home catalog={catalog} openProduct={setProduct} ads={heroAds} onOpenAd={(a) => setAdOpen(a)} />} />
+          <Route path="/" element={<Home catalog={catalog} openProduct={setProduct} ads={heroAds} onOpenAd={(a) => setAdOpen(a)} selectedCat={selectedCat} onSelectCat={setSelectedCat} />} />
           <Route path="/cart" element={
             <CartPage lines={cart.lines} setQty={cart.setQty} remove={cart.remove}
               onOrder={() => startOrder(cart.lines)}
@@ -1371,7 +1399,7 @@ export default function CustomerApp() {
         <ConfirmOrderModal
           phase={doneOrder ? 'done' : 'review'}
           lines={flow.lines}
-          total={flow.lines.reduce((a, l) => a + l.product.price_cents * l.qty, 0)
+          total={flow.lines.reduce((a, l) => a + effPrice(l.product) * l.qty, 0)
             - (flow.usePromo && promoCode && promoDisc
               ? Math.round(promoEligibleSubtotal(flow.lines) * Number(promoDisc) / 100)
               : 0)}
@@ -1397,14 +1425,17 @@ export default function CustomerApp() {
                   <span className="text-2xl font-black text-[#26301C]">{eur(adOpen.new_price_cents, cur)}</span>
                 </div>
               )}
-              <button onClick={() => { setAdOpen(null); nav('/'); }} className="mt-4 w-fit px-10 rounded-full bg-[#C9D3A8] py-3 text-sm font-black text-[#26301C] shadow-md active:scale-95">تصفح القائمة</button>
+              <button onClick={() => { setAdOpen(null); if (adOpen.category_slug) setSelectedCat(adOpen.category_slug); nav('/'); if (adOpen.category_slug) setTimeout(() => document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 400); }} className="mt-4 w-fit px-10 rounded-full bg-[#C9D3A8] py-3 text-sm font-black text-[#26301C] shadow-md active:scale-95">{adOpen.category_slug ? 'تصفح عروض الفئة 🏷️' : 'تصفح القائمة'}</button>
             </div>
             <button onClick={() => setAdOpen(null)} className="absolute top-3 left-3 grid size-9 place-items-center rounded-full bg-black/50 text-white" aria-label="إغلاق"><Icon name="x" size={16} /></button>
           </div>
         </div>
       )}
       {!welcomeDone && <WelcomeScreen onClose={() => setWelcomeDone(true)} />}
-      {welcomeDone && fsAd && !splashDone && midAdDue && <MidAd ad={fsAd} cur={cur} onClose={() => setSplashDone(true)} />}
+      {welcomeDone && fsAd && !splashDone && midAdDue && (
+        <MidAd ad={fsAd} cur={cur} onClose={() => setSplashDone(true)}
+          onBrowse={(slug) => { setSplashDone(true); setSelectedCat(slug); nav('/'); setTimeout(() => document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 400); }} />
+      )}
       {closedOpen && <ClosedModal open={catalog?.settings?.work_open ?? ''} note={catalog?.settings?.closed_message ?? ''} onClose={() => setClosedOpen(false)} />}
       {toastNode}
     </div>
