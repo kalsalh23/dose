@@ -31,6 +31,7 @@ async function arpc<T = any>(fn: string, args: Record<string, any> = {}): Promis
 }
 const TABS: { id: TabId; label: string; icon: IconName }[] = [
   { id: 'dashboard', label: 'الرئيسية', icon: 'chart' },
+  { id: 'sales', label: 'المبيعات', icon: 'store' },
   { id: 'orders', label: 'الطلبات', icon: 'clipboard' },
   { id: 'products', label: 'المنتجات', icon: 'package' },
   { id: 'customers', label: 'العملاء', icon: 'users' },
@@ -42,7 +43,7 @@ const TABS: { id: TabId; label: string; icon: IconName }[] = [
   { id: 'promo', label: 'كود الخصم', icon: 'gift' },
   { id: 'settings', label: 'الإعدادات', icon: 'settings' },
 ];
-type TabId = 'dashboard' | 'orders' | 'products' | 'customers' | 'rewards' | 'ads' | 'notify' | 'hours' | 'location' | 'settings' | 'promo';
+type TabId = 'dashboard' | 'sales' | 'orders' | 'products' | 'customers' | 'rewards' | 'ads' | 'notify' | 'hours' | 'location' | 'settings' | 'promo';
 
 export default function AdminApp() {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(ADMIN_KEY));
@@ -147,6 +148,7 @@ export default function AdminApp() {
       )}
       <main className="mx-auto max-w-6xl p-4">
         {tab === 'dashboard' && <Dashboard token={token} />}
+        {tab === 'sales' && <SalesTab token={token} />}
         {tab === 'orders' && <OrdersTab token={token} />}
         {tab === 'products' && <ProductsTab token={token} />}
         {tab === 'customers' && <CustomersTab token={token} />}
@@ -364,6 +366,55 @@ function OrdersTab({ token }: { token: string }) {
 
 const statusLabel = (s: string) => ({ pending: 'قيد المراجعة', confirmed: 'مؤكد', preparing: 'قيد التحضير', ready: 'جاهز', completed: 'مكتمل', cancelled: 'ملغي' } as any)[s] ?? s;
 const statusChip = (s: string) => ({ pending: 'bg-amber-100 text-amber-800', confirmed: 'bg-blue-100 text-blue-800', preparing: 'bg-orange-100 text-orange-800', ready: 'bg-emerald-100 text-emerald-800', completed: 'bg-green-100 text-green-700', cancelled: 'bg-red-100 text-red-700' } as any)[s] ?? 'bg-neutral-100';
+
+/* ============================ المبيعات ============================ */
+function SalesTab({ token }: { token: string }) {
+  const [data, setData] = useState<any>(null);
+  const load = useCallback(() => { arpc<any>('admin_sales_summary', { p_token: token }).then(setData).catch(() => {}); }, [token]);
+  useEffect(() => { load(); }, [load]);
+  const fmt = (v: any) => Number(v?.total ?? 0).toLocaleString('en-US') + ' ل.س';
+  const cards = [
+    { label: 'مبيعات اليوم', emoji: '📅', d: data?.today, grad: 'from-[#414D36] to-[#26301C]' },
+    { label: 'آخر 7 أيام', emoji: '🗓️', d: data?.week, grad: 'from-[#5C6B3C] to-[#414D36]' },
+    { label: 'هذا الشهر', emoji: '📆', d: data?.month, grad: 'from-[#7A5A22] to-[#5C4318]' },
+  ];
+  const daily = (data?.daily ?? []) as { day: string; total_cents: number; orders_count: number }[];
+  const max = Math.max(1, ...daily.map((d) => d.total_cents));
+  return (
+    <div className="space-y-4">
+      <h2 className="text-base font-extrabold text-coffee-900">المبيعات</h2>
+      <div className="grid gap-3 md:grid-cols-3">
+        {cards.map((c) => (
+          <div key={c.label} className={`rounded-3xl bg-gradient-to-bl ${c.grad} p-5 text-white shadow-lg shadow-[#26301C]/25`}>
+            <p className="flex items-center gap-2 text-[11px] font-black text-[#C9D3A8]"><span>{c.emoji}</span> {c.label}</p>
+            <p className="mt-2 text-3xl font-black tracking-tight">{fmt(c.d)}</p>
+            <p className="mt-1 text-[11px] font-bold text-white/70">{Number(c.d?.count ?? 0).toLocaleString('en-US')} طلب مكتمل</p>
+          </div>
+        ))}
+      </div>
+      <Card className="p-5">
+        <p className="mb-4 text-xs font-extrabold text-coffee-900">مبيعات آخر 14 يومًا</p>
+        {daily.length === 0 ? (
+          <p className="py-8 text-center text-xs font-bold text-neutral-400">لا توجد مبيعات مسجلة بعد</p>
+        ) : (
+          <div className="flex items-end gap-1.5 overflow-x-auto pb-1" dir="ltr">
+            {daily.map((d) => (
+              <div key={d.day} className="flex min-w-[34px] flex-1 flex-col items-center gap-1.5">
+                <span className="text-[8.5px] font-black text-neutral-500">{d.total_cents > 0 ? (d.total_cents / 1000).toLocaleString('en-US') + 'k' : ''}</span>
+                <div className="w-full rounded-t-lg bg-gradient-to-t from-[#5C6B3C] to-[#A9B87F] transition-all"
+                  style={{ height: `${d.total_cents > 0 ? 10 + Math.round((d.total_cents / max) * 90) : 3}px` }} />
+                <span className="text-[8px] font-bold text-neutral-400">{d.day.slice(5)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+      <p className="rounded-xl bg-[#EEF2DC] px-3 py-2 text-[10.5px] font-bold leading-relaxed text-[#77825E]">
+        الطلبات المكتملة تُحذف تلقائيًا بعد يوم من تسليمها للزبون — لكن مبالغها تبقى محسوبة هنا بشكل دائم. إذا أُلغي طلب مكتمل لاحقًا يُخصم من مبيعات يومه.
+      </p>
+    </div>
+  );
+}
 
 /* ============================ المنتجات ============================ */
 const EMPTY_PRODUCT = { id: 0, category_slug: 'hot', name_ar: '', name_en: '', description_ar: '', price_cents: 0, points: 0, image_url: '', options: '', is_active: true, is_available: true, sort_order: 0 };
