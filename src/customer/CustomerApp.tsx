@@ -123,8 +123,8 @@ function MidAd({ ad, cur, onClose }: { ad: Ad; cur: string; onClose: () => void 
   const [p, setP] = useState(0);
   useEffect(() => {
     const start = Date.now();
-    const t = setInterval(() => setP(Math.min(1, (Date.now() - start) / 10000)), 80);
-    const end = setTimeout(onClose, 10000);
+    const t = setInterval(() => setP(Math.min(1, (Date.now() - start) / 30000)), 80);
+    const end = setTimeout(onClose, 30000);
     return () => { clearInterval(t); clearTimeout(end); };
   }, []);
   return (
@@ -154,7 +154,7 @@ function MidAd({ ad, cur, onClose }: { ad: Ad; cur: string; onClose: () => void 
             className="mt-4 w-full rounded-full bg-gradient-to-l from-[#C9D3A8] to-[#A9B87F] py-3.5 text-base font-black text-[#26301C] shadow-lg shadow-[#8a6a48]/30 transition active:scale-[.98]">
             اطلب الآن
           </button>
-          <p className="mt-2 text-[10px] font-bold text-neutral-400">يُغلق تلقائيًا بعد 10 ثوانٍ</p>
+          <p className="mt-2 text-[10px] font-bold text-neutral-400">يُغلق تلقائيًا بعد 30 ثانية</p>
         </div>
       </div>
     </div>
