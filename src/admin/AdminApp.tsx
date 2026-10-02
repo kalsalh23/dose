@@ -937,7 +937,13 @@ function LocationTab({ token }: { token: string }) {
   const gps = () => {
     setBusyGps(true); setLocErr('');
     getCurrentLocation()
-      .then((loc) => { setLat(String(loc.lat)); setLng(String(loc.lng)); setBusyGps(false); })
+      .then((loc) => {
+        const la = Number(loc.lat), ln = Number(loc.lng);
+        if (!Number.isFinite(la) || !Number.isFinite(ln) || la < -90 || la > 90 || ln < -180 || ln > 180) {
+          setLocErr('جاءت قيمة الموقع من الجهاز غير سليمة — أدخل الإحداثيات يدويًا'); setBusyGps(false); return;
+        }
+        setLat(la.toFixed(7)); setLng(ln.toFixed(7)); setBusyGps(false);
+      })
       .catch((e: any) => { setLocErr(e.message || 'تعذر تحديد الموقع'); setBusyGps(false); });
   };
   const saved = lat !== '' && lng !== '';
@@ -975,7 +981,11 @@ function LocationTab({ token }: { token: string }) {
         </Field>
         {msg && <p className="rounded-xl bg-green-50 px-3 py-2 text-center text-xs font-extrabold text-green-700">{msg}</p>}
         <button disabled={busy || !lat.trim() || !lng.trim()} onClick={() => wrap(async () => {
-          await arpc('admin_save_settings', { p_token: token, p_settings: { shop_lat: lat.trim(), shop_lng: lng.trim(), geo_radius: String(Number(radius) || 500), geo_message: geoMsg } });
+          const la = Number(lat), ln = Number(lng);
+          if (!Number.isFinite(la) || !Number.isFinite(ln) || la < -90 || la > 90 || ln < -180 || ln > 180) {
+            setLocErr('قيمة غير صالحة — خط العرض بين -90 و90 وخط الطول بين -180 و180 (مثال: 35.133024)'); return;
+          }
+          await arpc('admin_save_settings', { p_token: token, p_settings: { shop_lat: la.toFixed(7), shop_lng: ln.toFixed(7), geo_radius: String(Number(radius) || 500), geo_message: geoMsg } });
           setMsg('حُفظ موقع المحل والرسالة ✓ — الإشعار التلقائي سارٍ');
           setTimeout(() => setMsg(''), 5000);
         })} className={`${btnCls} w-full`} style={{ borderRadius: 16, height: 46 }}>
