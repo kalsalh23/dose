@@ -1030,7 +1030,10 @@ function LoginPage({ onLogged }: { onLogged: (s: Session) => void }) {
           className="mt-5 w-full rounded-full bg-[#C9D3A8] py-3.5 text-base font-black text-[#26301C] shadow-lg shadow-[#8a6a48]/35 active:scale-[.98] disabled:opacity-40">
           {busy ? 'جارٍ الدخول…' : 'دخول'}
         </button>
-        <button onClick={() => nav('/signup')} className="mt-3 w-full py-2 text-center text-sm font-bold text-[#5C6B3C]">ليس لديك حساب؟ أنشئ حسابك الآن</button>
+        <div className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-white/70 py-3 ring-1 ring-[#D5DEB4]">
+          <span className="text-sm font-bold text-[#414D36]">ليس لديك حساب؟</span>
+          <button onClick={() => nav('/signup')} className="rounded-full bg-[#26301C] px-4 py-1.5 text-sm font-black text-[#E9EDD6] shadow transition active:scale-95">أنشئ حسابك الآن</button>
+        </div>
       </div>
     </div>
   );
