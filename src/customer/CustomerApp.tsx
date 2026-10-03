@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { rpc, sb } from '../lib/supabase';
 import type { Ad, CartLine, Catalog, MyData, MyOrder, PopularProduct, Product, Redemption, Session } from '../lib/types';
-import { eur, fmtDateTime, deviceId, getCurrentLocation, urlBase64ToUint8Array, shopStatus, fmtDateNum } from '../lib/utils';
+import { eur, fmtDateTime, fmtDateTimeNum, deviceId, getCurrentLocation, urlBase64ToUint8Array, shopStatus, fmtDateNum } from '../lib/utils';
 import { buildOrderMessage, waChatLink, whatsapp } from '../lib/whatsapp';
 import PinPad from '../components/PinPad';
 import { Icon, type IconName } from '../components/Icons';
@@ -794,9 +794,10 @@ const statusInfo = (s: string) => {
 };
 
 /* ============================ الطلبات ============================ */
-function OrdersPage({ myData, session }: { myData: MyData | null; session: Session | null }) {
+function OrdersPage({ myData, session, catalog }: { myData: MyData | null; session: Session | null; catalog?: Catalog | null }) {
   if (!session) return <NeedLogin />;
   const orders = myData?.orders ?? [];
+  const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
   return (
     <div className="space-y-3 pb-4 anim-rise">
       {orders.length === 0 && (
@@ -813,7 +814,7 @@ function OrdersPage({ myData, session }: { myData: MyData | null; session: Sessi
           </div>
           <div className="mt-2 space-y-1">
             {o.items.map((it: any, i) => (
-              <p key={i} className="text-xs text-[#5c5142]">• {it.name_ar} × {it.qty}{it.options ? ` (${it.options})` : ''} — {eur(it.unit_price_cents)}</p>
+              <p key={i} className="text-xs text-[#5c5142]">• {it.name_ar} × {it.qty}{it.options ? ` (${it.options})` : ''} — {eur(it.unit_price_cents, cur)}</p>
             ))}
           </div>
           <div className="mt-3 flex items-center justify-between border-t border-dashed border-[#C4CF9E] pt-3 text-xs">
@@ -824,7 +825,7 @@ function OrdersPage({ myData, session }: { myData: MyData | null; session: Sessi
             {['pending', 'preparing', 'ready', 'out_for_delivery'].includes(o.status) && (
               <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-extrabold text-[#5C6B3C] shadow-sm">⏱️ {o.fulfillment_type === 'delivery' ? 'يوصلك خلال 15-20 دقيقة' : 'جاهز خلال 5-10 دقائق'}</span>
             )}
-            <span className="font-black text-[#26301C]">{eur(o.total_cents)}</span>
+            <span className="font-black text-[#26301C]">{eur(o.total_cents, cur)}</span>
           </div>
         </div>
       ))}
@@ -1380,7 +1381,7 @@ export default function CustomerApp() {
             <FavoritesPage myData={myData} session={session} openProduct={setProduct} onToggleFav={toggleFav} />} />
           <Route path="/rewards" element={<RewardsPage catalog={catalog} myData={myData} session={session} onRedeem={redeem} />} />
           <Route path="/codes" element={<CodesPage myData={myData} session={session} />} />
-          <Route path="/orders" element={<OrdersPage myData={myData} session={session} />} />
+          <Route path="/orders" element={<OrdersPage myData={myData} session={session} catalog={catalog} />} />
           <Route path="/notifications" element={
             <NotificationsPage myData={myData} session={session} pushMsg={pushMsg} onDeleteNotif={deleteNotif}
               onSeen={() => { if (session) rpc('mark_notifications_read', { p_token: session.token }).then(refresh).catch(() => {}); }}
