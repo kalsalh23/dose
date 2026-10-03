@@ -7,6 +7,13 @@ export const eur = (cents: number, symbol = '€') => {
 export const timeOnly = (iso: string) =>
   new Date(iso).toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit', hour12: false });
 
+export const fmtDateTimeNum = (iso: string) => {
+  const d = new Date(iso);
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()} · ${hh}:${mm}`;
+};
+
 export const fmtDateTime = (iso: string) =>
   new Date(iso).toLocaleString('ar-SY', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
 
@@ -15,6 +22,7 @@ export const ORDER_STATUS: Record<string, { label: string; color: string }> = {
   confirmed: { label: 'مؤكد', color: 'bg-blue-100 text-blue-800' },
   preparing: { label: 'قيد التحضير', color: 'bg-orange-100 text-orange-800' },
   ready: { label: 'جاهز', color: 'bg-emerald-100 text-emerald-800' },
+  out_for_delivery: { label: 'جاري التوصيل', color: 'bg-indigo-100 text-indigo-800' },
   completed: { label: 'مكتمل', color: 'bg-green-100 text-green-700' },
   cancelled: { label: 'ملغي', color: 'bg-red-100 text-red-700' },
 };

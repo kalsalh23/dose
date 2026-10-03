@@ -6,6 +6,8 @@ export interface Product {
   sale_price_cents?: number | null;
 }
 export interface Reward { id: number; name_ar: string; name_en: string; image_url: string; points_cost: number; sort_order: number }
+export interface Addition { id: number; name_ar: string; price_cents: number; product_ids: number[] }
+export interface PickedAddition { id: number; name_ar: string; price_cents: number }
 export interface Ad {
   id: number; image_url: string; title: string; description_ar: string;
   old_price_cents: number | null; new_price_cents: number | null; discount_percent: number | null; full_screen: boolean; show_in_hero?: boolean;
@@ -14,7 +16,7 @@ export interface Ad {
 export interface PopularProduct { id: number; name_ar: string; name_en: string; price_cents: number; sale_price_cents?: number | null; points: number; image_url: string; sold_qty?: number; order_count?: number }
 export interface Catalog {
   categories: Category[]; products: Product[]; rewards: Reward[]; ads: Ad[];
-  best_sellers?: PopularProduct[]; most_ordered?: PopularProduct[];
+  best_sellers?: PopularProduct[]; most_ordered?: PopularProduct[]; additions?: Addition[];
   settings: Record<string, string>;
 }
 export interface AppCustomer {
@@ -27,6 +29,6 @@ export interface MyOrder {
   total_cents: number; total_points: number; created_at: string; items: OrderItem[];
 }
 export interface AppNotification { id: number; title: string; body: string; kind: string; is_read: boolean; created_at: string }
-export interface Redemption { code: string; reward_name: string; points_cost: number; status: 'unused' | 'used' | 'expired'; created_at: string }
+export interface Redemption { code: string; reward_name: string; points_cost: number; status: 'unused' | 'used' | 'expired'; created_at: string; expires_at?: string | null }
 export interface MyData { customer: AppCustomer | null; favorites: (Product & { created_at: string })[]; orders: MyOrder[]; redemptions: Redemption[]; notifications: AppNotification[] }
-export interface CartLine { product: Product; qty: number; options?: string[] }
+export interface CartLine { product: Product; qty: number; options?: string[]; additions?: PickedAddition[] }

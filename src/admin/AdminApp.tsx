@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { rpc, sb } from '../lib/supabase';
-import { eur, fmtDateTime, shopStatus, getCurrentLocation } from '../lib/utils';
+import { eur, fmtDateTimeNum, shopStatus } from '../lib/utils';
 import { Icon, type IconName } from '../components/Icons';
 
 /* ============================================================
@@ -34,16 +34,16 @@ const TABS: { id: TabId; label: string; icon: IconName }[] = [
   { id: 'sales', label: 'المبيعات', icon: 'store' },
   { id: 'orders', label: 'الطلبات', icon: 'clipboard' },
   { id: 'products', label: 'المنتجات', icon: 'package' },
+  { id: 'extras', label: 'إضافات', icon: 'plus' },
   { id: 'customers', label: 'العملاء', icon: 'users' },
   { id: 'rewards', label: 'المكافآت', icon: 'gift' },
   { id: 'ads', label: 'الإعلانات', icon: 'megaphone' },
   { id: 'notify', label: 'إشعار', icon: 'bell' },
   { id: 'hours', label: 'توقيت دوامي', icon: 'clock' },
-  { id: 'location', label: 'موقعي', icon: 'pin' },
   { id: 'promo', label: 'كود الخصم', icon: 'gift' },
   { id: 'settings', label: 'الإعدادات', icon: 'settings' },
 ];
-type TabId = 'dashboard' | 'sales' | 'orders' | 'products' | 'customers' | 'rewards' | 'ads' | 'notify' | 'hours' | 'location' | 'settings' | 'promo';
+type TabId = 'dashboard' | 'sales' | 'extras' | 'orders' | 'products' | 'customers' | 'rewards' | 'ads' | 'notify' | 'hours' | 'settings' | 'promo';
 
 export default function AdminApp() {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(ADMIN_KEY));
@@ -151,12 +151,12 @@ export default function AdminApp() {
         {tab === 'sales' && <SalesTab token={token} />}
         {tab === 'orders' && <OrdersTab token={token} />}
         {tab === 'products' && <ProductsTab token={token} />}
+        {tab === 'extras' && <ExtrasTab token={token} />}
         {tab === 'customers' && <CustomersTab token={token} />}
         {tab === 'rewards' && <RewardsTab token={token} />}
         {tab === 'ads' && <AdsTab token={token} />}
         {tab === 'notify' && <NotifyTab token={token} />}
         {tab === 'hours' && <HoursTab token={token} />}
-        {tab === 'location' && <LocationTab token={token} />}
         {tab === 'settings' && <SettingsTab token={token} />}
         {tab === 'promo' && <PromoTab token={token} />}
       </main>
@@ -321,7 +321,7 @@ function OrdersTab({ token }: { token: string }) {
     load();
   });
 
-  const STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'completed', 'cancelled'];
+  const STATUSES = ['pending', 'preparing', 'ready', 'out_for_delivery', 'completed'];
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -336,8 +336,11 @@ function OrdersTab({ token }: { token: string }) {
               {o.status === 'pending' && <span className="ms-2 rounded-full bg-amber-400 px-2.5 py-1 text-[10px] font-black text-amber-950">جديد — بانتظار المعالجة</span>}
               <span className={`ms-2 rounded-full px-2.5 py-1 text-[11px] font-extrabold ${statusChip(o.status)}`}>{statusLabel(o.status)}</span>
               {o.points_awarded && <span className="ms-1 rounded-full bg-green-50 px-2 py-1 text-[10px] font-extrabold text-green-700">⭐ منحت</span>}
+              {['pending', 'preparing', 'ready', 'out_for_delivery'].includes(o.status) && (
+                <span className="ms-1 rounded-full bg-[#EEF2DC] px-2 py-1 text-[10px] font-extrabold text-[#5C6B3C]">⏱️ {o.fulfillment_type === 'delivery' ? 'يوصل خلال 15-20 دقيقة' : 'جاهز خلال 5-10 دقائق'}</span>
+              )}
             </div>
-            <span className="text-[11px] font-bold text-neutral-400">{fmtDateTime(o.created_at)} · {o.source === 'kiosk' ? 'كشك المحل' : o.source === 'customer' ? 'تطبيق العميل' : 'إداري'}</span>
+            <span className="text-[11px] font-bold text-neutral-400">{fmtDateTimeNum(o.created_at)} · {o.source === 'kiosk' ? 'كشك المحل' : o.source === 'customer' ? 'تطبيق العميل' : 'إداري'}</span>
           </div>
           <div className="mt-3 grid gap-3 text-xs md:grid-cols-4">
             <div><p className="font-bold text-neutral-400">العميل</p><p className="mt-0.5 font-extrabold text-coffee-900">{o.customer_name}</p><p dir="ltr" className="text-neutral-500">{o.customer_phone}</p></div>
@@ -364,8 +367,8 @@ function OrdersTab({ token }: { token: string }) {
   );
 }
 
-const statusLabel = (s: string) => ({ pending: 'قيد المراجعة', confirmed: 'مؤكد', preparing: 'قيد التحضير', ready: 'جاهز', completed: 'مكتمل', cancelled: 'ملغي' } as any)[s] ?? s;
-const statusChip = (s: string) => ({ pending: 'bg-amber-100 text-amber-800', confirmed: 'bg-blue-100 text-blue-800', preparing: 'bg-orange-100 text-orange-800', ready: 'bg-emerald-100 text-emerald-800', completed: 'bg-green-100 text-green-700', cancelled: 'bg-red-100 text-red-700' } as any)[s] ?? 'bg-neutral-100';
+const statusLabel = (s: string) => ({ pending: 'قيد المراجعة', confirmed: 'مؤكد', preparing: 'قيد التحضير', ready: 'جاهز', out_for_delivery: 'جاري التوصيل', completed: 'تم التسليم', cancelled: 'ملغي' } as any)[s] ?? s;
+const statusChip = (s: string) => ({ pending: 'bg-amber-100 text-amber-800', confirmed: 'bg-blue-100 text-blue-800', preparing: 'bg-orange-100 text-orange-800', ready: 'bg-emerald-100 text-emerald-800', out_for_delivery: 'bg-indigo-100 text-indigo-800', completed: 'bg-green-100 text-green-700', cancelled: 'bg-red-100 text-red-700' } as any)[s] ?? 'bg-neutral-100';
 
 /* ============================ المبيعات ============================ */
 function SalesTab({ token }: { token: string }) {
@@ -582,6 +585,89 @@ function CustomersTab({ token }: { token: string }) {
 
 /* ============================ المكافآت ============================ */
 const EMPTY_REWARD = { id: 0, name_ar: '', name_en: '', image_url: '/img/latte.jpg', points_cost: 50, is_active: true, sort_order: 0 };
+/* ============================ الإضافات المدفوعة ============================ */
+function ExtrasTab({ token }: { token: string }) {
+  const [items, setItems] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [edit, setEdit] = useState<any>(null);
+  const load = useCallback(() => {
+    arpc<any[]>('admin_list_additions', { p_token: token }).then(setItems).catch(() => {});
+    sb.rpc('get_catalog').then(({ data }: any) => setProducts(data?.products ?? [])).catch(() => {});
+  }, [token]);
+  useEffect(() => { load(); }, [load]);
+  const { busy, wrap } = useAdminAction();
+  const pName = (id: number) => products.find((p) => p.id === id)?.name_ar ?? ('#' + id);
+  const toggle = (pid: number) => setEdit((e: any) => {
+    const ids: number[] = e.product_ids ?? [];
+    return { ...e, product_ids: ids.includes(pid) ? ids.filter((x) => x !== pid) : [...ids, pid] };
+  });
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-extrabold text-coffee-900">الإضافات ({items.length})</h2>
+        <button onClick={() => setEdit({ id: 0, name_ar: '', price_cents: '', is_active: true, product_ids: [] })} className={btnCls}>+ إضافة جديدة</button>
+      </div>
+      <p className="text-[11px] font-bold text-neutral-500">الإضافة اختيارية يختارها الزبون مع المنتج وتُضاف قيمتها على سعر المنتج تلقائيًا</p>
+      <div className="grid gap-3 md:grid-cols-2">
+        {items.map((a) => (
+          <Card key={a.id} className={a.is_active ? '' : 'opacity-50'}>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-extrabold text-coffee-900">{a.name_ar}</p>
+              <p className="text-xs font-extrabold text-gold-deep">+ {eur(a.price_cents, 'ل.س')}</p>
+            </div>
+            <p className="mt-1 text-[10.5px] font-bold text-neutral-400">
+              {(a.product_ids ?? []).length === 0 ? 'غير مرتبطة بمنتجات بعد' : 'ترتبط بـ ' + a.product_ids.length + ' منتج: ' + (a.product_ids ?? []).map(pName).slice(0, 4).join('، ') + ((a.product_ids ?? []).length > 4 ? '…' : '')}
+            </p>
+            <div className="mt-2 flex gap-2">
+              <button onClick={() => setEdit({ ...a })} className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
+              <button disabled={busy} onClick={() => wrap(async () => {
+                if (!window.confirm('حذف الإضافة «' + a.name_ar + '» نهائيًا؟')) return;
+                await arpc('admin_delete_addition', { p_token: token, p_addition_id: a.id });
+                load();
+              })} className="rounded-lg bg-red-50 px-3 py-1.5 text-[11px] font-extrabold text-red-600">حذف</button>
+            </div>
+          </Card>
+        ))}
+        {items.length === 0 && <p className="rounded-2xl bg-[#F6F0E2] p-6 text-center text-xs font-bold text-neutral-400">لا توجد إضافات بعد</p>}
+      </div>
+
+      {edit && (
+        <div className="fixed inset-0 z-[110] grid place-items-center bg-black/50 p-4 backdrop-blur-sm anim-fade">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl anim-pop">
+            <h3 className="text-base font-extrabold text-coffee-900">{edit.id ? 'تعديل إضافة' : 'إضافة جديدة'}</h3>
+            <div className="mt-4 space-y-3">
+              <Field label="اسم الإضافة"><input className={inputCls} value={edit.name_ar} onChange={(e) => setEdit({ ...edit, name_ar: e.target.value })} placeholder="مثال: شوت إسبريسو زيادة" /></Field>
+              <Field label="سعر الإضافة (ل.س)"><input type="number" className={inputCls} value={edit.price_cents} onChange={(e) => setEdit({ ...edit, price_cents: e.target.value })} placeholder="3000" /></Field>
+              <Field label="المنتجات التي تُعرض معها (اختيار متعدد)">
+                <div className="max-h-48 space-y-0.5 overflow-y-auto rounded-xl border-2 border-beige p-2">
+                  {products.map((p) => (
+                    <label key={p.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-bold text-neutral-700 hover:bg-[#F6F0E2]">
+                      <input type="checkbox" checked={(edit.product_ids ?? []).includes(p.id)} onChange={() => toggle(p.id)} />
+                      {p.name_ar}
+                    </label>
+                  ))}
+                </div>
+              </Field>
+              <Field label="نشط">
+                <select className={inputCls} value={String(edit.is_active)} onChange={(e) => setEdit({ ...edit, is_active: e.target.value === 'true' })}>
+                  <option value="true">نعم</option><option value="false">لا</option>
+                </select>
+              </Field>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button disabled={busy || !edit.name_ar?.trim()} onClick={() => wrap(async () => {
+                await arpc('admin_save_addition', { p_token: token, p_addition: { ...edit, price_cents: Number(edit.price_cents) || 0 } });
+                setEdit(null); load();
+              })} className="rounded-2xl bg-gradient-to-l from-gold to-gold-deep py-3 text-sm font-extrabold text-white disabled:opacity-50">حفظ</button>
+              <button onClick={() => setEdit(null)} className="rounded-2xl bg-neutral-100 py-3 text-sm font-extrabold text-neutral-600">إلغاء</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function RewardsTab({ token }: { token: string }) {
   const [rewards, setRewards] = useState<any[]>([]);
   const [redemptions, setRedemptions] = useState<any[]>([]);
@@ -607,9 +693,11 @@ function RewardsTab({ token }: { token: string }) {
             <p className="text-xs font-extrabold text-gold-deep">⭐ {r.points_cost} نقطة</p>
             <p className="text-[11px] text-neutral-400">استبدالات: {r.redemptions_count}</p>
             <div className="mt-2 flex gap-2">
-              <button onClick={() => setEdit({ ...EMPTY_REWARD, ...r })} className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
-              {r.is_active && <button disabled={busy} onClick={() => wrap(async () => { await arpc('admin_delete_reward', { p_token: token, p_id: r.id }); load(); })}
-                className="rounded-lg bg-red-50 px-3 py-1.5 text-[11px] font-extrabold text-red-600">تعطيل</button>}
+              <button disabled={busy} onClick={() => wrap(async () => {
+                if (!window.confirm('حذف نهائي للمكافأة «' + r.name_ar + '»؟ أكواد الزبائن القديمة تبقى صالحة.')) return;
+                await arpc('admin_delete_reward', { p_token: token, p_id: r.id });
+                load();
+              })} className="rounded-lg bg-red-50 px-3 py-1.5 text-[11px] font-extrabold text-red-600">🗑️ حذف نهائي</button>
             </div>
           </Card>
         ))}
@@ -692,12 +780,12 @@ function AdsTab({ token }: { token: string }) {
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-extrabold text-coffee-900">{a.title}
                   <span className={`ms-2 rounded-full px-2 py-0.5 text-[9px] font-black ${a.full_screen ? 'bg-[#414D36] text-[#C9D3A8]' : 'bg-[#D5DEB4] text-[#414D36]'}`}>
-                    {a.full_screen ? 'إعلان وسط الشاشة' : 'ضمن الهيرو'}
+                    {a.full_screen ? 'إعلان منبثق' : 'ضمن الهيرو'}
                   </span>
                 </p>
                 <p className="mt-0.5 text-xs text-neutral-500">{a.description_ar}</p>
                 <p className="mt-0.5 text-[10px] font-bold text-neutral-400">
-                  {a.full_screen ? '🖥️ إعلان وسط الشاشة — يظهر بعد دقيقتين من التصفح' : '📱 يظهر ضمن الهيرو المتنقل'}
+                  {a.full_screen ? '🖥️ إعلان منبثق — يظهر بعد دقيقتين من التصفح' : '📱 يظهر ضمن الهيرو المتنقل'}
                   {a.ends_at ? ' · حتى ' + new Date(a.ends_at).toLocaleDateString('ar-SY', { day: 'numeric', month: 'short' }) : ' · بلا نهاية'}
                 </p>
                 {a.category_slug && (
@@ -735,8 +823,8 @@ function AdsTab({ token }: { token: string }) {
                 </Field>
                 <Field label="مكان الظهور">
                   <select className={inputCls} value={edit.full_screen ? 'both' : 'hero'} onChange={(e) => setEdit({ ...edit, full_screen: e.target.value === 'both', show_in_hero: true })}>
-                    <option value="hero">ضمن الهيرو فقط</option>
-                    <option value="both">إعلان وسط الشاشة + الهيرو</option>
+                    <option value="hero">ضمن الهيرو فقط (بدون منبثق)</option>
+                    <option value="both">إعلان منبثق بعد دقيقتين (بدون الهيرو)</option>
                   </select>
                 </Field>
               </div>
@@ -916,83 +1004,6 @@ function HoursTab({ token }: { token: string }) {
         </button>
         <p className="rounded-xl bg-[#EEF2DC] px-3 py-2 text-[10.5px] font-bold leading-relaxed text-[#77825E]">
           عند الإغلاق يظهر للزبون رسالتك (أو الرسالة الافتراضية إذا تركت الحقل فارغًا) مع موعد الفتح، ولا يستطيع النقر على زر الطلب — كما يُرفض أي طلب خارج الدوام من الخادم.
-        </p>
-      </Card>
-    </div>
-  );
-}
-
-/* ============================ موقعي — موقع المحل وإشعار الاقتراب ============================ */
-function LocationTab({ token }: { token: string }) {
-  const [lat, setLat] = useState('');
-  const [lng, setLng] = useState('');
-  const [radius, setRadius] = useState('500');
-  const [geoMsg, setGeoMsg] = useState('');
-  const [msg, setMsg] = useState('');
-  const [locErr, setLocErr] = useState('');
-  const [busyGps, setBusyGps] = useState(false);
-  const load = useCallback(() => { arpc<Record<string, string>>('admin_get_settings', { p_token: token }).then((s) => { setLat(s.shop_lat ?? ''); setLng(s.shop_lng ?? ''); setRadius(s.geo_radius ?? '500'); setGeoMsg(s.geo_message ?? ''); }).catch(() => {}); }, [token]);
-  useEffect(() => { load(); }, [load]);
-  const { busy, wrap } = useAdminAction();
-  const gps = () => {
-    setBusyGps(true); setLocErr('');
-    getCurrentLocation()
-      .then((loc) => {
-        const la = Number(loc.lat), ln = Number(loc.lng);
-        if (!Number.isFinite(la) || !Number.isFinite(ln) || la < -90 || la > 90 || ln < -180 || ln > 180) {
-          setLocErr('جاءت قيمة الموقع من الجهاز غير سليمة — أدخل الإحداثيات يدويًا'); setBusyGps(false); return;
-        }
-        setLat(la.toFixed(7)); setLng(ln.toFixed(7)); setBusyGps(false);
-      })
-      .catch((e: any) => { setLocErr(e.message || 'تعذر تحديد الموقع'); setBusyGps(false); });
-  };
-  const saved = lat !== '' && lng !== '';
-
-  return (
-    <div className="mx-auto max-w-md">
-      <h2 className="mb-1 text-base font-extrabold text-coffee-900">موقعي</h2>
-      <p className="mb-3 text-[11px] font-bold text-neutral-500">حدّد موقع المحل — يظهر للزبائن ويُستخدم لإرسال إشعار تلقائي عند اقترابهم من المحل</p>
-      <Card className="space-y-4">
-        {saved ? (
-          <div className="rounded-2xl bg-[#EEF2DC] p-4 text-center">
-            <p className="text-[10px] font-black text-[#7C8665]">الموقع المحفوظ حاليًا</p>
-            <p className="mt-0.5 font-mono text-sm font-black text-coffee-900" dir="ltr">{lat}, {lng}</p>
-            <a href={'https://www.google.com/maps?q=' + lat + ',' + lng} target="_blank" rel="noreferrer"
-              className="mt-2 inline-block rounded-full bg-white px-4 py-1.5 text-[11px] font-black text-[#26301C] shadow-sm">فتح في خرائط Google ↗</a>
-          </div>
-        ) : (
-          <div className="rounded-2xl bg-[#FFF7E6] p-4 text-center text-xs font-black text-[#A05B47]">لم يُحدَّد موقع المحل بعد</div>
-        )}
-        <button disabled={busyGps} onClick={gps}
-          className="w-full rounded-2xl bg-[#26301C] py-3.5 text-sm font-black text-[#E9EDD6] shadow-lg transition active:scale-[.98] disabled:opacity-50">
-          {busyGps ? 'جارٍ تحديد موقعك…' : '📍 تحديد موقع المحل الآن (GPS)'}
-        </button>
-        {locErr && <p className="rounded-xl bg-red-50 px-3 py-2 text-center text-xs font-extrabold text-red-600">{locErr}</p>}
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="خط العرض (Latitude)"><input className={inputCls} dir="ltr" value={lat} onChange={(e) => setLat(e.target.value)} placeholder="35.1327334" /></Field>
-          <Field label="خط الطول (Longitude)"><input className={inputCls} dir="ltr" value={lng} onChange={(e) => setLng(e.target.value)} placeholder="36.7526210" /></Field>
-        </div>
-        <Field label="نطاق إشعار الاقتراب (بالمتر)">
-          <input type="number" className={inputCls} dir="ltr" value={radius} onChange={(e) => setRadius(e.target.value)} />
-        </Field>
-        <Field label="رسالة الاقتراب (اختياري — بأسلوبك، والرمز {مسافة} يُستبدل بعدد الأمتار)">
-          <textarea className={`${inputCls} h-24 py-2`} value={geoMsg} onChange={(e) => setGeoMsg(e.target.value)}
-            placeholder="خطوات قليلة تفصلك عن راحتك… فنجانك يتحضّر على ذوقك والحلويات طازجة تنتظرك ☕🥐 تعال دلّل حالك اليوم ✨" />
-        </Field>
-        {msg && <p className="rounded-xl bg-green-50 px-3 py-2 text-center text-xs font-extrabold text-green-700">{msg}</p>}
-        <button disabled={busy || !lat.trim() || !lng.trim()} onClick={() => wrap(async () => {
-          const la = Number(lat), ln = Number(lng);
-          if (!Number.isFinite(la) || !Number.isFinite(ln) || la < -90 || la > 90 || ln < -180 || ln > 180) {
-            setLocErr('قيمة غير صالحة — خط العرض بين -90 و90 وخط الطول بين -180 و180 (مثال: 35.133024)'); return;
-          }
-          await arpc('admin_save_settings', { p_token: token, p_settings: { shop_lat: la.toFixed(7), shop_lng: ln.toFixed(7), geo_radius: String(Number(radius) || 500), geo_message: geoMsg } });
-          setMsg('حُفظ موقع المحل والرسالة ✓ — الإشعار التلقائي سارٍ');
-          setTimeout(() => setMsg(''), 5000);
-        })} className={`${btnCls} w-full`} style={{ borderRadius: 16, height: 46 }}>
-          {busy ? 'جارٍ الحفظ…' : 'حفظ الموقع'}
-        </button>
-        <p className="rounded-xl bg-[#EEF2DC] px-3 py-2 text-[10.5px] font-bold leading-relaxed text-[#77825E]">
-          عندما يفتح زبون التطبيق قريبًا من المحل ضمن النطاق المحدد، يصل إشعار «Dose Cafe قريب منك!» تلقائيًا — داخليًا وعلى شاشة هاتفه — مرة كل 3 ساعات كحد أقصى. لا تُخزَّن مواقع الزبائن إطلاقًا.
         </p>
       </Card>
     </div>

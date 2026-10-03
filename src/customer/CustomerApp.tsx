@@ -102,7 +102,8 @@ const effPrice = (p: { price_cents: number; sale_price_cents?: number | null }) 
   p.sale_price_cents != null && p.sale_price_cents < p.price_cents ? p.sale_price_cents : p.price_cents;
 const hasOffer = (p: { price_cents: number; sale_price_cents?: number | null }) =>
   p.sale_price_cents != null && p.sale_price_cents < p.price_cents;
-interface OrderFlow { step: 'fulfillment' | 'location' | 'pin' | 'promo' | 'review' | null; lines: CartLine[]; fulfillment?: Fulfillment; loc?: { lat: number; lng: number; mapUrl: string }; pin?: string; usePromo?: boolean }
+const lineUnit = (l: CartLine) => effPrice(l.product) + (l.additions ?? []).reduce((a, x) => a + x.price_cents, 0);
+interface OrderFlow { step: 'contact' | 'fulfillment' | 'location' | 'pin' | 'promo' | 'review' | null; lines: CartLine[]; fulfillment?: Fulfillment; loc?: { lat: number; lng: number; mapUrl: string }; pin?: string; usePromo?: boolean; name?: string; phone?: string }
 
 /* ============================ الإشعارات الفورية ============================ */
 async function enablePushNotifications(session: Session): Promise<string> {
@@ -128,8 +129,8 @@ function MidAd({ ad, cur, onClose, onBrowse }: { ad: Ad; cur: string; onClose: (
   const [p, setP] = useState(0);
   useEffect(() => {
     const start = Date.now();
-    const t = setInterval(() => setP(Math.min(1, (Date.now() - start) / 30000)), 80);
-    const end = setTimeout(onClose, 30000);
+    const t = setInterval(() => setP(Math.min(1, (Date.now() - start) / 20000)), 80);
+    const end = setTimeout(onClose, 20000);
     return () => { clearInterval(t); clearTimeout(end); };
   }, []);
   return (
@@ -159,7 +160,7 @@ function MidAd({ ad, cur, onClose, onBrowse }: { ad: Ad; cur: string; onClose: (
             className="mt-4 w-full rounded-full bg-gradient-to-l from-[#C9D3A8] to-[#A9B87F] py-3.5 text-base font-black text-[#26301C] shadow-lg shadow-[#8a6a48]/30 transition active:scale-[.98]">
             {ad.category_slug ? 'تصفح عروض الفئة 🏷️' : 'اطلب الآن'}
           </button>
-          <p className="mt-2 text-[10px] font-bold text-neutral-400">يُغلق تلقائيًا بعد 30 ثانية</p>
+          <p className="mt-2 text-[10px] font-bold text-neutral-400">يُغلق تلقائيًا بعد 20 ثانية</p>
         </div>
       </div>
     </div>
@@ -496,6 +497,10 @@ function ProductSheet({ product, catalog, onClose, onAdd, onOrderNow, isFav, onT
 }) {
   const [qty, setQty] = useState(1);
   const [opts, setOpts] = useState<string[]>([]);
+  const prodAdds = (catalog?.additions ?? []).filter((a) => (a.product_ids ?? []).includes(product.id));
+  const [addIds, setAddIds] = useState<number[]>([]);
+  const pickedAdds = prodAdds.filter((a) => addIds.includes(a.id));
+  const lineTotal = effPrice(product) + pickedAdds.reduce((a, x) => a + x.price_cents, 0);
   const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
   const options = ((product as any).options || '').split(',').map((o: string) => o.trim()).filter(Boolean);
   const toggle = (o: string) => setOpts((os) => (os.includes(o) ? os.filter((x) => x !== o) : [...os, o]));
@@ -518,8 +523,8 @@ function ProductSheet({ product, catalog, onClose, onAdd, onOrderNow, isFav, onT
           {hasOffer(product) && <span className="rounded-full bg-[#C4482E] px-3 py-1.5 text-[11px] font-black text-white shadow-lg">عرض</span>}
           <span className="rounded-full bg-[#C9D3A8] px-5 py-2.5 text-xl font-black shadow-xl" style={{ color: '#26301C' }}>
             {hasOffer(product)
-              ? <><span className="text-sm font-bold text-[#414D36] line-through">{eur(product.price_cents, cur)}</span> {eur(effPrice(product), cur)}</>
-              : eur(product.price_cents, cur)}
+              ? <><span className="text-sm font-bold text-[#414D36] line-through">{eur(product.price_cents, cur)}</span> {eur(lineTotal, cur)}</>
+              : eur(lineTotal, cur)}
           </span>
         </div>
       </div>
@@ -541,6 +546,27 @@ function ProductSheet({ product, catalog, onClose, onAdd, onOrderNow, isFav, onT
                       on ? 'border-[#5C6B3C] bg-[#C9D3A8]/40 text-[#26301C]' : 'border-[#D5DEB4] bg-[#EEF2DC] text-[#6B7357]'}`}>
                     {on && <Icon name="check" size={13} strokeWidth={2.6} />}
                     {o}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {prodAdds.length > 0 && (
+          <div className="mt-5">
+            <h3 className="text-[15px] font-black text-[#26301C]">أضف عليها 🍯</h3>
+            <p className="mt-0.5 text-[11px] font-bold text-[#7C8665]">اختياري — تُضاف قيمتها على السعر</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {prodAdds.map((a) => {
+                const on = addIds.includes(a.id);
+                return (
+                  <button key={a.id} onClick={() => setAddIds((ids) => (on ? ids.filter((x) => x !== a.id) : [...ids, a.id]))}
+                    className={`flex items-center gap-1.5 rounded-full border-2 px-4 py-2 text-[13px] font-extrabold transition active:scale-95 ${
+                      on ? 'border-[#5C6B3C] bg-[#C9D3A8]/40 text-[#26301C]' : 'border-[#D5DEB4] bg-[#EEF2DC] text-[#6B7357]'
+                    }`}>
+                    {on && <Icon name="check" size={13} strokeWidth={2.6} />}
+                    {a.name_ar} <span className="text-[11px] font-black text-[#7A5A22]">+{eur(a.price_cents, cur)}</span>
                   </button>
                 );
               })}
@@ -579,11 +605,11 @@ function ProductSheet({ product, catalog, onClose, onAdd, onOrderNow, isFav, onT
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            <button onClick={() => onAdd({ product, qty, options: opts })}
+            <button onClick={() => onAdd({ product, qty, options: opts, additions: pickedAdds.map((a) => ({ id: a.id, name_ar: a.name_ar, price_cents: a.price_cents })) })}
               className="rounded-full border-2 border-[#C9D3A8] py-4 text-sm font-black text-[#26301C] transition active:scale-[.98]">
               أضف إلى السلة
             </button>
-            <button onClick={() => onOrderNow({ product, qty, options: opts })}
+            <button onClick={() => onOrderNow({ product, qty, options: opts, additions: pickedAdds.map((a) => ({ id: a.id, name_ar: a.name_ar, price_cents: a.price_cents })) })}
               className="rounded-full bg-gradient-to-l from-[#C9D3A8] to-[#A9B87F] py-4 text-sm font-black text-[#26301C] shadow-lg shadow-[#8a6a48]/35 transition active:scale-[.98]">
               اطلب الآن
             </button>
@@ -603,7 +629,7 @@ function CartPage({ lines, setQty, remove, onOrder, onBrowse }: {
   onBrowse: () => void;
 }) {
   const cur = 'ل.س';
-  const total = lines.reduce((a, l) => a + effPrice(l.product) * l.qty, 0);
+  const total = lines.reduce((a, l) => a + lineUnit(l) * l.qty, 0);
   const points = lines.reduce((a, l) => a + l.product.points * l.qty, 0);
 
   if (!lines.length) return (
@@ -623,8 +649,9 @@ function CartPage({ lines, setQty, remove, onOrder, onBrowse }: {
           <div className="min-w-0 flex-1">
             <h3 className="truncate text-sm font-extrabold text-[#26301C]">{l.product.name_ar}</h3>
             {(l.options || []).length > 0 && <p className="mt-0.5 truncate text-[10.5px] font-bold text-[#5C6B3C]">✓ {l.options.join('، ')}</p>}
+            {(l.additions ?? []).length > 0 && <p className="mt-0.5 truncate text-[10.5px] font-bold text-[#7A5A22]">🍯 {(l.additions ?? []).map((a) => a.name_ar).join('، ')}</p>}
             <p className="mt-1 text-sm font-black text-[#26301C]">
-              {hasOffer(l.product) ? <><span className="text-xs font-bold text-neutral-400 line-through">{eur(effPrice(l.product) * l.qty, cur)}</span> {eur(effPrice(l.product) * l.qty, cur)}</> : eur(effPrice(l.product) * l.qty, cur)}
+              {hasOffer(l.product) ? <><span className="text-xs font-bold text-neutral-400 line-through">{eur(lineUnit(l) * l.qty, cur)}</span> {eur(lineUnit(l) * l.qty, cur)}</> : eur(lineUnit(l) * l.qty, cur)}
             </p>
           </div>
           <div className="flex flex-none items-center gap-2.5" dir="ltr">
@@ -759,7 +786,8 @@ const statusInfo = (s: string) => {
     confirmed: { label: 'مؤكد', color: 'bg-blue-100 text-blue-800' },
     preparing: { label: 'قيد التحضير', color: 'bg-orange-100 text-orange-800' },
     ready: { label: 'جاهز', color: 'bg-emerald-100 text-emerald-800' },
-    completed: { label: 'مكتمل', color: 'bg-green-100 text-green-700' },
+    out_for_delivery: { label: 'جاري التوصيل', color: 'bg-indigo-100 text-indigo-800' },
+    completed: { label: 'تم التسليم', color: 'bg-green-100 text-green-700' },
     cancelled: { label: 'ملغي', color: 'bg-red-100 text-red-700' },
   };
   return map[s] ?? { label: s, color: 'bg-neutral-100 text-neutral-600' };
@@ -791,8 +819,11 @@ function OrdersPage({ myData, session }: { myData: MyData | null; session: Sessi
           <div className="mt-3 flex items-center justify-between border-t border-dashed border-[#C4CF9E] pt-3 text-xs">
             <span className="flex items-center gap-1 text-[#6B7357]">
               <Icon name={o.fulfillment_type === 'delivery' ? 'pin' : 'home'} size={12} />
-              {o.fulfillment_type === 'delivery' ? 'توصيل' : 'استلام'} · {fmtDateTime(o.created_at)}
+              {o.fulfillment_type === 'delivery' ? 'توصيل' : 'استلام'} · {fmtDateTimeNum(o.created_at)}
             </span>
+            {['pending', 'preparing', 'ready', 'out_for_delivery'].includes(o.status) && (
+              <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-extrabold text-[#5C6B3C] shadow-sm">⏱️ {o.fulfillment_type === 'delivery' ? 'يوصلك خلال 15-20 دقيقة' : 'جاهز خلال 5-10 دقائق'}</span>
+            )}
             <span className="font-black text-[#26301C]">{eur(o.total_cents)}</span>
           </div>
         </div>
@@ -854,6 +885,15 @@ const AccountRow = ({ icon, label, onClick, badge, danger }: { icon: IconName; l
   </button>
 );
 
+function CodesPage({ myData, session }: { myData: MyData | null; session: Session | null }) {
+  if (!session) return <NeedLogin />;
+  return (
+    <div className="anim-rise">
+      <MyCodes redemptions={myData?.redemptions ?? []} />
+    </div>
+  );
+}
+
 function MyCodes({ redemptions }: { redemptions: Redemption[] }) {
   return (
     <div className="mt-6 anim-rise">
@@ -871,6 +911,7 @@ function MyCodes({ redemptions }: { redemptions: Redemption[] }) {
               <p className={`mt-1 text-[10px] font-extrabold ${r.status === 'unused' ? 'text-[#6B7A45]' : 'text-[#7C8665]'}`}>
                 {r.status === 'unused' ? 'غير مستخدم' : r.status === 'used' ? 'مستخدم' : 'منتهي'}
               </p>
+              {r.status === 'unused' && r.expires_at && <p className="mt-0.5 text-[9.5px] font-bold text-[#A05B47]">صالحة حتى {fmtDateNum(r.expires_at)}</p>}
             </div>
           </div>
         ))}
@@ -883,7 +924,7 @@ function AccountPage({ session, myData, waNumber, onLogout, onPush, pushMsg, onA
   session: Session; myData: MyData | null; waNumber: string; onLogout: () => void; onPush: () => void; pushMsg: string;
   onAvatar: (file: File) => void; uploadingAvatar: boolean;
 }) {
-  const [showCodes, setShowCodes] = useState(false);
+  const [showCodesUnused, setShowCodesUnused] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const c = myData?.customer ?? session.customer;
   const redemptions = myData?.redemptions ?? [];
@@ -910,7 +951,6 @@ function AccountPage({ session, myData, waNumber, onLogout, onPush, pushMsg, onA
 
       <div className="mt-5 space-y-2.5">
         <AccountRow icon="receipt" label="الطلبات" onClick={() => _navRef?.('/orders')} />
-        <AccountRow icon="gift" label="المكافأة" onClick={() => setShowCodes(true)} badge={redemptions.filter((r) => r.status === 'unused').length || undefined} />
         <a href={waChatLink(waNumber, 'مرحبًا، أحتاج مساعدة من Dose Cafe')} target="_blank" rel="noopener"
           className="flex w-full items-center justify-between rounded-[1.4rem] bg-[#E3E9C8] p-4 transition active:scale-[.98]">
           <span className="flex items-center gap-3 text-sm font-extrabold text-[#26301C]">
@@ -937,7 +977,6 @@ function AccountPage({ session, myData, waNumber, onLogout, onPush, pushMsg, onA
         </button>
       </div>
 
-      {showCodes && <MyCodes redemptions={redemptions} />}
 
       {confirmLogout && (
         <div className="fixed inset-0 z-[130] grid place-items-center bg-black/50 p-4 backdrop-blur-sm anim-fade" onClick={() => setConfirmLogout(false)}>
@@ -1141,10 +1180,10 @@ export default function CustomerApp() {
   /* نطاق كود الخصم: مجموع الأصناف المشمولة بالخصم داخل السلة */
   const promoEligibleSubtotal = (lines: CartLine[]) => {
     if (promoScope === 'product')
-      return lines.filter((l) => String(l.product.id) === String(promoTarget)).reduce((a, l) => a + effPrice(l.product) * l.qty, 0);
+      return lines.filter((l) => String(l.product.id) === String(promoTarget)).reduce((a, l) => a + lineUnit(l) * l.qty, 0);
     if (promoScope === 'category')
-      return lines.filter((l) => l.product.category === promoTarget).reduce((a, l) => a + effPrice(l.product) * l.qty, 0);
-    return lines.reduce((a, l) => a + effPrice(l.product) * l.qty, 0);
+      return lines.filter((l) => l.product.category === promoTarget).reduce((a, l) => a + lineUnit(l) * l.qty, 0);
+    return lines.reduce((a, l) => a + lineUnit(l) * l.qty, 0);
   };
   /* وصف نطاق الكود للعرض: على طلبك كاملًا / على اسم منتج / على فئة */
   const promoWhereLabel = () => {
@@ -1156,7 +1195,7 @@ export default function CustomerApp() {
   };
 
   const ads = catalog?.ads ?? [];
-  const heroAds = useMemo(() => ads.filter((ad) => ad.show_in_hero !== false), [catalog]);
+  const heroAds = useMemo(() => ads.filter((ad) => ad.show_in_hero !== false && !ad.full_screen), [catalog]);
   const unread = (myData?.notifications ?? []).filter((n) => !n.is_read).length;
 
   /* تفعيل الإشعارات تلقائيًا بعد الدخول (إن كانت مسموحة مسبقًا) */
@@ -1191,7 +1230,7 @@ export default function CustomerApp() {
     if (shopStatus(catalog?.settings).closed) { setClosedOpen(true); return; }
     if (lines.some((l) => l.product.is_available === false)) { show('نفذت كمية أحد منتجات سلتك — احذفه وأكمل طلبك', 'err'); return; }
     if (!session) { nav('/login'); show('سجّل دخولك أولًا لإتمام الطلب'); return; }
-    setFlow({ step: 'fulfillment', lines });
+    setFlow({ step: 'contact', lines });
   };
 
   const submitPin = async (pin: string) => {
@@ -1215,15 +1254,23 @@ export default function CustomerApp() {
       const res = await rpc<any>('create_order', {
         p_customer_id: session.customer.id, p_pin: flow.pin,
         p_fulfillment_type: flow.fulfillment ?? 'pickup',
-        p_items: flow.lines.map((l) => ({ product_id: l.product.id, qty: l.qty, options: (l.options || []).join('، ') })),
+        p_items: flow.lines.map((l) => ({
+          product_id: l.product.id, qty: l.qty, options: (l.options || []).join('، '),
+          additions: (l.additions ?? []).map((a) => a.id),
+        })),
         p_latitude: flow.loc?.lat ?? null, p_longitude: flow.loc?.lng ?? null, p_map_url: flow.loc?.mapUrl ?? null,
         p_source: 'customer',
         p_reward_code: flow.usePromo && promoCode ? promoCode : null,
+        p_customer_name: flow.name ?? null, p_customer_phone: flow.phone ?? null,
       });
       const msg = buildOrderMessage({
         orderNumber: res.order_number, customerName: res.customer_name, customerPhone: res.customer_phone,
         fulfillmentType: flow.fulfillment ?? 'pickup',
-        items: flow.lines.map((l) => ({ name: l.product.name_ar, qty: l.qty, unitPriceCents: effPrice(l.product), options: (l.options || []).join('، ') })),
+        items: flow.lines.map((l) => ({
+          name: l.product.name_ar, qty: l.qty, unitPriceCents: lineUnit(l),
+          options: (l.options || []).concat((l.additions ?? []).map((a) => a.name_ar + ' +' + a.price_cents)).join('، '),
+        })),
+
         totalCents: res.total_cents, totalPoints: res.total_points,
         mapUrl: flow.loc?.mapUrl, createdAt: res.created_at,
         currencySymbol: cur,
@@ -1272,6 +1319,7 @@ export default function CustomerApp() {
     { to: '/', icon: 'home', label: 'الرئيسية', end: true },
     { to: '/favorites', icon: 'heart', label: 'المفضلة' },
     { to: '/rewards', icon: 'star', label: 'النقاط' },
+    { to: '/codes', icon: 'gift', label: 'المكافآت' },
     { to: '/orders', icon: 'receipt', label: 'الطلبات' },
   ];
 
@@ -1331,6 +1379,7 @@ export default function CustomerApp() {
           <Route path="/favorites" element={
             <FavoritesPage myData={myData} session={session} openProduct={setProduct} onToggleFav={toggleFav} />} />
           <Route path="/rewards" element={<RewardsPage catalog={catalog} myData={myData} session={session} onRedeem={redeem} />} />
+          <Route path="/codes" element={<CodesPage myData={myData} session={session} />} />
           <Route path="/orders" element={<OrdersPage myData={myData} session={session} />} />
           <Route path="/notifications" element={
             <NotificationsPage myData={myData} session={session} pushMsg={pushMsg} onDeleteNotif={deleteNotif}
@@ -1371,6 +1420,12 @@ export default function CustomerApp() {
         onAdd={(l) => { cart.add(l); setProduct(null); show('أُضيف إلى السلة', 'ok'); }}
         onOrderNow={(l) => { cart.add(l); setProduct(null); setTimeout(() => startOrder([l]), 50); }} />}
 
+      {flow.step === 'contact' && (
+        <ContactModal
+          initial={{ name: flow.name ?? session?.customer?.full_name ?? '', phone: flow.phone ?? session?.customer?.phone ?? '' }}
+          onClose={() => setFlow({ step: null, lines: [] })}
+          onDone={(name, phone) => setFlow((st) => ({ ...st, step: 'fulfillment', name, phone }))} />
+      )}
       {flow.step === 'fulfillment' && (
         <FulfillmentModal
           onClose={() => setFlow({ step: null, lines: [] })}
@@ -1399,7 +1454,7 @@ export default function CustomerApp() {
         <ConfirmOrderModal
           phase={doneOrder ? 'done' : 'review'}
           lines={flow.lines}
-          total={flow.lines.reduce((a, l) => a + effPrice(l.product) * l.qty, 0)
+          total={flow.lines.reduce((a, l) => a + lineUnit(l) * l.qty, 0)
             - (flow.usePromo && promoCode && promoDisc
               ? Math.round(promoEligibleSubtotal(flow.lines) * Number(promoDisc) / 100)
               : 0)}
@@ -1511,6 +1566,43 @@ function PromoChoiceModal({ code, disc, where, busy, onUse, onSkip }: {
           className="mt-3 w-full rounded-full bg-neutral-100 py-3 text-sm font-black text-neutral-600 transition active:scale-[.98] disabled:opacity-50">
           عدم الاستخدام
         </button>
+      </div>
+    </div>
+  );
+}
+
+/* ============================ نافذة الاسم والهاتف — قبل اختيار الاستلام ============================ */
+function ContactModal({ initial, onClose, onDone }: { initial: { name: string; phone: string }; onClose: () => void; onDone: (name: string, phone: string) => void }) {
+  const [name, setName] = useState(initial.name);
+  const [phone, setPhone] = useState(initial.phone);
+  const [err, setErr] = useState('');
+  const go = () => {
+    const p = phone.replace(/\D/g, '');
+    if (name.trim().length < 2) { setErr('أدخل اسمك أولًا'); return; }
+    if (p.length < 9 || p.length > 12) { setErr('أدخل رقم هاتف صحيح (9 أرقام على الأقل)'); return; }
+    onDone(name.trim(), p);
+  };
+  return (
+    <div className="fixed inset-0 z-[115] grid place-items-center bg-black/55 p-4 backdrop-blur-sm anim-fade" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-[2rem] bg-[#FFF9EC] p-6 shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
+        <span className="mx-auto grid size-14 place-items-center rounded-full bg-[#26301C] text-[#C9D3A8]"><Icon name="user" size={24} /></span>
+        <h3 className="mt-3 text-center text-lg font-black text-[#26301C]">معلومات الطلب</h3>
+        <p className="mt-1 text-center text-[11px] font-bold text-[#7C8665]">اسمك ورقم هاتفك يُرسلان مع الطلب ليوصلك بسرعة</p>
+        <div className="mt-4 space-y-3">
+          <div>
+            <label className="mb-1 block text-[11px] font-extrabold text-[#5C6B3C]">الاسم</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="اسمك الكامل"
+              className="h-12 w-full rounded-2xl border-2 border-[#D5DEB4] bg-white px-4 text-sm font-bold text-[#26301C] outline-none focus:border-[#7C8F52]" />
+          </div>
+          <div>
+            <label className="mb-1 block text-[11px] font-extrabold text-[#5C6B3C]">رقم الهاتف</label>
+            <input value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^\d+\s]/g, ''))} inputMode="tel" dir="ltr" placeholder="09XXXXXXXX"
+              className="h-12 w-full rounded-2xl border-2 border-[#D5DEB4] bg-white px-4 text-sm font-bold text-[#26301C] outline-none focus:border-[#7C8F52]" />
+          </div>
+          {err && <p className="rounded-xl bg-red-50 px-3 py-2 text-center text-xs font-extrabold text-red-600">{err}</p>}
+          <button onClick={go} className="w-full rounded-full bg-gradient-to-l from-[#C9D3A8] to-[#A9B87F] py-3.5 text-base font-black text-[#26301C] shadow-lg shadow-[#8a6a48]/30 transition active:scale-[.98]">متابعة الطلب</button>
+          <button onClick={onClose} className="w-full rounded-2xl py-2 text-sm font-bold text-neutral-500">إلغاء</button>
+        </div>
       </div>
     </div>
   );
