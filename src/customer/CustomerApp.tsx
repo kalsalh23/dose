@@ -1008,9 +1008,8 @@ function MyCodes({ redemptions }: { redemptions: Redemption[] }) {
   );
 }
 
-function AccountPage({ session, myData, waNumber, onLogout, onPush, pushMsg, onAvatar, uploadingAvatar }: {
+function AccountPage({ session, myData, waNumber, onLogout, onPush, pushMsg }: {
   session: Session; myData: MyData | null; waNumber: string; onLogout: () => void; onPush: () => void; pushMsg: string;
-  onAvatar: (file: File) => void; uploadingAvatar: boolean;
 }) {
   const [showCodesUnused, setShowCodesUnused] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
@@ -1019,16 +1018,8 @@ function AccountPage({ session, myData, waNumber, onLogout, onPush, pushMsg, onA
   return (
     <div className="anim-rise">
       <div className="rounded-[2rem] bg-gradient-to-bl from-[#414D36] to-[#23291B] p-6 text-center text-white shadow-xl shadow-[#8a6a48]/40">
-        {c.avatar_url
-          ? <img src={c.avatar_url} alt="" className="mx-auto size-20 rounded-full object-cover shadow-xl ring-4 ring-white/25" />
-          : <span className="mx-auto grid size-20 place-items-center rounded-full bg-white/15 text-2xl font-black backdrop-blur">
-              {c.full_name.trim().charAt(0)}
-            </span>}
-        <label className="mx-auto mt-2 block w-fit cursor-pointer rounded-full bg-white/15 px-4 py-1.5 text-[10px] font-black transition hover:bg-white/25">
-          {uploadingAvatar ? 'جارٍ الرفع…' : 'تغيير الصورة'}
-          <input type="file" accept="image/*" className="hidden" disabled={uploadingAvatar}
-            onChange={(e) => { const file = e.target.files?.[0]; if (file) onAvatar(file); e.target.value = ''; }} />
-        </label>
+        {/* صورة الملف الشخصي ثابتة — لوغو التطبيق */}
+        <img src="/logo.jpg" alt="Dose Cafe" className="mx-auto size-20 rounded-full object-cover shadow-xl ring-4 ring-white/25" />
         <h2 className="mt-3 text-lg font-black">{c.full_name}</h2>
         <p className="mt-0.5 text-xs text-white/70" dir="ltr">{c.phone}</p>
         <div className="mt-4 grid grid-cols-2 gap-3">
@@ -1039,6 +1030,7 @@ function AccountPage({ session, myData, waNumber, onLogout, onPush, pushMsg, onA
 
       <div className="mt-5 space-y-2.5">
         <AccountRow icon="receipt" label="الطلبات" onClick={() => _navRef?.('/orders')} />
+        <AccountRow icon="gift" label="المكافآت" onClick={() => _navRef?.('/codes')} />
         <a href={waChatLink(waNumber, 'مرحبًا، أحتاج مساعدة من Dose Cafe')} target="_blank" rel="noopener"
           className="flex w-full items-center justify-between rounded-[1.4rem] bg-[#E3E9C8] p-4 transition active:scale-[.98]">
           <span className="flex items-center gap-3 text-sm font-extrabold text-[#26301C]">
@@ -1198,8 +1190,7 @@ export default function CustomerApp() {
   }, [welcomeDone]);
   const fsAd = useMemo(() => (catalog?.ads ?? []).find((a) => a.full_screen), [catalog]);
   const [pushMsg, setPushMsg] = useState('');
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const favorites = useMemo(() => new Set<number>((myData?.favorites ?? []).map((p) => p.id)), [myData]);
+    const favorites = useMemo(() => new Set<number>((myData?.favorites ?? []).map((p) => p.id)), [myData]);
   const toggleFav = async (id: number) => {
     if (!session) { nav('/login'); show('سجّل دخولك لاستخدام المفضلة'); return; }
     try {
@@ -1207,23 +1198,6 @@ export default function CustomerApp() {
       show(now ? 'أُضيف إلى المفضلة' : 'أُزيل من المفضلة', 'ok');
       refresh();
     } catch (e: any) { show(e.message, 'err'); }
-  };
-  const changeAvatar = async (file: File) => {
-    if (!session) return;
-    setUploadingAvatar(true);
-    try {
-      if (!file.type.startsWith('image/')) throw new Error('اختر ملف صورة');
-      if (file.size > 5 * 1024 * 1024) throw new Error('حجم الصورة يجب أن يكون أقل من 5 ميجابايت');
-      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace('jpeg', 'jpg');
-      const path = 'avatars/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
-      const { error } = await sb.storage.from('images').upload(path, file, { contentType: file.type });
-      if (error) throw error;
-      const url = sb.storage.from('images').getPublicUrl(path).data.publicUrl;
-      await rpc('update_avatar', { p_token: session.token, p_url: url });
-      show('تم تحديث الصورة', 'ok');
-      refresh();
-    } catch (e: any) { show(e.message || 'فشل رفع الصورة', 'err'); }
-    setUploadingAvatar(false);
   };
   const promoCode = catalog?.settings?.promo_code;
   const promoDisc = catalog?.settings?.promo_discount;
@@ -1372,11 +1346,7 @@ export default function CustomerApp() {
           {session ? (
             <>
               <Link to="/account" className="flex items-center gap-3 min-w-0" aria-label="حسابي">
-                {session.customer.avatar_url
-                  ? <img src={session.customer.avatar_url} alt="" className="size-11 flex-none rounded-full object-cover shadow-md ring-2 ring-white" />
-                  : <span className="grid size-11 flex-none place-items-center rounded-full bg-[#C9D3A8] text-base font-black text-[#26301C] shadow-md">
-                      {session.customer.full_name.trim().charAt(0)}
-                    </span>}
+                <img src="/logo.jpg" alt="" className="size-11 flex-none rounded-full object-cover shadow-md ring-2 ring-white" />
                 <div className="min-w-0 leading-tight">
                   <p className="text-[10px] font-bold text-[#7C8665]">أهلًا بك</p>
                   <p className="truncate text-[14.5px] font-black text-[#26301C]">{session.customer.full_name}</p>
@@ -1428,7 +1398,7 @@ export default function CustomerApp() {
               onSeen={() => { if (session) rpc('mark_notifications_read', { p_token: session.token }).then(refresh).catch(() => {}); }}
               onEnablePush={enablePush} />} />
           <Route path="/account" element={session ? (
-            <AccountPage session={session} myData={myData} waNumber={waNumber} pushMsg={pushMsg} onPush={enablePush} onAvatar={changeAvatar} uploadingAvatar={uploadingAvatar}
+            <AccountPage session={session} myData={myData} waNumber={waNumber} pushMsg={pushMsg} onPush={enablePush}
               onLogout={async () => { if (session) await rpc('customer_logout', { p_token: session.token }).catch(() => {}); save(null); nav('/'); }} />
           ) : <NeedLogin />} />
           <Route path="/about" element={<AboutPage catalog={catalog} />} />
