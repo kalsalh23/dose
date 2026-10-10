@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { rpc, sb } from '../lib/supabase';
-import type { Ad, CartLine, Catalog, MyData, MyOrder, PopularProduct, Product, Redemption, Session } from '../lib/types';
+import type { Ad, CartLine, Catalog, MyData, MyOrder, OrderItem, PopularProduct, Product, Redemption, Session } from '../lib/types';
 import { eur, fmtDateTime, fmtDateTimeNum, deviceId, getCurrentLocation, urlBase64ToUint8Array, shopStatus, fmtDateNum } from '../lib/utils';
 import { buildOrderMessage, waChatLink, whatsapp } from '../lib/whatsapp';
 import { Icon, type IconName } from '../components/Icons';
@@ -793,6 +793,127 @@ const statusInfo = (s: string) => {
 };
 
 /* ============================ الطلبات ============================ */
+const ACTIVE_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery'];
+
+/** الوقت المقدّر — يُعرض فقط للطلبات الجارية */
+const etaLabel = (o: MyOrder): string | null => {
+  if (!ACTIVE_STATUSES.includes(o.status)) return null;
+  return o.fulfillment_type === 'delivery' ? 'يوصلك خلال 15-20 دقيقة' : 'جاهز خلال 5-10 دقائق';
+};
+
+/** الساعة المتوقّعة (أدنى تقدير) لتسهيل متابعة الزبون */
+const etaClock = (o: MyOrder): string | null => {
+  if (!ACTIVE_STATUSES.includes(o.status)) return null;
+  const mins = o.fulfillment_type === 'delivery' ? 15 : 5;
+  const d = new Date(new Date(o.created_at).getTime() + mins * 60000);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+
+const sourceLabel = (src?: string | null): string =>
+  src === 'kiosk' ? 'كشك المحل' : src === 'customer' ? 'تطبيق العميل' : src === 'admin' ? 'لوحة الإدارة' : '—';
+
+/** سطر تفصيل: التسمية يمينًا والقيمة يسارًا */
+function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-3 border-b border-dashed border-[#C4CF9E]/70 py-[7px] last:border-0">
+      <span className="flex-none text-[11px] font-bold text-[#7C8665]">{label}</span>
+      <span className="min-w-0 text-left text-[12px] font-extrabold text-[#26301C]">{value}</span>
+    </div>
+  );
+}
+
+function OrderCard({ o, cur }: { o: MyOrder; cur: string }) {
+  const [open, setOpen] = useState(false);
+  const qty = o.items.reduce((a, it) => a + (Number(it.qty) || 0), 0);
+  const eta = etaLabel(o);
+  const clock = etaClock(o);
+  const addNames = (it: OrderItem) =>
+    (it.additions ?? []).map((a: any) => `${a.name_ar ?? 'إضافة'} +${eur(a.price_cents ?? 0, cur)}`).join('، ');
+  return (
+    <div className="overflow-hidden rounded-[1.75rem] bg-[#E3E9C8] shadow-sm">
+      {/* رأس البطاقة */}
+      <div className="p-4">
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex items-center gap-2 text-sm font-black text-[#26301C]">
+            <span className="grid size-8 place-items-center rounded-xl bg-white/80 text-[#5C6B3C]"><Icon name="receipt" size={15} /></span>
+            طلب #{o.order_number}
+          </span>
+          <span className={`rounded-full px-2.5 py-1 text-[11px] font-extrabold ${statusInfo(o.status).color}`}>{statusInfo(o.status).label}</span>
+        </div>
+        <p className="mt-1.5 text-[11.5px] font-bold text-[#6B7357]">
+          {o.items.length} صنف · {qty} قطعة · {eur(o.total_cents, cur)}
+        </p>
+        <button onClick={() => setOpen((v) => !v)}
+          className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-full bg-white py-2.5 text-[12px] font-black text-[#26301C] shadow-sm transition active:scale-[.98]"
+          aria-expanded={open}>
+          <Icon name={open ? 'chevron' : 'eye'} size={13} className={open ? 'rotate-180 transition' : 'transition'} />
+          {open ? 'إخفاء التفاصيل' : 'عرض الطلب'}
+        </button>
+      </div>
+
+      {/* تفاصيل الطلب */}
+      {open && (
+        <div className="border-t border-dashed border-[#C4CF9E] px-4 pb-4 pt-1 anim-rise">
+          <DetailRow label="رقم الطلب" value={<span dir="ltr">#{o.order_number}</span>} />
+          <DetailRow label="تاريخ الطلب" value={<span dir="ltr">{fmtDateTimeNum(o.created_at)}</span>} />
+          <DetailRow label="طريقة الاستلام" value={
+            <span className="flex items-center gap-1">
+              <Icon name={o.fulfillment_type === 'delivery' ? 'pin' : 'home'} size={11} />
+              {o.fulfillment_type === 'delivery' ? 'توصيل' : 'استلام من المحل'}
+            </span>} />
+          {eta && <DetailRow label="الوقت المقدّر" value={
+            <span className="flex flex-col items-end leading-tight">
+              <span className="flex items-center gap-1"><Icon name="clock" size={11} />{eta}</span>
+              {clock && <span className="text-[10.5px] font-bold text-[#7C8F52]" dir="ltr">≈ {clock}</span>}
+            </span>} />}
+          {o.status === 'completed' && o.completed_at && (
+            <DetailRow label="وقت التسليم" value={<span dir="ltr">{fmtDateTimeNum(o.completed_at)}</span>} />
+          )}
+          <DetailRow label="المصدر" value={sourceLabel(o.source)} />
+          {o.customer_name && <DetailRow label="اسم العميل" value={o.customer_name} />}
+          {o.customer_phone && <DetailRow label="هاتف العميل" value={
+            <a href={`tel:${o.customer_phone}`} className="flex items-center gap-1" dir="ltr"><Icon name="phone" size={11} />{o.customer_phone}</a>} />}
+          {o.fulfillment_type === 'delivery' && o.delivery_map_url && (
+            <DetailRow label="موقع التوصيل" value={
+              <a href={o.delivery_map_url} target="_blank" rel="noopener" className="flex items-center gap-1 text-[#5C6B3C] underline">
+                <Icon name="pin" size={11} />فتح الخريطة
+              </a>} />
+          )}
+          <DetailRow label="النقاط" value={
+            <span className="flex items-center gap-1">
+              <Icon name="star" size={11} filled className="text-[#7C8F52]" />+{o.total_points}
+              <span className="text-[10.5px] font-bold text-[#7C8665]">{o.points_awarded ? 'أُضيفت' : 'تُضاف عند التسليم'}</span>
+            </span>} />
+
+          {/* الأصناف — كل صنف بسطر */}
+          <p className="mb-1 mt-3 text-[11px] font-black text-[#5C6B3C]">الأصناف ({o.items.length})</p>
+          <div className="space-y-2">
+            {o.items.map((it: OrderItem, i) => {
+              const adds = addNames(it);
+              const line = it.unit_price_cents * (Number(it.qty) || 0);
+              return (
+                <div key={i} className="rounded-2xl bg-white/70 px-3 py-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="min-w-0 text-[12.5px] font-extrabold text-[#26301C]">• {it.name_ar} × {it.qty}</span>
+                    <span className="flex-none text-[12px] font-black text-[#26301C]">{eur(line, cur)}</span>
+                  </div>
+                  {it.options && <p className="mt-0.5 ps-3 text-[10.5px] font-bold text-[#7C8665]">↳ خيارات: {it.options}</p>}
+                  {adds && <p className="mt-0.5 ps-3 text-[10.5px] font-bold text-[#7C8665]">🍯 ↳ {adds}</p>}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-3 flex items-center justify-between border-t border-[#C4CF9E] pt-2.5">
+            <span className="text-[12px] font-black text-[#26301C]">الإجمالي</span>
+            <span className="text-[15px] font-black text-[#26301C]">{eur(o.total_cents, cur)}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function OrdersPage({ myData, session, catalog }: { myData: MyData | null; session: Session | null; catalog?: Catalog | null }) {
   if (!session) return <NeedLogin />;
   const orders = myData?.orders ?? [];
@@ -805,29 +926,7 @@ function OrdersPage({ myData, session, catalog }: { myData: MyData | null; sessi
           <p className="mt-4 text-sm font-bold text-neutral-500">لا توجد طلبات بعد</p>
         </div>
       )}
-      {orders.map((o) => (
-        <div key={o.id} className="rounded-[1.75rem] bg-[#E3E9C8] p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-black text-[#26301C]">طلب #{o.order_number}</span>
-            <span className={`rounded-full px-2.5 py-1 text-[11px] font-extrabold ${statusInfo(o.status).color}`}>{statusInfo(o.status).label}</span>
-          </div>
-          <div className="mt-2 space-y-1">
-            {o.items.map((it: any, i) => (
-              <p key={i} className="text-xs text-[#5c5142]">• {it.name_ar} × {it.qty}{it.options ? ` (${it.options})` : ''} — {eur(it.unit_price_cents, cur)}</p>
-            ))}
-          </div>
-          <div className="mt-3 flex items-center justify-between border-t border-dashed border-[#C4CF9E] pt-3 text-xs">
-            <span className="flex items-center gap-1 text-[#6B7357]">
-              <Icon name={o.fulfillment_type === 'delivery' ? 'pin' : 'home'} size={12} />
-              {o.fulfillment_type === 'delivery' ? 'توصيل' : 'استلام'} · {fmtDateTimeNum(o.created_at)}
-            </span>
-            {['pending', 'preparing', 'ready', 'out_for_delivery'].includes(o.status) && (
-              <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-extrabold text-[#5C6B3C] shadow-sm">⏱️ {o.fulfillment_type === 'delivery' ? 'يوصلك خلال 15-20 دقيقة' : 'جاهز خلال 5-10 دقائق'}</span>
-            )}
-            <span className="font-black text-[#26301C]">{eur(o.total_cents, cur)}</span>
-          </div>
-        </div>
-      ))}
+      {orders.map((o) => <OrderCard key={o.id} o={o} cur={cur} />)}
     </div>
   );
 }

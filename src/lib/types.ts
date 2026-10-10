@@ -23,10 +23,16 @@ export interface AppCustomer {
   id: string; full_name: string; phone: string; points: number; orders_count: number; avatar_url?: string; points_expires_at?: string;
 }
 export interface Session { token: string; customer: AppCustomer }
-export interface OrderItem { name_ar: string; qty: number; unit_price_cents: number }
+export interface OrderItem {
+  name_ar: string; qty: number; unit_price_cents: number;
+  options?: string | null; additions?: any[] | null;
+}
 export interface MyOrder {
   id: string; order_number: number; status: string; fulfillment_type: 'pickup' | 'delivery';
   total_cents: number; total_points: number; created_at: string; items: OrderItem[];
+  completed_at?: string | null; points_awarded?: boolean;
+  source?: string | null; customer_name?: string | null;
+  customer_phone?: string | null; delivery_map_url?: string | null;
 }
 export interface AppNotification { id: number; title: string; body: string; kind: string; is_read: boolean; created_at: string }
 export interface Redemption { code: string; reward_name: string; points_cost: number; status: 'unused' | 'used' | 'expired'; created_at: string; expires_at?: string | null }
