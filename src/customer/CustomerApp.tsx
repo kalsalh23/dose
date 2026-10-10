@@ -809,9 +809,6 @@ const etaClock = (o: MyOrder): string | null => {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
 
-const sourceLabel = (src?: string | null): string =>
-  src === 'kiosk' ? 'كشك المحل' : src === 'customer' ? 'تطبيق العميل' : src === 'admin' ? 'لوحة الإدارة' : '—';
-
 /** سطر تفصيل: التسمية يمينًا والقيمة يسارًا */
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -854,7 +851,6 @@ function OrderCard({ o, cur }: { o: MyOrder; cur: string }) {
       {/* تفاصيل الطلب */}
       {open && (
         <div className="border-t border-dashed border-[#C4CF9E] px-4 pb-4 pt-1 anim-rise">
-          <DetailRow label="رقم الطلب" value={<span dir="ltr">#{o.order_number}</span>} />
           <DetailRow label="تاريخ الطلب" value={<span dir="ltr">{fmtDateTimeNum(o.created_at)}</span>} />
           <DetailRow label="طريقة الاستلام" value={
             <span className="flex items-center gap-1">
@@ -869,7 +865,6 @@ function OrderCard({ o, cur }: { o: MyOrder; cur: string }) {
           {o.status === 'completed' && o.completed_at && (
             <DetailRow label="وقت التسليم" value={<span dir="ltr">{fmtDateTimeNum(o.completed_at)}</span>} />
           )}
-          <DetailRow label="المصدر" value={sourceLabel(o.source)} />
           {o.customer_name && <DetailRow label="اسم العميل" value={o.customer_name} />}
           {o.customer_phone && <DetailRow label="هاتف العميل" value={
             <a href={`tel:${o.customer_phone}`} className="flex items-center gap-1" dir="ltr"><Icon name="phone" size={11} />{o.customer_phone}</a>} />}
@@ -879,12 +874,6 @@ function OrderCard({ o, cur }: { o: MyOrder; cur: string }) {
                 <Icon name="pin" size={11} />فتح الخريطة
               </a>} />
           )}
-          <DetailRow label="النقاط" value={
-            <span className="flex items-center gap-1">
-              <Icon name="star" size={11} filled className="text-[#7C8F52]" />+{o.total_points}
-              <span className="text-[10.5px] font-bold text-[#7C8665]">{o.points_awarded ? 'أُضيفت' : 'تُضاف عند التسليم'}</span>
-            </span>} />
-
           {/* الأصناف — كل صنف بسطر */}
           <p className="mb-1 mt-3 text-[11px] font-black text-[#5C6B3C]">الأصناف ({o.items.length})</p>
           <div className="space-y-2">
