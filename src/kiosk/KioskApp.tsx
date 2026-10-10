@@ -23,6 +23,7 @@ export default function KioskApp() {
   const [view, setView] = useState<'lookup' | 'signup'>('lookup');
   const [step, setStep] = useState<Step>('idle');
   const [confirmErr, setConfirmErr] = useState('');
+  const [confirmPhone, setConfirmPhone] = useState('');
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<{ orderNumber: number; points: number; free: boolean } | null>(null);
   const [codeInput, setCodeInput] = useState('');
@@ -84,7 +85,7 @@ export default function KioskApp() {
   const orderNow = () => {
     if (!cart.size) return showToast('اضغط على المنتجات لإضافتها إلى طلبك');
     if (!customer) return showToast('اختر اسمك أولًا من البطاقة');
-    setConfirmErr('');
+    setConfirmErr(''); setConfirmPhone('');
     setStep('confirm');
   };
 
@@ -133,17 +134,21 @@ export default function KioskApp() {
 
   const reset = () => {
     setCart(new Map()); setCustomer(null); setQuery(''); setSuggestions('idle');
-    setStep('idle'); setDone(null); setView('lookup'); setConfirmErr('');
+    setStep('idle'); setDone(null); setView('lookup'); setConfirmErr(''); setConfirmPhone('');
     setCodeInput(''); setAppliedCode(null); setCodeMsg(null);
   };
 
   const submitOrder = async () => {
     if (!customer) return;
+    const phone = confirmPhone.replace(/\D/g, '');
+    if (phone.length < 8) { setConfirmErr('أدخل رقم هاتفك كاملًا للتأكيد'); return; }
     setBusy(true); setConfirmErr('');
     try {
       const items = [...cart.entries()].map(([product_id, qty]) => ({ product_id, qty }));
       const res = await rpc<any>('create_order', {
         p_customer_id: customer.id,
+        p_pin: null,
+        p_confirm_phone: phone,
         p_fulfillment_type: 'pickup',
         p_items: items,
         p_source: 'kiosk',
@@ -152,7 +157,10 @@ export default function KioskApp() {
       setDone({ orderNumber: res.order_number, points: res.total_points, free: !!res.free });
       setStep('success');
     } catch (e: any) {
-      setConfirmErr(e.message);
+      const m = String(e?.message || '');
+      if (m.includes('phone_mismatch')) setConfirmErr('رقم الهاتف لا يطابق حسابك — تأكد من الرقم وحاول مجددًا');
+      else if (m.includes('pin_required')) setConfirmErr('هذا الحساب يتطلب رمز PIN — راجع إدارة المحل');
+      else setConfirmErr(m || 'تعذر إرسال الطلب، حاول مجددًا');
     } finally { setBusy(false); }
   };
 
@@ -373,14 +381,22 @@ export default function KioskApp() {
             <span className="mx-auto grid size-14 place-items-center rounded-2xl text-white" style={{ background: '#C9D3A8', color: '#26301C' }}>
               <Icon name="phone" size={26} />
             </span>
-            <h3 className="mt-3 text-lg font-black" style={{ color: '#26301C' }}>تأكيد الطلب</h3>
-            <p className="mt-1 text-[12px] font-bold" style={{ color: '#7C8665' }}>يرجى التأكد من مطابقة رقم هاتفك أدناه</p>
+            <h3 className="mt-3 text-lg font-black" style={{ color: '#26301C' }}>تأكيد الطلب برقم هاتفك</h3>
+            <p className="mt-1 text-[12px] font-bold" style={{ color: '#7C8665' }}>أدخل رقم هاتفك المسجّل للتأكيد</p>
 
             <div className="mt-4 rounded-2xl p-4" style={{ background: '#EEF2DC' }}>
               <p className="text-[11px] font-bold" style={{ color: '#7C8665' }}>الاسم</p>
               <p className="text-[15px] font-black" style={{ color: '#26301C' }}>{customer.name}</p>
-              <p className="mt-2 text-[11px] font-bold" style={{ color: '#7C8665' }}>رقم الهاتف</p>
+              <p className="mt-2 text-[11px] font-bold" style={{ color: '#7C8665' }}>هاتف الحساب</p>
               <p className="text-lg font-black tracking-widest" dir="ltr" style={{ color: '#26301C' }}>{customer.phone}</p>
+            </div>
+
+            <div className="mt-3 text-right">
+              <label className="mb-1 block text-[11px] font-bold" style={{ color: '#6B7357' }}>رقم هاتفك</label>
+              <input value={confirmPhone} onChange={(e) => { setConfirmPhone(e.target.value); setConfirmErr(''); }}
+                inputMode="numeric" dir="ltr" placeholder="09XXXXXXXX"
+                className="h-12 w-full rounded-xl border-[1.5px] bg-white px-3 text-center text-base font-black tracking-widest outline-none focus:shadow-sm"
+                style={{ borderColor: '#C4CF9E', color: '#26301C' }} />
             </div>
 
             <div className="mt-3 rounded-2xl p-3 text-right" style={{ background: '#FBF3E2' }}>

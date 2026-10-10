@@ -12,7 +12,7 @@ create table if not exists public.customers (
   id uuid primary key default gen_random_uuid(),
   full_name text not null,
   phone text not null unique,
-  pin_hash text not null,
+  pin_hash text,
   device_id text,
   points integer not null default 0,
   orders_count integer not null default 0,
@@ -25,7 +25,10 @@ alter table public.customers
   add column if not exists orders_count integer not null default 0,
   add column if not exists pin_failed_attempts integer not null default 0,
   add column if not exists pin_locked_until timestamptz,
-  add column if not exists is_active boolean not null default true;
+  add column if not exists is_active boolean not null default true,
+  add column if not exists avatar_url text not null default '',
+  add column if not exists points_expires_at timestamptz;
+alter table public.customers alter column pin_hash drop not null;
 
 create table if not exists public.customer_sessions (
   token uuid primary key default gen_random_uuid(),
@@ -270,16 +273,19 @@ returns jsonb language sql stable security definer set search_path = public as $
   );
 $$;
 
--- إنشاء حساب (الهاتف فريد، PIN يُخزن هاشًا)
-create or replace function public.create_customer(p_full_name text, p_phone text, p_pin text, p_device_id text default null)
+-- إنشاء حساب (الهاتف فريد، PIN اختياري — يُخزن هاشًا عند تمريره فقط)
+create or replace function public.create_customer(
+  p_full_name text, p_phone text, p_pin text default null, p_device_id text default null)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare c public.customers;
 begin
   if length(btrim(p_full_name)) < 2 then raise exception 'invalid_name'; end if;
   if length(btrim(p_phone)) < 8 or length(btrim(p_phone)) > 15 then raise exception 'invalid_phone'; end if;
-  if p_pin !~ '^[0-9]{4}$' then raise exception 'invalid_pin'; end if;
+  if p_pin is not null and btrim(p_pin) <> '' and p_pin !~ '^[0-9]{4}$' then raise exception 'invalid_pin'; end if;
   insert into public.customers (full_name, phone, pin_hash, device_id)
-  values (btrim(p_full_name), btrim(p_phone), public._pin_hash(p_phone, p_pin), p_device_id)
+  values (btrim(p_full_name), btrim(p_phone),
+          case when p_pin is not null and btrim(p_pin) <> '' then public._pin_hash(btrim(p_phone), p_pin) else null end,
+          p_device_id)
   on conflict (phone) do nothing returning * into c;
   if c is null then raise exception 'phone_exists'; end if;
   perform public._notify(c.id, '☕ أهلًا بك في Dose', 'تم إنشاء حسابك بنجاح — اجمع النقاط مع كل طلب واستبدلها بمكافآت', 'welcome');
@@ -295,14 +301,19 @@ returns table (id uuid, full_name text, mask text) language sql security definer
   order by c.full_name asc limit 8;
 $$;
 
--- دخول العميل من تطبيق الهاتف (هاتف + PIN) → جلسة
+-- دخول العميل من تطبيق الهاتف (هاتف + PIN اختياري) → جلسة
 create or replace function public.customer_login(p_phone text, p_pin text)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare c public.customers; tok uuid;
 begin
   select * into c from public.customers where phone = btrim(p_phone);
   if c is null then raise exception 'wrong_pin'; end if;
-  perform public._check_pin(c, p_pin);
+  -- يُتحقق من PIN فقط عند تمريره صراحةً (توافقًا مع الحسابات القديمة)
+  if c.pin_hash is not null and p_pin is not null and btrim(p_pin) <> '' then
+    perform public._check_pin(c, p_pin);
+  elsif c.is_active is distinct from true then
+    raise exception 'account_disabled';
+  end if;
   insert into public.customer_sessions (customer_id) values (c.id) returning token into tok;
   return jsonb_build_object('token', tok, 'customer', jsonb_build_object(
     'id', c.id, 'full_name', c.full_name, 'phone', c.phone, 'points', c.points, 'orders_count', c.orders_count));
@@ -344,7 +355,7 @@ returns void language sql security definer set search_path = public as $$
   where s.customer_id = n.customer_id and s.token = p_token and n.is_read = false;
 $$;
 
--- إنشاء طلب (كشك: تحقق PIN داخلي — تطبيق: تحقق PIN أيضًا لكل طلب)
+-- إنشاء طلب (تأكيد الهوية: رقم الهاتف المطابق أو PIN للحسابات القديمة)
 create or replace function public.create_order(
   p_customer_id uuid,
   p_pin text,
@@ -353,7 +364,11 @@ create or replace function public.create_order(
   p_latitude double precision default null,
   p_longitude double precision default null,
   p_map_url text default null,
-  p_source text default 'kiosk'
+  p_source text default 'kiosk',
+  p_reward_code text default null,
+  p_customer_name text default null,
+  p_customer_phone text default null,
+  p_confirm_phone text default null
 )
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare
@@ -369,7 +384,16 @@ begin
 
   select * into c from public.customers where id = p_customer_id;
   if c is null then raise exception 'customer_not_found'; end if;
-  perform public._check_pin(c, p_pin);
+  -- تأكيد الهوية: رقم الهاتف المطابق (الطريقة المتبعة) أو PIN (للتوافق مع القديم)
+  if p_confirm_phone is not null and btrim(p_confirm_phone) <> '' then
+    if regexp_replace(c.phone, '\D', '', 'g') <> regexp_replace(btrim(p_confirm_phone), '\D', '', 'g') then
+      raise exception 'phone_mismatch';
+    end if;
+  elsif p_pin is not null and btrim(p_pin) <> '' then
+    perform public._check_pin(c, p_pin);
+  elsif c.pin_hash is not null then
+    raise exception 'pin_required';
+  end if;
 
   -- السعر والنقاط تُحسب من جدول المنتجات فقط (منع التلاعب)
   for it in select * from jsonb_array_elements(p_items) loop
@@ -784,7 +808,7 @@ grant execute on function public.customer_login(text, text) to anon;
 grant execute on function public.customer_logout(uuid) to anon;
 grant execute on function public.get_my_data(uuid) to anon;
 grant execute on function public.mark_notifications_read(uuid) to anon;
-grant execute on function public.create_order(uuid, text, text, jsonb, double precision, double precision, text, text) to anon;
+grant execute on function public.create_order(uuid, text, text, jsonb, double precision, double precision, text, text, text, text, text, text) to anon;
 grant execute on function public.redeem_reward(uuid, integer) to anon;
 grant execute on function public.admin_login(text, text) to anon;
 

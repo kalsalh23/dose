@@ -1009,7 +1009,7 @@ function LoginPage({ onLogged }: { onLogged: (s: Session) => void }) {
     if (busy) return;
     setBusy(true); setErr('');
     try {
-      const s = await rpc<Session>('customer_login', { p_phone: phone.replace(/\D/g, '') });
+      const s = await rpc<Session>('customer_login', { p_phone: phone.replace(/\D/g, ''), p_pin: null });
       onLogged(s);
     } catch (e: any) { setErr(e.message); setBusy(false); }
   };
@@ -1049,7 +1049,7 @@ function SignupPage({ onLogged }: { onLogged: (s: Session) => void }) {
     setBusy(true);
     try {
       await rpc('create_customer', { p_full_name: name.trim(), p_phone: phone.replace(/\D/g, ''), p_device_id: deviceId });
-      const s = await rpc<Session>('customer_login', { p_phone: phone.replace(/\D/g, '') }).catch(() => null);
+      const s = await rpc<Session>('customer_login', { p_phone: phone.replace(/\D/g, ''), p_pin: null }).catch(() => null);
       if (s?.token) onLogged(s);
       else nav('/login');
     } catch (e: any) { setErr(e.message); setBusy(false); }
@@ -1206,6 +1206,8 @@ export default function CustomerApp() {
     try {
       const res = await rpc<any>('create_order', {
         p_customer_id: session.customer.id,
+        p_pin: null,
+        p_confirm_phone: session.customer.phone,
         p_fulfillment_type: flow.fulfillment ?? 'pickup',
         p_items: flow.lines.map((l) => ({
           product_id: l.product.id, qty: l.qty, options: (l.options || []).join('، '),

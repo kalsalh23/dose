@@ -13,8 +13,12 @@ export async function rpc<T = any>(fn: string, args: Record<string, any> = {}): 
     const m = error.message || '';
     if (m.includes('phone_exists')) throw new Error('هذا الرقم مسجّل مسبقًا');
     if (m.includes('shop_closed')) throw new Error('المحل مغلق ليلة سعدة 🌙 — نستقبلكم غدًا');
+    if (m.includes('phone_mismatch')) throw new Error('رقم الهاتف لا يطابق الحساب المسجّل');
+    if (m.includes('pin_required')) throw new Error('هذا الحساب يتطلب رمز PIN — راجع إدارة المحل');
     if (m.includes('wrong_pin')) throw new Error('رمز PIN غير صحيح، حاول مرة أخرى');
     if (m.includes('pin_locked')) throw new Error('تم قفل المحاولات مؤقتًا — انتظر 5 دقائق ثم أعد المحاولة');
+    if (m.includes('customer_not_found')) throw new Error('لم يتم العثور على الحساب');
+    if (m.includes('account_disabled')) throw new Error('هذا الحساب غير مفعّل — راجع إدارة المحل');
     if (m.includes('insufficient_points')) throw new Error('نقاطك غير كافية لهذه المكافأة');
     if (m.includes('code_not_applicable')) throw new Error('هذا الكود لا ينطبق على محتويات طلبك الحالية');
     if (m.includes('product_unavailable')) throw new Error('نفذت كمية أحد المنتجات المطلوبة — احذفه من سلتك أو جرّب بديلًا');
