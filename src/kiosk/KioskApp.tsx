@@ -2,17 +2,16 @@ import { useEffect, useRef, useState } from 'react';
 import { rpc } from '../lib/supabase';
 import type { Catalog, Product } from '../lib/types';
 import { deviceId } from '../lib/utils';
-import PinPad from '../components/PinPad';
 import { Icon } from '../components/Icons';
 
 /* ============================================================
    منصة المحل الداخلية — Tablet Kiosk
    نفس هوية التطبيق: كريمي · كراميل · بني داكن
-   التدفق: اسم ← منتجات ← PIN ← Supabase (النقاط تُحتسب في حسابه)
+   التدفق: اسم ← منتجات ← تأكيد برقم الهاتف ← Supabase (النقاط تُحتسب في حسابه)
    ============================================================ */
 
 interface Suggestion { id: string; full_name: string; mask: string }
-type Step = 'idle' | 'pin' | 'success';
+type Step = 'idle' | 'confirm' | 'success';
 
 export default function KioskApp() {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
@@ -20,12 +19,11 @@ export default function KioskApp() {
   const [cart, setCart] = useState<Map<number, number>>(new Map());
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<Suggestion[] | 'idle' | 'loading' | 'empty' | 'error'>('idle');
-  const [customer, setCustomer] = useState<{ id: string; name: string } | null>(null);
+  const [customer, setCustomer] = useState<{ id: string; name: string; phone: string } | null>(null);
   const [view, setView] = useState<'lookup' | 'signup'>('lookup');
   const [step, setStep] = useState<Step>('idle');
-  const [pinErr, setPinErr] = useState('');
-  const [pinAttempt, setPinAttempt] = useState(0);
-  const [pinBusy, setPinBusy] = useState(false);
+  const [confirmErr, setConfirmErr] = useState('');
+  const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<{ orderNumber: number; points: number; free: boolean } | null>(null);
   const [codeInput, setCodeInput] = useState('');
   const [appliedCode, setAppliedCode] = useState<{ code: string; name: string } | null>(null);
@@ -86,7 +84,8 @@ export default function KioskApp() {
   const orderNow = () => {
     if (!cart.size) return showToast('اضغط على المنتجات لإضافتها إلى طلبك');
     if (!customer) return showToast('اختر اسمك أولًا من البطاقة');
-    setStep('pin');
+    setConfirmErr('');
+    setStep('confirm');
   };
 
   const applyCode = async () => {
@@ -134,17 +133,17 @@ export default function KioskApp() {
 
   const reset = () => {
     setCart(new Map()); setCustomer(null); setQuery(''); setSuggestions('idle');
-    setStep('idle'); setDone(null); setView('lookup');
+    setStep('idle'); setDone(null); setView('lookup'); setConfirmErr('');
     setCodeInput(''); setAppliedCode(null); setCodeMsg(null);
   };
 
-  const submitPin = async (pin: string) => {
+  const submitOrder = async () => {
     if (!customer) return;
-    setPinBusy(true); setPinErr('');
+    setBusy(true); setConfirmErr('');
     try {
       const items = [...cart.entries()].map(([product_id, qty]) => ({ product_id, qty }));
       const res = await rpc<any>('create_order', {
-        p_customer_id: customer.id, p_pin: pin,
+        p_customer_id: customer.id,
         p_fulfillment_type: 'pickup',
         p_items: items,
         p_source: 'kiosk',
@@ -153,9 +152,8 @@ export default function KioskApp() {
       setDone({ orderNumber: res.order_number, points: res.total_points, free: !!res.free });
       setStep('success');
     } catch (e: any) {
-      setPinErr(e.message);
-      setPinAttempt((a) => a + 1);
-    } finally { setPinBusy(false); }
+      setConfirmErr(e.message);
+    } finally { setBusy(false); }
   };
 
   const catIcon = (slug: string) => slug === 'hot' ? 'coffee' : slug === 'cold' ? 'snow' : 'cake';
@@ -273,7 +271,7 @@ export default function KioskApp() {
                     {suggestions === 'empty' && <p className="p-3 text-center text-[11px] leading-relaxed" style={{ color: '#7C8665' }}>لا يوجد اسم مطابق — إن لم تكن مسجلًا اضغط «لا أملك حساب» بالأعلى</p>}
                     {suggestions === 'error' && <p className="p-3 text-center text-[11px]" style={{ color: '#C4482E' }}>تعذر البحث، تحقق من الإنترنت</p>}
                     {Array.isArray(suggestions) && suggestions.map((s) => (
-                      <button key={s.id} onClick={() => { setCustomer({ id: s.id, name: s.full_name }); showToast('مرحبًا ' + s.full_name + ' — اختر منتجاتك واضغط «اطلب الآن»', 'ok'); }}
+                      <button key={s.id} onClick={() => { setCustomer({ id: s.id, name: s.full_name, phone: s.mask }); showToast('مرحبًا ' + s.full_name + ' — اختر منتجاتك واضغط «اطلب الآن»', 'ok'); }}
                         className="flex items-center justify-between gap-2 rounded-lg bg-white px-3 py-2 text-right text-[13.5px] font-bold transition hover:bg-[#E3E9C8] active:scale-[.98]"
                         style={{ color: '#26301C' }}>
                         <span>{s.full_name}</span>
@@ -368,14 +366,45 @@ export default function KioskApp() {
         </div>
       </footer>
 
-      {/* ===== نافذة PIN ===== */}
-      {step === 'pin' && (
-        <PinPad
-          attemptKey={pinAttempt}
-          title="تأكيد هويتك"
-          subtitle={`أدخل رمز PIN الخاص بك يا ${customer?.name ?? ''} لتأكيد الطلب`}
-          loading={pinBusy} error={pinErr} onFill={submitPin}
-          onClose={() => { setStep('idle'); setPinErr(''); }} />
+      {/* ===== نافذة تأكيد الطلب برقم الهاتف ===== */}
+      {step === 'confirm' && customer && (
+        <div className="fixed inset-0 z-[130] grid place-items-center bg-black/50 p-5 backdrop-blur-sm anim-fade" onClick={() => { if (!busy) { setStep('idle'); setConfirmErr(''); } }}>
+          <div className="w-full max-w-sm rounded-[2rem] bg-white p-6 text-center shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
+            <span className="mx-auto grid size-14 place-items-center rounded-2xl text-white" style={{ background: '#C9D3A8', color: '#26301C' }}>
+              <Icon name="phone" size={26} />
+            </span>
+            <h3 className="mt-3 text-lg font-black" style={{ color: '#26301C' }}>تأكيد الطلب</h3>
+            <p className="mt-1 text-[12px] font-bold" style={{ color: '#7C8665' }}>يرجى التأكد من مطابقة رقم هاتفك أدناه</p>
+
+            <div className="mt-4 rounded-2xl p-4" style={{ background: '#EEF2DC' }}>
+              <p className="text-[11px] font-bold" style={{ color: '#7C8665' }}>الاسم</p>
+              <p className="text-[15px] font-black" style={{ color: '#26301C' }}>{customer.name}</p>
+              <p className="mt-2 text-[11px] font-bold" style={{ color: '#7C8665' }}>رقم الهاتف</p>
+              <p className="text-lg font-black tracking-widest" dir="ltr" style={{ color: '#26301C' }}>{customer.phone}</p>
+            </div>
+
+            <div className="mt-3 rounded-2xl p-3 text-right" style={{ background: '#FBF3E2' }}>
+              <p className="text-[10.5px] font-bold" style={{ color: '#7C8665' }}>ملخص الطلب</p>
+              <p className="mt-0.5 text-[12.5px] font-black" style={{ color: '#26301C' }}>
+                {[...cart.entries()].map(([pid, qty]) => {
+                  const p = catalog?.products.find((x) => x.id === pid);
+                  return p ? `${p.name_ar} ×${qty}` : '';
+                }).filter(Boolean).join('، ')}
+              </p>
+              <p className="mt-1 text-[11.5px] font-black" style={{ color: '#5C6B3C' }}>⭐ {[...cart.values()].reduce((a, b) => a + b, 0)} نقاط</p>
+            </div>
+
+            {confirmErr && <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-[11.5px] font-bold text-red-600">{confirmErr}</p>}
+
+            <button onClick={submitOrder} disabled={busy}
+              className="mt-4 w-full rounded-full py-3.5 text-[15px] font-black shadow-lg transition active:scale-[.98] disabled:opacity-50"
+              style={{ background: '#C9D3A8', color: '#26301C' }}>
+              {busy ? 'جارٍ الإرسال…' : 'تأكيد وإرسال الطلب'}
+            </button>
+            <button onClick={() => { setStep('idle'); setConfirmErr(''); }} disabled={busy}
+              className="mt-1.5 w-full py-2.5 text-[12.5px] font-bold" style={{ color: '#7C8665' }}>إلغاء</button>
+          </div>
+        </div>
       )}
 
       {/* ===== نجاح الطلب ===== */}
@@ -418,20 +447,16 @@ export default function KioskApp() {
 function SignupForm({ onDone, onCancel }: { onDone: (name: string) => void; onCancel: () => void }) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [pin, setPin] = useState('');
-  const [pin2, setPin2] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const submit = async () => {
     if (busy) return;
     setErr('');
-    if (name.trim().length < 2) return setErr('أدخل اسمك الكامل');
-    if (phone.replace(/\D/g, '').length < 8) return setErr('أدخل رقم هاتف صحيح');
-    if (pin.length !== 4) return setErr('رمز PIN يجب أن يكون 4 أرقام');
-    if (pin !== pin2) return setErr('رمزا PIN غير متطابقين');
+    if (name.trim().length < 2) return setErr('فضلًا أدخل اسمك الكامل');
+        if (phone.replace(/\D/g, '').length < 8) return setErr('أدخل رقم هاتف صحيح');
     setBusy(true);
     try {
-      await rpc('create_customer', { p_full_name: name.trim(), p_phone: phone.replace(/\D/g, ''), p_pin: pin, p_device_id: deviceId });
+      await rpc('create_customer', { p_full_name: name.trim(), p_phone: phone.replace(/\D/g, ''), p_device_id: deviceId });
       onDone(name.trim());
     } catch (e: any) { setErr(e.message); setBusy(false); }
   };
@@ -440,7 +465,7 @@ function SignupForm({ onDone, onCancel }: { onDone: (name: string) => void; onCa
   return (
     <div className="flex flex-1 flex-col">
       <h2 className="text-center text-[17.5px] font-extrabold" style={{ color: '#26301C' }}>مرحبًا بك في <span className="font-serif" style={{ color: '#5C6B3C' }}>Dose</span></h2>
-      <p className="mb-4 mt-1 text-center text-[11.5px]" style={{ color: '#6B7357' }}>أنشئ حسابك الآن واستمتع بالنقاط والمكافآت</p>
+      <p className="mb-4 mt-1 text-center text-[11.5px]" style={{ color: '#6B7357' }}>نشئ حسابك الآن واستمتع بالنقاط والمكافآت</p>
 
       <label className="mb-1 block text-[11px] font-bold" style={{ color: '#6B7357' }}>الاسم الكامل</label>
       <input value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: سارة أحمد" className={`mb-3 ${inputCls}`} style={inputStyle} />
@@ -449,24 +474,12 @@ function SignupForm({ onDone, onCancel }: { onDone: (name: string) => void; onCa
       <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="numeric" dir="ltr" placeholder="09XXXXXXXX"
         className={`mb-3 text-center ${inputCls}`} style={inputStyle} />
 
-      <div className="grid grid-cols-2 gap-2.5">
-        <div>
-          <label className="mb-1 block text-[11px] font-bold" style={{ color: '#6B7357' }}>رمز PIN</label>
-          <input value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} type="password" inputMode="numeric" dir="ltr" placeholder="••••"
-            className={`text-center text-base font-black tracking-widest ${inputCls}`} style={inputStyle} />
-        </div>
-        <div>
-          <label className="mb-1 block text-[11px] font-bold" style={{ color: '#6B7357' }}>تأكيد PIN</label>
-          <input value={pin2} onChange={(e) => setPin2(e.target.value.replace(/\D/g, '').slice(0, 4))} type="password" inputMode="numeric" dir="ltr" placeholder="••••"
-            className={`text-center text-base font-black tracking-widest ${inputCls}`} style={inputStyle} />
-        </div>
-      </div>
       {err && <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-center text-[11.5px] font-bold text-red-600">{err}</p>}
 
       <p className="mt-3 flex items-start gap-2 rounded-xl px-3 py-2 text-[11px] leading-relaxed"
         style={{ background: '#EEF2DC', color: '#77825E' }}>
         <Icon name="lock" size={13} className="mt-0.5 flex-none" style={{ color: '#A9907E' }} />
-        سيتم ربط حسابك بجهازك لإرسال إشعارات الطلب والنقاط
+        يتم ربط حسابك بجهازك لإرسال إشعارات الطلب والنقاط
       </p>
 
       <button onClick={submit} disabled={busy}
@@ -474,7 +487,7 @@ function SignupForm({ onDone, onCancel }: { onDone: (name: string) => void; onCa
         style={{ background: '#C9D3A8', color: '#26301C' }}>
         {busy ? 'جارٍ الإنشاء…' : 'إنشاء الحساب والمتابعة'}
       </button>
-      <button onClick={onCancel} className="mt-1 w-full py-2.5 text-[12.5px] font-bold" style={{ color: '#7C8665' }}>إلغاء والعودة</button>
+      <button onClick={onCancel} className="mt-1 w-full py-2.5 text-[12.5px] font-bold" style={{ color: '#7C8665' }}>إلغاء والرجوع</button>
     </div>
   );
 }

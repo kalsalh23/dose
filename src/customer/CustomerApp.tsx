@@ -4,7 +4,6 @@ import { rpc, sb } from '../lib/supabase';
 import type { Ad, CartLine, Catalog, MyData, MyOrder, PopularProduct, Product, Redemption, Session } from '../lib/types';
 import { eur, fmtDateTime, fmtDateTimeNum, deviceId, getCurrentLocation, urlBase64ToUint8Array, shopStatus, fmtDateNum } from '../lib/utils';
 import { buildOrderMessage, waChatLink, whatsapp } from '../lib/whatsapp';
-import PinPad from '../components/PinPad';
 import { Icon, type IconName } from '../components/Icons';
 
 const SESSION_KEY = 'dose_app_session_v1';
@@ -103,7 +102,7 @@ const effPrice = (p: { price_cents: number; sale_price_cents?: number | null }) 
 const hasOffer = (p: { price_cents: number; sale_price_cents?: number | null }) =>
   p.sale_price_cents != null && p.sale_price_cents < p.price_cents;
 const lineUnit = (l: CartLine) => effPrice(l.product) + (l.additions ?? []).reduce((a, x) => a + x.price_cents, 0);
-interface OrderFlow { step: 'contact' | 'fulfillment' | 'location' | 'pin' | 'promo' | 'review' | null; lines: CartLine[]; fulfillment?: Fulfillment; loc?: { lat: number; lng: number; mapUrl: string }; pin?: string; usePromo?: boolean; name?: string; phone?: string }
+interface OrderFlow { step: 'contact' | 'fulfillment' | 'location' | 'promo' | 'review' | null; lines: CartLine[]; fulfillment?: Fulfillment; loc?: { lat: number; lng: number; mapUrl: string }; usePromo?: boolean; name?: string; phone?: string }
 
 /* ============================ الإشعارات الفورية ============================ */
 async function enablePushNotifications(session: Session): Promise<string> {
@@ -1004,14 +1003,13 @@ let _navRef: ((to: string) => void) | null = null;
 function LoginPage({ onLogged }: { onLogged: (s: Session) => void }) {
   const nav = useNavigate();
   const [phone, setPhone] = useState('');
-  const [pin, setPin] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const submit = async () => {
     if (busy) return;
     setBusy(true); setErr('');
     try {
-      const s = await rpc<Session>('customer_login', { p_phone: phone.replace(/\D/g, ''), p_pin: pin });
+      const s = await rpc<Session>('customer_login', { p_phone: phone.replace(/\D/g, '') });
       onLogged(s);
     } catch (e: any) { setErr(e.message); setBusy(false); }
   };
@@ -1020,13 +1018,11 @@ function LoginPage({ onLogged }: { onLogged: (s: Session) => void }) {
       <div className="rounded-[2rem] bg-white p-7 shadow-xl shadow-[#8a6a48]/15">
         <div className="text-center"><Logo size={60} /></div>
         <h2 className="mt-4 text-center text-xl font-black text-[#26301C]">تسجيل الدخول</h2>
-        <p className="mt-1 text-center text-xs text-neutral-500">برقم هاتفك ورمز PIN الخاص بك</p>
+        <p className="mt-1 text-center text-xs text-neutral-500">أدخل رقم هاتفك المسجّل للمتابعة</p>
         <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="numeric" dir="ltr" placeholder="09XXXXXXXX"
           className="mt-5 h-12 w-full rounded-2xl border-2 border-[#D5DEB4] bg-[#EEF2DC] px-4 text-center text-base font-bold tracking-widest text-[#26301C] outline-none focus:border-[#A9B87F]" />
-        <input value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" type="password" dir="ltr" placeholder="PIN ••••"
-          className="mt-3 h-12 w-full rounded-2xl border-2 border-[#D5DEB4] bg-[#EEF2DC] px-4 text-center text-lg font-black tracking-[.5em] outline-none focus:border-[#A9B87F]" />
         {err && <p className="mt-3 rounded-2xl bg-red-50 px-3 py-2 text-center text-xs font-bold text-red-600">{err}</p>}
-        <button onClick={submit} disabled={busy || pin.length !== 4 || phone.replace(/\D/g, '').length < 8}
+        <button onClick={submit} disabled={busy || phone.replace(/\D/g, '').length < 8}
           className="mt-5 w-full rounded-full bg-[#C9D3A8] py-3.5 text-base font-black text-[#26301C] shadow-lg shadow-[#8a6a48]/35 active:scale-[.98] disabled:opacity-40">
           {busy ? 'جارٍ الدخول…' : 'دخول'}
         </button>
@@ -1043,67 +1039,36 @@ function SignupPage({ onLogged }: { onLogged: (s: Session) => void }) {
   const nav = useNavigate();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [pin, setPin] = useState('');
-  const [pin2, setPin2] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const pickAvatar = async (file: File) => {
-    setUploading(true); setErr('');
-    try {
-      if (!file.type.startsWith('image/')) throw new Error('اختر ملف صورة');
-      if (file.size > 5 * 1024 * 1024) throw new Error('حجم الصورة أقل من 5 ميجابايت مطلوب');
-      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace('jpeg', 'jpg');
-      const path = 'avatars/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
-      const { error } = await sb.storage.from('images').upload(path, file, { contentType: file.type });
-      if (error) throw error;
-      setAvatarUrl(sb.storage.from('images').getPublicUrl(path).data.publicUrl);
-    } catch (e: any) { setErr(e.message || 'فشل رفع الصورة'); }
-    setUploading(false);
-  };
   const submit = async () => {
     if (busy) return;
     setErr('');
     if (name.trim().length < 2) return setErr('أدخل اسمك الكامل');
     if (phone.replace(/\D/g, '').length < 8) return setErr('أدخل رقم هاتف صحيح');
-    if (pin.length !== 4) return setErr('رمز PIN يجب أن يكون 4 أرقام');
-    if (pin !== pin2) return setErr('رمزا PIN غير متطابقين');
     setBusy(true);
     try {
-      await rpc('create_customer', { p_full_name: name.trim(), p_phone: phone.replace(/\D/g, ''), p_pin: pin, p_device_id: deviceId });
-      const s = await rpc<Session>('customer_login', { p_phone: phone.replace(/\D/g, ''), p_pin: pin });
-      if (avatarUrl) await rpc('update_avatar', { p_token: s.token, p_url: avatarUrl }).catch(() => {});
-      onLogged(s);
+      await rpc('create_customer', { p_full_name: name.trim(), p_phone: phone.replace(/\D/g, ''), p_device_id: deviceId });
+      const s = await rpc<Session>('customer_login', { p_phone: phone.replace(/\D/g, '') }).catch(() => null);
+      if (s?.token) onLogged(s);
+      else nav('/login');
     } catch (e: any) { setErr(e.message); setBusy(false); }
   };
   return (
     <div className="mx-auto max-w-sm py-8 anim-rise">
       <div className="rounded-[2rem] bg-white p-7 shadow-xl shadow-[#8a6a48]/15">
-        <h2 className="text-center text-xl font-black text-[#26301C]">مرحبًا بك في <span className="text-[#5C6B3C]">Dose Cafe</span></h2>
+        <div className="text-center">
+          <img src="/logo.jpg" alt="Dose" className="mx-auto size-16 rounded-2xl object-cover shadow-md ring-2 ring-white" />
+        </div>
+        <h2 className="mt-4 text-center text-xl font-black text-[#26301C]">مرحبًا بك في <span className="text-[#5C6B3C]">Dose Cafe</span></h2>
         <p className="mt-1 text-center text-xs text-neutral-500">أنشئ حسابك الآن واستمتع بالنقاط والمكافآت</p>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="الاسم الكامل"
           className="mt-4 h-12 w-full rounded-2xl border-2 border-[#D5DEB4] bg-[#EEF2DC] px-4 text-sm font-bold outline-none focus:border-[#A9B87F]" />
         <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="numeric" dir="ltr" placeholder="09XXXXXXXX"
           className="mt-3 h-12 w-full rounded-2xl border-2 border-[#D5DEB4] bg-[#EEF2DC] px-4 text-center text-sm font-bold outline-none focus:border-[#A9B87F]" />
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <input value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} type="password" inputMode="numeric" dir="ltr" placeholder="PIN"
-            className="h-12 w-full rounded-2xl border-2 border-[#D5DEB4] bg-[#EEF2DC] text-center text-base font-black tracking-widest outline-none focus:border-[#A9B87F]" />
-          <input value={pin2} onChange={(e) => setPin2(e.target.value.replace(/\D/g, '').slice(0, 4))} type="password" inputMode="numeric" dir="ltr" placeholder="تأكيد PIN"
-            className="h-12 w-full rounded-2xl border-2 border-[#D5DEB4] bg-[#EEF2DC] text-center text-base font-black tracking-widest outline-none focus:border-[#A9B87F]" />
-        </div>
-        <div className="mt-4 flex items-center justify-center gap-3">
-          {avatarUrl
-            ? <img src={avatarUrl} alt="" className="size-16 rounded-full object-cover shadow-md ring-2 ring-white" />
-            : <span className="grid size-16 place-items-center rounded-full bg-[#E3E9C8] text-[#5C6B3C]"><Icon name="user" size={24} /></span>}
-          <label className="cursor-pointer rounded-full border-2 border-[#C9D3A8] bg-[#EEF2DC] px-4 py-2 text-[11px] font-black text-[#26301C] transition active:scale-95">
-            {uploading ? 'جارٍ الرفع…' : avatarUrl ? 'تغيير الصورة' : 'صورة الملف الشخصي (اختياري)'}
-            <input type="file" accept="image/*" className="hidden" disabled={uploading}
-              onChange={(e) => { const file = e.target.files?.[0]; if (file) pickAvatar(file); e.target.value = ''; }} />
-          </label>
-        </div>
-        <p className="mt-3 rounded-2xl bg-[#EEF2DC] px-3 py-2.5 text-[11px] leading-relaxed text-[#7C8665]">
-          يُستخدم رمز PIN للتحقق من هويتك عند الطلب — يُخزَّن مشفّرًا ولا يمكن لأحد رؤيته
+        <p className="mt-4 flex items-start gap-2 rounded-2xl bg-[#EEF2DC] px-3 py-2.5 text-[11px] leading-relaxed text-[#7C8665]">
+          <Icon name="lock" size={13} className="mt-0.5 flex-none" style={{ color: '#A9907E' }} />
+          يُستخدم رقم هاتفك للتحقق من هويتك عند الطلب
         </p>
         {err && <p className="mt-3 rounded-2xl bg-red-50 px-3 py-2 text-center text-xs font-bold text-red-600">{err}</p>}
         <button onClick={submit} disabled={busy}
@@ -1127,8 +1092,6 @@ export default function CustomerApp() {
   const { show, node: toastNode } = useToast();
   const [product, setProduct] = useState<Product | null>(null);
   const [flow, setFlow] = useState<OrderFlow>({ step: null, lines: [] });
-  const [pinErr, setPinErr] = useState('');
-  const [pinAttempt, setPinAttempt] = useState(0);
   const [pinBusy, setPinBusy] = useState(false);
   const [doneOrder, setDoneOrder] = useState<{ orderNumber: number; points: number; free: boolean } | null>(null);
   const [pinBusyConfirm, setPinBusyConfirm] = useState(false);
@@ -1237,26 +1200,12 @@ export default function CustomerApp() {
     setFlow({ step: 'contact', lines });
   };
 
-  const submitPin = async (pin: string) => {
-    if (!session) return;
-    setPinBusy(true); setPinErr('');
-    try {
-      // تحقق من الرمز فقط — لا يُنشأ الطلب قبل التأكيد
-      await rpc('verify_customer_pin', { p_customer_id: session.customer.id, p_pin: pin });
-      if (promoCode && promoDisc && promoEligibleSubtotal(flow.lines) > 0) setFlow((st) => ({ ...st, step: 'promo', pin }));
-      else setFlow((st) => ({ ...st, step: 'review', pin }));
-    } catch (e: any) {
-      setPinErr(e.message);
-      setPinAttempt((a) => a + 1);
-    } finally { setPinBusy(false); }
-  };
-
   const confirmWhatsApp = async () => {
-    if (!session || !flow.pin) return;
+    if (!session) return;
     setPinBusy(true);
     try {
       const res = await rpc<any>('create_order', {
-        p_customer_id: session.customer.id, p_pin: flow.pin,
+        p_customer_id: session.customer.id,
         p_fulfillment_type: flow.fulfillment ?? 'pickup',
         p_items: flow.lines.map((l) => ({
           product_id: l.product.id, qty: l.qty, options: (l.options || []).join('، '),
@@ -1323,7 +1272,6 @@ export default function CustomerApp() {
     { to: '/', icon: 'home', label: 'الرئيسية', end: true },
     { to: '/favorites', icon: 'heart', label: 'المفضلة' },
     { to: '/rewards', icon: 'star', label: 'النقاط' },
-    { to: '/codes', icon: 'gift', label: 'المكافآت' },
     { to: '/orders', icon: 'receipt', label: 'الطلبات' },
   ];
 
@@ -1435,24 +1383,23 @@ export default function CustomerApp() {
           onClose={() => setFlow({ step: null, lines: [] })}
           onPick={(f) => {
             if (f === 'delivery') setFlow((s) => ({ ...s, step: 'location', fulfillment: 'delivery' }));
-            else setFlow((s) => ({ ...s, step: 'pin', fulfillment: 'pickup' }));
+            else if (promoCode && promoDisc && promoEligibleSubtotal(flow.lines) > 0) setFlow((s) => ({ ...s, step: 'promo', fulfillment: 'pickup' }));
+            else setFlow((s) => ({ ...s, step: 'review', fulfillment: 'pickup' }));
           }} />
       )}
       {flow.step === 'location' && (
         <LocationModal
           onClose={() => setFlow({ step: null, lines: [] })}
           onBack={() => setFlow((s) => ({ ...s, step: 'fulfillment' }))}
-          onDone={(loc) => setFlow((s) => ({ ...s, step: 'pin', loc }))} />
+          onDone={(loc) => {
+            if (promoCode && promoDisc && promoEligibleSubtotal(flow.lines) > 0) setFlow((s) => ({ ...s, step: 'promo', loc }));
+            else setFlow((s) => ({ ...s, step: 'review', loc }));
+          }} />
       )}
       {flow.step === 'promo' && (
         <PromoChoiceModal code={promoCode} disc={promoDisc} where={promoWhereLabel()} busy={pinBusyConfirm}
           onUse={() => { setFlow((st) => ({ ...st, step: 'review', usePromo: true })); }}
           onSkip={() => { setFlow((st) => ({ ...st, step: 'review', usePromo: false })); }} />
-      )}
-      {flow.step === 'pin' && (
-        <PinPad title="تأكيد هويتك" subtitle="أدخل رمز PIN المكوّن من 4 أرقام لتأكيد طلبك"
-          loading={pinBusy} error={pinErr} attemptKey={pinAttempt} onFill={submitPin}
-          onClose={() => { setFlow({ step: null, lines: [] }); setPinErr(''); setPinAttempt(0); }} />
       )}
       {flow.step === 'review' && (
         <ConfirmOrderModal

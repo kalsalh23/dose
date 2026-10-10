@@ -786,7 +786,7 @@ function AdsTab({ token }: { token: string }) {
                 <p className="mt-0.5 text-xs text-neutral-500">{a.description_ar}</p>
                 <p className="mt-0.5 text-[10px] font-bold text-neutral-400">
                   {a.full_screen ? '🖥️ إعلان منبثق — يظهر بعد دقيقتين من التصفح' : '📱 يظهر ضمن الهيرو المتنقل'}
-                  {a.ends_at ? ' · حتى ' + new Date(a.ends_at).toLocaleDateString('ar-SY', { day: 'numeric', month: 'short' }) : ' · بلا نهاية'}
+                  {a.ends_at ? ' · حتى ' + new Date(a.ends_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric' }) : ' · بلا نهاية'}
                 </p>
                 {a.category_slug && (
                   <span className="mt-1 inline-block rounded-full bg-[#EEF2DC] px-2.5 py-1 text-[10px] font-black text-[#414D36]">🏷️ فئة: {catName(a.category_slug)}</span>

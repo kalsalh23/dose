@@ -14,8 +14,12 @@ export const fmtDateTimeNum = (iso: string) => {
   return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()} · ${hh}:${mm}`;
 };
 
-export const fmtDateTime = (iso: string) =>
-  new Date(iso).toLocaleString('ar-SY', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
+export const fmtDateTime = (iso: string) => {
+  const d = new Date(iso);
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()} · ${hh}:${mm}`;
+};
 
 export const ORDER_STATUS: Record<string, { label: string; color: string }> = {
   pending: { label: 'قيد المراجعة', color: 'bg-amber-100 text-amber-800' },
