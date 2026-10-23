@@ -647,7 +647,8 @@ function ProductsTab({ token }: { token: string }) {
   const [offerId, setOfferId] = useState<number | null>(null);
   const [offerVal, setOfferVal] = useState('');
   const load = useCallback(() => { arpc<any[]>('admin_list_products', { p_token: token }).then(setProducts).catch(() => {}); }, [token]);
-  useEffect(() => { load(); }, [load]);
+  const loadMenus = useCallback(() => { arpc<any[]>('admin_list_menus', { p_token: token }).then(setMenus).catch(() => {}); }, [token]);
+  useEffect(() => { load(); loadMenus(); }, [load, loadMenus]);
   useEffect(() => {
     (async () => {
       try {
@@ -774,12 +775,12 @@ function ProductsTab({ token }: { token: string }) {
                     {cats.map((c: any) => <option key={c.slug} value={c.slug}>{c.name_ar}</option>)}
                   </select>
                 </Field>
-                <Field label="القائمة (اختياري)">
-                  <select className={inputCls} value={edit.menu_id || ''} onChange={(e) => setEdit({ ...edit, menu_id: e.target.value ? Number(e.target.value) : null })}>
-                    <option value="">بدون قائمة</option>
-                    {menus.map((m: any) => <option key={m.id} value={m.id}>{m.emoji ? m.emoji + ' ' : ''}{m.title}</option>)}
-                  </select>
-                </Field>
+              <Field label="القائمة (اختياري)">
+                <select className={inputCls} value={edit.menu_id || ''} onChange={(e) => setEdit({ ...edit, menu_id: e.target.value ? Number(e.target.value) : null })}>
+                  <option value="">بدون قائمة</option>
+                  {(menus.length ? menus : []).map((m: any) => <option key={m.id} value={m.id}>{m.emoji ? m.emoji + ' ' : ''}{m.title}</option>)}
+                </select>
+              </Field>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="نشط">
