@@ -33,20 +33,20 @@ async function arpc<T = any>(fn: string, args: Record<string, any> = {}): Promis
   return d;
 }
 const TABS: { id: TabId; label: string; icon: IconName; roles: AdminRole[] }[] = [
-  { id: 'dashboard', label: 'الرئاسة', icon: 'chart', roles: ['owner'] },
+  { id: 'dashboard', label: 'الرئيسة', icon: 'chart', roles: ['owner'] },
   { id: 'sales', label: 'المبيعات', icon: 'store', roles: ['owner'] },
   { id: 'orders', label: 'الطلبات', icon: 'clipboard', roles: ['owner', 'worker'] },
-  { id: 'products', label: 'الproducts', icon: 'package', roles: ['owner'] },
-  { id: 'menus', label: 'قوائم', icon: 'receipt', roles: ['owner'] },
-  { id: 'extras', label: 'adds', icon: 'plus', roles: ['owner'] },
+  { id: 'products', label: 'المنتجات', icon: 'package', roles: ['owner'] },
+  { id: 'menus', label: 'القوائم', icon: 'receipt', roles: ['owner'] },
+  { id: 'extras', label: 'الإضافات', icon: 'plus', roles: ['owner'] },
   { id: 'customers', label: 'العملاء', icon: 'users', roles: ['owner'] },
   { id: 'rewards', label: 'المكافآت', icon: 'gift', roles: ['owner'] },
-  { id: 'ads', label: 'الxeq', icon: 'megaphone', roles: ['owner'] },
-  { id: 'notify', label: 'xeq', icon: 'bell', roles: ['owner'] },
-  { id: 'hours', label: 'وقت دوامي', icon: 'clock', roles: ['owner'] },
+  { id: 'ads', label: 'الإعلانات', icon: 'megaphone', roles: ['owner'] },
+  { id: 'notify', label: 'الإشعارات', icon: 'bell', roles: ['owner'] },
+  { id: 'hours', label: 'وقت الدوام', icon: 'clock', roles: ['owner'] },
   { id: 'order_time', label: 'وقت الطلب', icon: 'timer', roles: ['owner'] },
   { id: 'promo', label: 'كود الخصم', icon: 'gift', roles: ['owner'] },
-  { id: 'hero', label: 'الhero', icon: 'image', roles: ['owner'] },
+  { id: 'hero', label: 'تفاصيل الهيرو', icon: 'image', roles: ['owner'] },
   { id: 'settings', label: 'الإعدادات', icon: 'settings', roles: ['owner'] },
 ];
 type TabId = 'dashboard' | 'sales' | 'extras' | 'orders' | 'products' | 'menus' | 'customers' | 'rewards' | 'ads' | 'notify' | 'hours' | 'order_time' | 'settings' | 'promo' | 'hero';
