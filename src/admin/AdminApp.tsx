@@ -637,7 +637,7 @@ function SalesTab({ token }: { token: string }) {
 }
 
 /* ============================ المنتجات ============================ */
-const EMPTY_PRODUCT = { id: 0, category_slug: 'hot_drinks', name_ar: '', name_en: '', description_ar: '', price_cents: 0, points: 0, image_url: '', options: '', is_active: true, is_available: true, sort_order: 0, eta_minutes: 5, menu_id: null };
+const EMPTY_PRODUCT = { id: 0, category_slug: 'hot_drinks', name_ar: '', name_en: '', description_ar: '', price_cents: 0, points: 0, image_url: '', options: '', is_active: true, is_available: true, sort_order: 0, eta_minutes: 0, menu_id: null };
 const EMPTY_ADD = { id: 0, name_ar: '', price_cents: '', price_mode: 'add', is_active: true, product_ids: [] };
 function ProductsTab({ token }: { token: string }) {
   const [products, setProducts] = useState<any[]>([]);
@@ -765,9 +765,6 @@ function ProductsTab({ token }: { token: string }) {
                 <Field label="السعر (ل.س)"><input type="number" className={inputCls} value={edit.price_cents} onChange={(e) => setEdit({ ...edit, price_cents: +e.target.value })} /></Field>
                 <Field label="النقاط"><input type="number" className={inputCls} value={edit.points} onChange={(e) => setEdit({ ...edit, points: +e.target.value })} /></Field>
               </div>
-              <Field label="الوقت المقدر لل Prepared (دقيقة) — يُرسل مع تفاصيل الطلب عند طلب هذا المنتج، والمالك له كامل حرية الاختيار">
-                <input type="number" min="1" max="180" className={inputCls} value={edit.eta_minutes ?? ''} onChange={(e) => setEdit({ ...edit, eta_minutes: +e.target.value || 0 })} placeholder="مثال: 5" dir="ltr" />
-              </Field>
               <Field label="صورة المنتج"><ImageUploadField value={edit.image_url} onChange={(url) => setEdit({ ...edit, image_url: url })} folder="products" /></Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="التصنيف">
