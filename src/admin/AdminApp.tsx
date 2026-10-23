@@ -950,15 +950,15 @@ function MenusTab({ token }: { token: string }) {
                 </select>
               </Field>
 
-              <Field label={`منتجات القائمة (${(edit.product_ids ?? []).length})`}>
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <input value={pickQ} onChange={(e) => setPickQ(e.target.value)} placeholder="ابحث عن منتج…" className={`${inputCls} flex-1`} />
-                    <select value={pickCat} onChange={(e) => setPickCat(e.target.value)} className={`${inputCls} w-36`}>
-                      <option value="">كل التصنيفات</option>
-                      {cats.map((c: any) => <option key={c.slug} value={c.slug}>{c.name_ar}</option>)}
-                    </select>
-                  </div>
+               <Field label={`منتجات القائمة (${(edit.product_ids ?? []).length})`}>
+                 <div className="space-y-2">
+                   <div className="flex flex-col gap-2 sm:flex-row">
+                     <input value={pickQ} onChange={(e) => setPickQ(e.target.value)} placeholder="ابحث عن منتج…" className={`${inputCls} w-full sm:flex-1`} />
+                     <select value={pickCat} onChange={(e) => setPickCat(e.target.value)} className={`${inputCls} w-full sm:w-36`}>
+                       <option value="">كل التصنيفات</option>
+                       {cats.map((c: any) => <option key={c.slug} value={c.slug}>{c.name_ar}</option>)}
+                     </select>
+                   </div>
                   <div className="max-h-64 space-y-0.5 overflow-y-auto rounded-xl border-2 border-beige p-2">
                     {pickable.map((p) => (
                       <label key={p.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-bold text-neutral-700 hover:bg-[#F6F0E2]">
@@ -1071,7 +1071,7 @@ function ExtrasTab({ token }: { token: string }) {
                  </select>
                </Field>
                <Field label="المنتجات التي تُعرض معها (اختيار متعدد)">
-                 <input value={pickQ} onChange={(e) => setPickQ(e.target.value)} placeholder="ابحث عن منتج…" className={`${inputCls} mb-2`} />
+                 <input value={pickQ} onChange={(e) => setPickQ(e.target.value)} placeholder="ابحث عن منتج…" className={`${inputCls} mb-2 w-full`} />
                  <div className="max-h-48 space-y-0.5 overflow-y-auto rounded-xl border-2 border-beige p-2">
                    {filteredProducts.map((p) => (
                      <label key={p.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-bold text-neutral-700 hover:bg-[#F6F0E2]">
