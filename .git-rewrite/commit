@@ -1,0 +1,10 @@
+tree 13fcb4e5ab6fce7a6f3e555ce66dc6114172abad
+parent 167f3d152b778e1abba24b40616d2295c0da0cd1
+author kalsalh23 <kalsalh23@users.noreply.github.com> 1790220202 +0000
+committer kalsalh23 <kalsalh23@users.noreply.github.com> 1790220202 +0000
+
+Dose Coffee & More — Tablet kiosk loyalty app
+
+- RTL premium coffee UI for in-store tablet
+- Supabase backend (customers, orders, PIN verification RPCs)
+- Points loyalty flow with on-screen PIN confirmation

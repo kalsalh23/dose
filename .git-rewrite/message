@@ -1,0 +1,5 @@
+Dose Coffee & More — Tablet kiosk loyalty app
+
+- RTL premium coffee UI for in-store tablet
+- Supabase backend (customers, orders, PIN verification RPCs)
+- Points loyalty flow with on-screen PIN confirmation

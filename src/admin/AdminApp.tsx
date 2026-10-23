@@ -47,10 +47,9 @@ const TABS: { id: TabId; label: string; icon: IconName; roles: AdminRole[] }[] =
   { id: 'order_time', label: 'وقت الطلب', icon: 'timer', roles: ['owner'] },
   { id: 'promo', label: 'كود الخصم', icon: 'gift', roles: ['owner'] },
   { id: 'hero', label: 'تفاصيل الهيرو', icon: 'image', roles: ['owner'] },
-  { id: 'permissions', label: 'صلاحيات العميل', icon: 'settings', roles: ['owner'] },
   { id: 'settings', label: 'الإعدادات', icon: 'settings', roles: ['owner'] },
 ];
-type TabId = 'dashboard' | 'sales' | 'extras' | 'orders' | 'products' | 'menus' | 'customers' | 'rewards' | 'ads' | 'notify' | 'hours' | 'order_time' | 'settings' | 'promo' | 'hero' | 'permissions';
+type TabId = 'dashboard' | 'sales' | 'extras' | 'orders' | 'products' | 'menus' | 'customers' | 'rewards' | 'ads' | 'notify' | 'hours' | 'order_time' | 'settings' | 'promo' | 'hero';
 
 export default function AdminApp() {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(ADMIN_KEY));
@@ -227,10 +226,9 @@ export default function AdminApp() {
         {tab === 'notify' && <NotifyTab token={token} />}
       {tab === 'order_time' && <OrderTimeTab token={token} />}
         {tab === 'hours' && <HoursTab token={token} />}
+        {tab === 'settings' && <SettingsTab token={token} />}
         {tab === 'promo' && <PromoTab token={token} />}
         {tab === 'hero' && <HeroTab token={token} />}
-        {tab === 'permissions' && <PermissionsTab token={token} />}
-        {tab === 'settings' && <SettingsTab token={token} />}
       </main>
     </div>
   );
@@ -1549,46 +1547,8 @@ function SettingsTab({ token }: { token: string }) {
   );
 }
 
-/* ============================ صلاحيات العميل ============================ */
-function PermissionsTab({ token }: { token: string }) {
-  const [settings, setSettings] = useState<Record<string, string>>({});
-  const [msg, setMsg] = useState('');
-  const [busy, setBusy] = useState(false);
-  const load = useCallback(() => { arpc<Record<string, string>>('admin_get_settings', { p_token: token }).then(setSettings).catch(() => {}); }, [token]);
-  useEffect(() => { load(); }, [load]);
-
-  const pointsExpireDays = settings.points_expire_days ?? '';
-  const rewardExpireDays = settings.reward_expire_days ?? '';
-
-  return (
-    <div className="mx-auto max-w-md">
-      <h2 className="mb-1 text-base font-extrabold text-coffee-900">صلاحيات العميل</h2>
-      <p className="mb-3 text-[11px] font-bold text-neutral-500">ضبط صلاحية النقاط والمكافآت تلقائياً</p>
-      <Card className="space-y-4">
-        <Field label="عدد أيام صلاحية النقاط">
-          <input type="number" min="0" className={inputCls} value={pointsExpireDays} onChange={(e) => setSettings({ ...settings, points_expire_days: e.target.value })} placeholder="مثال: 30" />
-        </Field>
-        <p className="text-[10px] font-bold text-neutral-400">بعد تجاوز هذا العدد من الأيام يتم تصفير نقاط المستخدمين تلقائياً</p>
-        <Field label="عدد أيام صلاحية المكافأة">
-          <input type="number" min="0" className={inputCls} value={rewardExpireDays} onChange={(e) => setSettings({ ...settings, reward_expire_days: e.target.value })} placeholder="مثال: 7" />
-        </Field>
-        <p className="text-[10px] font-bold text-neutral-400">بعد تجاوز هذا العدد من الأيام يتم إلغاء المكافأة تلقائياً</p>
-        {msg && <p className="rounded-xl bg-green-50 px-3 py-2 text-center text-xs font-extrabold text-green-700">{msg}</p>}
-        <button disabled={busy} onClick={async () => {
-          setBusy(true);
-          try {
-            await arpc('admin_save_settings', { p_token: token, p_settings: { points_expire_days: pointsExpireDays, reward_expire_days: rewardExpireDays } });
-            setMsg('حُفظت الصلاحيات بنجاح ✓');
-            setTimeout(() => setMsg(''), 4000);
-          } catch (e: any) { alert(e.message); }
-          setBusy(false);
-        }} className={`${btnCls} w-full`} style={{ borderRadius: 16, height: 46 }}>
-          {busy ? 'جارٍ الحفظ…' : 'حفظ'}
-        </button>
-      </Card>
-    </div>
-  );
-}
+/* ============================ تفاصيل الهيرو ============================ */
+function HeroTab({ token }: { token: string }) {
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
@@ -1634,47 +1594,6 @@ function PermissionsTab({ token }: { token: string }) {
           setBusy(false);
         }} className={`${btnCls} w-full`} style={{ borderRadius: 16, height: 46 }}>
           {busy ? 'جارٍ الحفظ…' : 'حفظ تفاصيل الهيرو'}
-        </button>
-      </Card>
-    </div>
-  );
-}
-
-/* ============================ صلاحيات العميل ============================ */
-function PermissionsTab({ token }: { token: string }) {
-  const [settings, setSettings] = useState<Record<string, string>>({});
-  const [msg, setMsg] = useState('');
-  const [busy, setBusy] = useState(false);
-  const load = useCallback(() => { arpc<Record<string, string>>('admin_get_settings', { p_token: token }).then(setSettings).catch(() => {}); }, [token]);
-  useEffect(() => { load(); }, [load]);
-
-  const pointsExpireDays = settings.points_expire_days ?? '';
-  const rewardExpireDays = settings.reward_expire_days ?? '';
-
-  return (
-    <div className="mx-auto max-w-md">
-      <h2 className="mb-1 text-base font-extrabold text-coffee-900">صلاحيات العميل</h2>
-      <p className="mb-3 text-[11px] font-bold text-neutral-500">ضبط صلاحية النقاط والمكافآت تلقائياً</p>
-      <Card className="space-y-4">
-        <Field label="عدد أيام صلاحية النقاط">
-          <input type="number" min="0" className={inputCls} value={pointsExpireDays} onChange={(e) => setSettings({ ...settings, points_expire_days: e.target.value })} placeholder="مثال: 30" />
-        </Field>
-        <p className="text-[10px] font-bold text-neutral-400">بعد تجاوز هذا العدد من الأيام يتم تصفير نقاط المستخدمين تلقائياً</p>
-        <Field label="عدد أيام صلاحية المكافأة">
-          <input type="number" min="0" className={inputCls} value={rewardExpireDays} onChange={(e) => setSettings({ ...settings, reward_expire_days: e.target.value })} placeholder="مثال: 7" />
-        </Field>
-        <p className="text-[10px] font-bold text-neutral-400">بعد تجاوز هذا العدد من الأيام يتم إلغاء المكافأة تلقائياً</p>
-        {msg && <p className="rounded-xl bg-green-50 px-3 py-2 text-center text-xs font-extrabold text-green-700">{msg}</p>}
-        <button disabled={busy} onClick={async () => {
-          setBusy(true);
-          try {
-            await arpc('admin_save_settings', { p_token: token, p_settings: { points_expire_days: pointsExpireDays, reward_expire_days: rewardExpireDays } });
-            setMsg('حُفظت الصلاحيات بنجاح ✓');
-            setTimeout(() => setMsg(''), 4000);
-          } catch (e: any) { alert(e.message); }
-          setBusy(false);
-        }} className={`${btnCls} w-full`} style={{ borderRadius: 16, height: 46 }}>
-          {busy ? 'جارٍ الحفظ…' : 'حفظ'}
         </button>
       </Card>
     </div>
