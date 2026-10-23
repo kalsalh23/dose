@@ -1193,7 +1193,15 @@ function RewardsTab({ token }: { token: string }) {
               </Field>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3">
-              <button disabled={busy} onClick={() => wrap(async () => { await arpc('admin_save_reward', { p_token: token, p_reward: edit }); setEdit(null); load(); })}
+              <button disabled={busy} onClick={() => wrap(async () => {
+                const payload = { ...edit };
+                if (payload.expires_at === '') payload.expires_at = null;
+                if (payload.redemption_days === '' || payload.redemption_days === null || payload.redemption_days === undefined) delete payload.redemption_days;
+                else payload.redemption_days = Number(payload.redemption_days);
+                await arpc('admin_save_reward', { p_token: token, p_reward: payload });
+                setEdit(null);
+                load();
+              })}
                 className="rounded-2xl bg-gradient-to-l from-gold to-gold-deep py-3 text-sm font-extrabold text-white disabled:opacity-50">حفظ</button>
               <button onClick={() => setEdit(null)} className="rounded-2xl bg-neutral-100 py-3 text-sm font-extrabold text-neutral-600">إلغاء</button>
             </div>
