@@ -852,7 +852,7 @@ function CustomersTab({ token }: { token: string }) {
 }
 
 /* ============================ المكافآت ============================ */
-const EMPTY_REWARD = { id: 0, name_ar: '', name_en: '', image_url: '/img/latte.jpg', points_cost: 50, is_active: true, sort_order: 0 };
+const EMPTY_REWARD = { id: 0, name_ar: '', name_en: '', image_url: '/img/latte.jpg', points_cost: 50, is_active: true, sort_order: 0, expires_at: '' };
 /* ============================ القوائم ============================ */
 const EMPTY_MENU = { id: 0, title: '', subtitle: '', image_url: '', emoji: '☕', is_active: true, sort_order: 0, product_ids: [] as number[] };
 function MenusTab({ token }: { token: string }) {
@@ -1127,6 +1127,7 @@ function RewardsTab({ token }: { token: string }) {
             <img src={r.image_url} alt="" className="h-28 w-full rounded-2xl object-cover" />
             <p className="mt-2 text-sm font-extrabold text-coffee-900">{r.name_ar}</p>
             <p className="text-xs font-extrabold text-gold-deep">⭐ {r.points_cost} نقطة</p>
+            {r.expires_at && <p className="text-[10px] font-bold text-amber-700">صالح حتى: {r.expires_at.slice(0,10)}</p>}
             <p className="text-[11px] text-neutral-400">استبدالات: {r.redemptions_count}</p>
             <div className="mt-2 flex gap-2">
               <button onClick={() => setEdit({ ...r })} className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
@@ -1176,6 +1177,9 @@ function RewardsTab({ token }: { token: string }) {
             <div className="mt-4 space-y-3">
               <Field label="الاسم"><input className={inputCls} value={edit.name_ar} onChange={(e) => setEdit({ ...edit, name_ar: e.target.value })} /></Field>
               <Field label="النقاط المطلوبة"><input type="number" className={inputCls} value={edit.points_cost} onChange={(e) => setEdit({ ...edit, points_cost: +e.target.value })} /></Field>
+              <Field label="تاريخ صلاحية المكافأة (اختياري)">
+                <input type="date" className={inputCls} value={edit.expires_at ? edit.expires_at.substring(0,10) : ''} onChange={(e) => setEdit({ ...edit, expires_at: e.target.value ? e.target.value : null })} />
+              </Field>
               <Field label="صورة المكافأة"><ImageUploadField value={edit.image_url} onChange={(url) => setEdit({ ...edit, image_url: url })} folder="rewards" /></Field>
               <Field label="نشط">
                 <select className={inputCls} value={String(edit.is_active ?? true)} onChange={(e) => setEdit({ ...edit, is_active: e.target.value === 'true' })}>

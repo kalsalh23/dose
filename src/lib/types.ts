@@ -6,7 +6,7 @@ export interface Product {
   sale_price_cents?: number | null;
   eta_minutes?: number | null;
 }
-export interface Reward { id: number; name_ar: string; name_en: string; image_url: string; points_cost: number; sort_order: number }
+export interface Reward { id: number; name_ar: string; name_en: string; image_url: string; points_cost: number; sort_order: number; expires_at?: string | null; is_active?: boolean }
 export type AdditionPriceMode = 'add' | 'subtract';
 export interface Addition { id: number; name_ar: string; price_cents: number; product_ids: number[]; price_mode?: AdditionPriceMode }
 export interface PickedAddition { id: number; name_ar: string; price_cents: number; price_mode?: AdditionPriceMode }

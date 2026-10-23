@@ -813,6 +813,7 @@ function RewardsPage({ catalog, myData, session, onRedeem }: any) {
                 <p className="mt-0.5 flex items-center gap-1 text-sm font-black text-[#7C8F52]">
                   <Icon name="star" size={13} filled /> {r.points_cost} نقطة
                 </p>
+                {r.expires_at && <p className="text-[10px] font-bold text-amber-700">صالح حتى: {fmtDateNum ? fmtDateNum(r.expires_at.slice(0,10).replace(/-/g,'')) : new Date(r.expires_at).toLocaleDateString('ar-EG')}</p>}
               </div>
               <button disabled={!can || busy} onClick={() => setConfirming(r)}
                 className={`rounded-full px-5 py-2.5 text-sm font-black transition active:scale-95 ${can ? 'bg-[#C9D3A8] text-[#26301C] shadow-md shadow-[#8a6a48]/30' : 'bg-[#E3E9C8] text-[#7C8665]'}`}>
