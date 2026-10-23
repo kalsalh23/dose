@@ -852,7 +852,7 @@ function CustomersTab({ token }: { token: string }) {
 }
 
 /* ============================ المكافآت ============================ */
-const EMPTY_REWARD = { id: 0, name_ar: '', name_en: '', image_url: '/img/latte.jpg', points_cost: 50, is_active: true, sort_order: 0, expires_at: '' };
+const EMPTY_REWARD = { id: 0, name_ar: '', name_en: '', image_url: '/img/latte.jpg', points_cost: 50, is_active: true, sort_order: 0, expires_at: '', redemption_days: '' };
 /* ============================ القوائم ============================ */
 const EMPTY_MENU = { id: 0, title: '', subtitle: '', image_url: '', emoji: '☕', is_active: true, sort_order: 0, product_ids: [] as number[] };
 function MenusTab({ token }: { token: string }) {
@@ -1177,9 +1177,14 @@ function RewardsTab({ token }: { token: string }) {
             <div className="mt-4 space-y-3">
               <Field label="الاسم"><input className={inputCls} value={edit.name_ar} onChange={(e) => setEdit({ ...edit, name_ar: e.target.value })} /></Field>
               <Field label="النقاط المطلوبة"><input type="number" className={inputCls} value={edit.points_cost} onChange={(e) => setEdit({ ...edit, points_cost: +e.target.value })} /></Field>
+              <Field label="عدد أيام الاستبدال">
+                <input type="number" min="0" className={inputCls} value={edit.redemption_days ?? ''} onChange={(e) => setEdit({ ...edit, redemption_days: e.target.value })} placeholder="مثال: 7" />
+              </Field>
+              <p className="text-[10px] font-bold text-neutral-400">عدد الأيام التي يبقى فيها كود الاستبدال صالحاً للزبون بعد استبداله</p>
               <Field label="تاريخ صلاحية المكافأة (اختياري)">
                 <input type="date" className={inputCls} value={edit.expires_at ? edit.expires_at.substring(0,10) : ''} onChange={(e) => setEdit({ ...edit, expires_at: e.target.value ? e.target.value : null })} />
               </Field>
+              <p className="text-[10px] font-bold text-neutral-400">تاريخ انتهاء ظهور المكافأة في التطبيق</p>
               <Field label="صورة المكافأة"><ImageUploadField value={edit.image_url} onChange={(url) => setEdit({ ...edit, image_url: url })} folder="rewards" /></Field>
               <Field label="نشط">
                 <select className={inputCls} value={String(edit.is_active ?? true)} onChange={(e) => setEdit({ ...edit, is_active: e.target.value === 'true' })}>

@@ -1082,9 +1082,9 @@ function MyCodes({ redemptions }: { redemptions: Redemption[] }) {
             <div className="text-center">
               <p className="rounded-2xl bg-[#26301C] px-3.5 py-2 font-mono text-base font-black tracking-widest text-[#C9D3A8]" dir="ltr">{r.code}</p>
               <p className={`mt-1 text-[10px] font-extrabold ${r.status === 'unused' ? 'text-[#6B7A45]' : 'text-[#7C8665]'}`}>
-                {r.status === 'unused' ? 'غير مستخدم' : r.status === 'used' ? 'مستخدم' : 'منتهي'}
+                {r.status === 'unused' ? 'غير مستعمل' : r.status === 'used' ? 'مستعمل' : 'منتهي'}
               </p>
-              {r.status === 'unused' && r.expires_at && <p className="mt-0.5 text-[9.5px] font-bold text-[#A05B47]">صالحة حتى {fmtDateNum(r.expires_at)}</p>}
+              {r.status === 'unused' && (r.expires_at || (r as any).reward_expires_at) && <p className="mt-0.5 text-[9.5px] font-bold text-[#A05B47]">صالحة حتى {fmtDateNum(r.expires_at || (r as any).reward_expires_at)}</p>}
             </div>
           </div>
         ))}
