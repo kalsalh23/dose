@@ -1575,26 +1575,21 @@ function PermissionsTab({ token }: { token: string }) {
   useEffect(() => { load(); }, [load]);
 
   const pointsExpireDays = settings.points_expire_days ?? '';
-  const rewardExpireDays = settings.reward_expire_days ?? '';
 
   return (
     <div className="mx-auto max-w-md">
       <h2 className="mb-1 text-base font-extrabold text-coffee-900">صلاحيات العميل</h2>
-      <p className="mb-3 text-[11px] font-bold text-neutral-500">ضبط صلاحية النقاط والمكافآت تلقائياً</p>
+      <p className="mb-3 text-[11px] font-bold text-neutral-500">ضبط صلاحية النقاط تلقائياً</p>
       <Card className="space-y-4">
         <Field label="عدد أيام صلاحية النقاط">
           <input type="number" min="0" className={inputCls} value={pointsExpireDays} onChange={(e) => setSettings({ ...settings, points_expire_days: e.target.value })} placeholder="مثال: 30" />
         </Field>
         <p className="text-[10px] font-bold text-neutral-400">بعد تجاوز هذا العدد من الأيام يتم تصفير نقاط المستخدمين تلقائياً</p>
-        <Field label="عدد أيام صلاحية المكافأة">
-          <input type="number" min="0" className={inputCls} value={rewardExpireDays} onChange={(e) => setSettings({ ...settings, reward_expire_days: e.target.value })} placeholder="مثال: 7" />
-        </Field>
-        <p className="text-[10px] font-bold text-neutral-400">بعد تجاوز هذا العدد من الأيام يتم إلغاء المكافأة تلقائياً</p>
         {msg && <p className="rounded-xl bg-green-50 px-3 py-2 text-center text-xs font-extrabold text-green-700">{msg}</p>}
         <button disabled={busy} onClick={async () => {
           setBusy(true);
           try {
-            await arpc('admin_save_settings', { p_token: token, p_settings: { points_expire_days: pointsExpireDays, reward_expire_days: rewardExpireDays } });
+            await arpc('admin_save_settings', { p_token: token, p_settings: { points_expire_days: pointsExpireDays } });
             setMsg('حُفظت الصلاحيات بنجاح ✓');
             setTimeout(() => setMsg(''), 4000);
           } catch (e: any) { alert(e.message); }
