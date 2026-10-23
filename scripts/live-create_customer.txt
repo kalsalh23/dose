@@ -1,0 +1,15 @@
+p_full_name text, p_phone text, p_pin text, p_device_id text DEFAULT NULL::text
+=====
+
+declare c public.customers;
+begin
+  if length(btrim(p_full_name)) < 2 then raise exception 'invalid_name'; end if;
+  if length(btrim(p_phone)) < 8 or length(btrim(p_phone)) > 15 then raise exception 'invalid_phone'; end if;
+  if p_pin !~ '^[0-9]{4}$' then raise exception 'invalid_pin'; end if;
+  insert into public.customers (full_name, phone, pin_hash, device_id)
+  values (btrim(p_full_name), btrim(p_phone), public._pin_hash(p_phone, p_pin), p_device_id)
+  on conflict (phone) do nothing returning * into c;
+  if c is null then raise exception 'phone_exists'; end if;
+  perform public._notify(c.id, '☕ أهلًا بك في Dose', 'تم إنشاء حسابك بنجاح — اجمع النقاط مع كل طلب واستبدلها بمكافآت', 'welcome');
+  return jsonb_build_object('id', c.id, 'full_name', c.full_name, 'phone', c.phone, 'points', c.points);
+end 

@@ -1,0 +1,47 @@
+
+declare
+  vc public.customers; r public.rewards; new_code text; i integer := 0;
+  exp timestamptz;
+begin
+  select cust.* into vc from public.customers cust
+    join public.customer_sessions s on s.customer_id = cust.id where s.token = p_token;
+  if vc is null then raise exception 'unauthorized'; end if;
+  select * into r from public.rewards where id = p_reward_id and is_active;
+  if r is null then raise exception 'invalid_reward'; end if;
+  if vc.points < r.points_cost then raise exception 'insufficient_points'; end if;
+
+  exp := now() + interval '7 days';
+
+  loop
+    i := i + 1;
+    new_code := upper(substr(replace(md5(random()::text || clock_timestamp()::text), '-', ''), 1, 6));
+    begin
+      insert into public.reward_redemptions (code, customer_id, reward_id, reward_name, points_cost, expires_at)
+      values (new_code, vc.id, r.id, r.name_ar, r.points_cost, exp);
+      exit;
+    exception when unique_violation then
+      if i > 5 then raise exception 'code_generation_failed'; end if;
+    end;
+  end loop;
+
+  update public.customers set points = points - r.points_cost where id = vc.id;
+  insert into public.points_transactions (customer_id, reward_id, delta, reason)
+  values (vc.id, r.id, -r.points_cost, 'redemption:' || new_code);
+
+  perform public._notify(vc.id, '🎁 تم استبدال المكافأة بنجاح',
+    r.name_ar || ' — الكود: ' || new_code || ' — الرمز صالح أسبوعًا واحدًا فقط للاستخدام داخل المحل حصرًا', 'reward');
+
+  begin
+    perform net.http_post(
+      url := 'https://mqstsxuscqbxnyejhixk.supabase.co/functions/v1/push',
+      headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer anon'),
+      body := jsonb_build_object('customer_id', vc.id, 'title', '🎁 تم استبدال المكافأة بنجاح',
+        'body', r.name_ar || ' — الكود: ' || new_code || ' — صالح أسبوعًا فقط داخل المحل حصرًا')
+    );
+  exception when others then null;
+  end;
+
+  return jsonb_build_object('code', new_code, 'reward_name', r.name_ar,
+    'points_cost', r.points_cost, 'status', 'unused', 'expires_at', exp,
+    'remaining_points', vc.points - r.points_cost);
+end 

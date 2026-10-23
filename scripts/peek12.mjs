@@ -1,0 +1,10 @@
+import { readFileSync } from 'node:fs';
+const s = readFileSync('src/customer/CustomerApp.tsx', 'utf8');
+console.log('has المبلغ label:', s.includes('>المبلغ</span>'));
+console.log('has مراجعة طلبك:', (s.match(/مراجعة طلبك/g) || []).length);
+console.log('has ConfirmOrderModal:', (s.match(/ConfirmOrderModal/g) || []).length);
+const i = s.indexOf('function ConfirmOrderModal');
+console.log('modal pos:', i);
+const j = s.indexOf("phase === 'review'");
+console.log('review pos:', j);
+console.log(s.slice(j - 100, j + 100));

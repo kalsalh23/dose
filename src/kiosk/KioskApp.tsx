@@ -1,0 +1,509 @@
+import { useEffect, useRef, useState } from 'react';
+import { rpc } from '../lib/supabase';
+import type { Catalog, Product } from '../lib/types';
+import { deviceId } from '../lib/utils';
+import { Icon } from '../components/Icons';
+
+/* ============================================================
+   منصة المحل الداخلية — Tablet Kiosk
+   نفس هوية التطبيق: كريمي · كراميل · بني داكن
+   التدفق: اسم ← منتجات ← تأكيد برقم الهاتف ← Supabase (النقاط تُحتسب في حسابه)
+   ============================================================ */
+
+interface Suggestion { id: string; full_name: string; mask: string }
+type Step = 'idle' | 'confirm' | 'success';
+
+export default function KioskApp() {
+  const [catalog, setCatalog] = useState<Catalog | null>(null);
+  const [cat, setCat] = useState('hot');
+  const [cart, setCart] = useState<Map<number, number>>(new Map());
+  const [query, setQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<Suggestion[] | 'idle' | 'loading' | 'empty' | 'error'>('idle');
+  const [customer, setCustomer] = useState<{ id: string; name: string; phone: string } | null>(null);
+  const [view, setView] = useState<'lookup' | 'signup'>('lookup');
+  const [step, setStep] = useState<Step>('idle');
+  const [confirmErr, setConfirmErr] = useState('');
+  const [confirmPhone, setConfirmPhone] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState<{ orderNumber: number; points: number; free: boolean } | null>(null);
+  const [codeInput, setCodeInput] = useState('');
+  const [appliedCode, setAppliedCode] = useState<{ code: string; name: string } | null>(null);
+  const [codeMsg, setCodeMsg] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [codeBusy, setCodeBusy] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; kind?: 'ok' | 'err' } | null>(null);
+  const searchTimer = useRef<number | undefined>(undefined);
+
+  // هل المحل مفتوح الآن؟ (بتوقيت دمشق)
+  const shopClosed = (() => {
+    const open = catalog?.settings?.work_open, close = catalog?.settings?.work_close;
+    if (!open || !close) return false;
+    const now = new Date();
+    const local = new Date(now.getTime() + (3 * 60 + now.getTimezoneOffset()) * 60000);
+    const t = local.getHours() * 60 + local.getMinutes();
+    const [oh, om] = open.split(':').map(Number);
+    const [ch, cm] = close.split(':').map(Number);
+    const om2 = oh * 60 + om, cm2 = ch * 60 + cm;
+    return om2 <= cm2 ? (t < om2 || t >= cm2) : (t < om2 && t >= cm2);
+  })();
+
+  const showToast = (msg: string, kind?: 'ok' | 'err') => {
+    setToast({ msg, kind });
+    setTimeout(() => setToast(null), 3200);
+  };
+
+  useEffect(() => { rpc<Catalog>('get_catalog').then(setCatalog).catch(() => {}); }, []);
+
+  // بحث الأسماء مع اقتراحات
+  const onQuery = (q: string) => {
+    setQuery(q);
+    clearTimeout(searchTimer.current);
+    if (q.trim().length < 2) { setSuggestions('idle'); return; }
+    setSuggestions('loading');
+    searchTimer.current = window.setTimeout(async () => {
+      try {
+        const rows = await rpc<Suggestion[]>('search_customers', { p_query: q });
+        setSuggestions(rows.length ? rows : 'empty');
+      } catch { setSuggestions('error'); }
+    }, 250);
+  };
+
+  const products = (catalog?.products ?? []).filter((p) => p.category === cat);
+  const effPrice = (p: { price_cents: number; sale_price_cents?: number | null }) =>
+    p.sale_price_cents != null && p.sale_price_cents < p.price_cents ? p.sale_price_cents : p.price_cents;
+  const hasOffer = (p: { price_cents: number; sale_price_cents?: number | null }) =>
+    p.sale_price_cents != null && p.sale_price_cents < p.price_cents;
+  const itemsCount = [...cart.values()].reduce((a, b) => a + b, 0);
+
+  const addProduct = (p: Product) => {
+    if (p.is_available === false) { showToast('نفذت كمية هذا المنتج 😔 — جرّب ما شابه'); return; }
+    setCart((m) => new Map(m).set(p.id, (m.get(p.id) ?? 0) + 1));
+  };
+  const decProduct = (p: Product) => {
+    setCart((m) => { const n = new Map(m); const q = (n.get(p.id) ?? 0) - 1; if (q <= 0) n.delete(p.id); else n.set(p.id, q); return n; });
+  };
+
+  const orderNow = () => {
+    if (!cart.size) return showToast('اضغط على المنتجات لإضافتها إلى طلبك');
+    if (!customer) return showToast('اختر اسمك أولًا من البطاقة');
+    setConfirmErr(''); setConfirmPhone('');
+    setStep('confirm');
+  };
+
+  const applyCode = async () => {
+    if (codeBusy) return;
+    if (!codeInput.trim()) { setCodeMsg({ msg: 'أدخل الرمز أولًا', ok: false }); return; }
+    setCodeBusy(true); setCodeMsg(null);
+    try {
+      const res = await rpc<any>('check_reward_code', { p_code: codeInput.trim() });
+      if (res.valid) {
+        if (res.type === 'promo') {
+          // كود خصم بنسبة مئوية — تحقق من نطاقه (كل الطلب / منتج / فئة) ضد محتويات السلة
+          const scope: string = res.scope ?? 'all';
+          const target: string = res.target ?? '';
+          const products = catalog?.products ?? [];
+          const cartLines = [...cart.entries()].map(([id, qty]) => ({ id, qty, p: products.find((x) => x.id === id) }));
+          const eligible = scope === 'product'
+            ? cartLines.filter((l) => String(l.id) === String(target)).reduce((a, l) => a + (l.p?.price_cents ?? 0) * l.qty, 0)
+            : scope === 'category'
+            ? cartLines.filter((l) => l.p?.category === target).reduce((a, l) => a + (l.p?.price_cents ?? 0) * l.qty, 0)
+            : 1;
+          if (eligible === 0) {
+            setCodeMsg({ msg: 'الكود لا ينطبق على منتجات طلبك الحالية', ok: false });
+            setCodeBusy(false);
+            return;
+          }
+          const where = scope === 'product'
+            ? 'على ' + (products.find((p) => String(p.id) === String(target))?.name_ar ?? 'منتج محدد')
+            : scope === 'category'
+            ? 'على فئة ' + ((catalog?.categories ?? []).find((c) => c.slug === target)?.name_ar ?? 'محددة')
+            : 'على الطلب كاملًا';
+          setAppliedCode({ code: res.code, name: 'خصم ' + res.discount_percent + '%' });
+          setCodeMsg({ msg: 'مطبق: خصم ' + res.discount_percent + '% ' + where, ok: true });
+          showToast('تم تطبيق كود الخصم', 'ok');
+        } else {
+          setAppliedCode({ code: res.code, name: res.reward_name });
+          setCodeMsg({ msg: 'مطبق: ' + res.reward_name + ' — الطلب مجاني 🎁', ok: true });
+          showToast('تم تطبيق رمز المكافأة — طلبك مجاني', 'ok');
+        }
+      } else {
+        setCodeMsg({ msg: res.reason, ok: false });
+      }
+    } catch { setCodeMsg({ msg: 'تعذر التحقق من الرمز', ok: false }); }
+    setCodeBusy(false);
+  };
+
+  const reset = () => {
+    setCart(new Map()); setCustomer(null); setQuery(''); setSuggestions('idle');
+    setStep('idle'); setDone(null); setView('lookup'); setConfirmErr(''); setConfirmPhone('');
+    setCodeInput(''); setAppliedCode(null); setCodeMsg(null);
+  };
+
+  const submitOrder = async () => {
+    if (!customer) return;
+    const phone = confirmPhone.replace(/\D/g, '');
+    if (phone.length < 8) { setConfirmErr('أدخل رقم هاتفك كاملًا للتأكيد'); return; }
+    setBusy(true); setConfirmErr('');
+    try {
+      const items = [...cart.entries()].map(([product_id, qty]) => ({ product_id, qty }));
+      const res = await rpc<any>('create_order', {
+        p_customer_id: customer.id,
+        p_pin: null,
+        p_confirm_phone: phone,
+        p_fulfillment_type: 'pickup',
+        p_items: items,
+        p_source: 'kiosk',
+        p_reward_code: appliedCode?.code ?? null,
+      });
+      setDone({ orderNumber: res.order_number, points: res.total_points, free: !!res.free });
+      setStep('success');
+    } catch (e: any) {
+      const m = String(e?.message || '');
+      if (m.includes('phone_mismatch')) setConfirmErr('رقم الهاتف لا يطابق حسابك — تأكد من الرقم وحاول مجددًا');
+      else if (m.includes('pin_required')) setConfirmErr('هذا الحساب يتطلب رمز PIN — راجع إدارة المحل');
+      else setConfirmErr(m || 'تعذر إرسال الطلب، حاول مجددًا');
+    } finally { setBusy(false); }
+  };
+
+  const catIcon = (slug: string) => slug === 'hot' ? 'coffee' : slug === 'cold' ? 'snow' : 'cake';
+
+  return (
+    <div className="flex h-full flex-col" style={{ background: 'linear-gradient(180deg,#E9EDD6,#DCE3C3)' }}>
+      {/* ===== الشريط العلوي ===== */}
+      <header className="flex h-16 flex-row-reverse items-center justify-between border-b border-[#D5DEB4]/80 bg-[#E9EDD6]/85 px-5 backdrop-blur-xl">
+        <div className="flex flex-row-reverse items-center gap-3">
+          <img src="/logo.jpg" alt="Dose" className="size-11 rounded-2xl object-cover shadow-md shadow-[#8a6a48]/25 ring-2 ring-white" />
+          <div className="text-right leading-none">
+            <p className="text-[19px] font-black tracking-tight" style={{ color: '#26301C' }}>Dose</p>
+            <span className="mt-1 inline-block rounded-full bg-white px-2 py-0.5 text-[8px] font-black tracking-[.16em] shadow-sm" style={{ color: '#5C6B3C' }}>CAFE</span>
+          </div>
+        </div>
+        <button onClick={() => setView('signup')}
+          className="flex items-center gap-2 rounded-full bg-[#C9D3A8] px-5 py-2.5 text-[13px] font-black shadow-md shadow-[#8a6a48]/30 transition hover:brightness-105 active:scale-95"
+          style={{ color: '#26301C' }}>
+          <Icon name="user" size={16} />
+          لا أملك حساب
+        </button>
+      </header>
+
+      {/* ===== الجسم ===== */}
+      <main className="grid min-h-0 flex-1 gap-3 p-3" style={{ gridTemplateColumns: 'minmax(0,1fr) clamp(300px,25vw,352px)' }}>
+        {/* المنتجات — يمين */}
+        <section className="flex min-h-0 flex-col overflow-hidden rounded-[22px] bg-[#FBF3E2] shadow-lg shadow-[#8a6a48]/15" style={{ border: '1px solid #D5DEB4' }}>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-2.5" style={{ borderColor: '#D5DEB4' }}>
+            <div>
+              <h1 className="text-[15.5px] font-extrabold" style={{ color: '#26301C' }}>قائمة <span className="font-serif" style={{ color: '#5C6B3C' }}>Dose</span></h1>
+              <p className="mt-0.5 text-[11px]" style={{ color: '#7C8665' }}>اضغط على المنتج لإضافته إلى طلبك</p>
+            </div>
+            <div className="flex gap-1 rounded-full p-1" style={{ background: '#EEF2DC', border: '1px solid #D5DEB4' }}>
+              {catalog?.categories?.filter((c) => c.slug !== 'extras').map((c) => (
+                <button key={c.id} onClick={() => setCat(c.slug)}
+                  className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-bold transition ${cat === c.slug ? 'shadow-md' : ''}`}
+                  style={cat === c.slug ? { background: '#26301C', color: '#F3DEBA' } : { color: '#6B7357' }}>
+                  <Icon name={catIcon(c.slug) as any} size={14} />
+                  {c.name_ar}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto p-3">
+            <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gridAutoRows: '141px' }}>
+              {products.map((p, i) => {
+                const qty = cart.get(p.id) ?? 0;
+                return (
+                  <button key={p.id} onClick={() => addProduct(p)}
+                    className="anim-rise flex flex-col overflow-hidden rounded-[1.4rem] text-right transition active:scale-[.97]"
+                    style={{
+                      background: '#E3E9C8',
+                      border: `2px solid ${qty ? '#5C6B3C' : 'transparent'}`,
+                      boxShadow: qty ? '0 10px 22px -12px rgba(65,77,54,.55)' : undefined,
+                      animationDelay: `${i * 35}ms`,
+                    }}>
+                    <div className="relative min-h-0 flex-1 overflow-hidden" style={{ background: '#D5DEB4' }}>
+                      <img src={p.image_url} alt={p.name_ar} className="size-full object-cover" loading="lazy" />
+                      {hasOffer(p) && (
+                        <span className="absolute top-1.5 left-1.5 rounded-full px-2 py-0.5 text-[10px] font-extrabold text-white" style={{ background: '#C4482E' }}>عرض</span>
+                      )}
+                      {qty > 0 && (
+                        <span className="absolute top-1.5 right-1.5 grid min-w-6 place-items-center rounded-full border-2 border-white px-1.5 py-0.5 text-[11.5px] font-extrabold text-white"
+                          style={{ background: '#26301C' }}>×{qty}</span>
+                      )}
+                    </div>
+                    <div className="px-2.5 pb-2 pt-1.5">
+                      <h3 className="truncate text-[13px] font-extrabold" style={{ color: '#26301C' }}>{p.name_ar}</h3>
+                      <p className="mt-0.5 flex items-center gap-1 text-[11px] font-extrabold" style={{ color: '#5C6B3C' }}>
+                        <Icon name="star" size={11} filled /> {p.points} نقاط
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* ادخل اسمك + الطلب — يسار */}
+        <aside className="flex min-h-0 flex-col overflow-hidden rounded-[22px] bg-[#FBF3E2] shadow-lg shadow-[#8a6a48]/15" style={{ border: '1px solid #D5DEB4' }}>
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
+            {view === 'lookup' ? (
+              <div className="flex flex-1 flex-col">
+                <img src="/logo.jpg" alt="" className="mx-auto size-12 rounded-2xl object-cover shadow-md shadow-[#8a6a48]/25 ring-2 ring-white" />
+                <h2 className="mt-2.5 text-center text-[17.5px] font-extrabold" style={{ color: '#26301C' }}>ادخل اسمك</h2>
+                <p className="mb-3 mt-1 text-center text-[11.5px]" style={{ color: '#6B7357' }}>اكتب اسمك واختره من القائمة، ثم أكّد طلبك برمز PIN</p>
+
+                <div className="relative mb-2.5">
+                  <Icon name="search" size={15} className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2" style={{ color: '#7C8665' }} />
+                  <input value={query} onChange={(e) => onQuery(e.target.value)} placeholder="اكتب اسمك هنا…"
+                    className="h-11 w-full rounded-xl border-[1.5px] bg-white pr-10 pl-3 text-sm font-bold outline-none transition focus:shadow-sm"
+                    style={{ borderColor: '#C4CF9E', color: '#26301C' }} />
+                </div>
+
+                {customer ? (
+                  <div className="mb-2.5 flex items-center gap-2.5 rounded-xl p-2.5 anim-pop" style={{ background: '#E3E9C8', border: '1.5px solid #A9B87F' }}>
+                    <span className="grid size-7 place-items-center rounded-full text-white" style={{ background: '#26301C' }}>
+                      <Icon name="check" size={15} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <b className="block truncate text-sm font-extrabold" style={{ color: '#26301C' }}>{customer.name}</b>
+                      <small className="text-[10.5px]" style={{ color: '#6B7357' }}>تم اختيار اسمك</small>
+                    </div>
+                    <button onClick={() => { setCustomer(null); setQuery(''); setSuggestions('idle'); }}
+                      className="rounded-lg border bg-white px-2.5 py-1.5 text-[11.5px] font-bold transition hover:brightness-95"
+                      style={{ borderColor: '#C4CF9E', color: '#6B7357' }}>تغيير</button>
+                  </div>
+                ) : (
+                  <div className="mb-2.5 flex max-h-44 min-h-[70px] flex-col gap-1.5 overflow-y-auto rounded-xl p-1.5"
+                    style={{ background: '#EEF2DC', border: '1px solid #D5DEB4' }}>
+                    {suggestions === 'idle' && <p className="p-3 text-center text-[11px] leading-relaxed" style={{ color: '#7C8665' }}>ابدأ بكتابة أول حروف اسمك…</p>}
+                    {suggestions === 'loading' && <p className="p-3 text-center text-[11px]" style={{ color: '#7C8665' }}>جارٍ البحث…</p>}
+                    {suggestions === 'empty' && <p className="p-3 text-center text-[11px] leading-relaxed" style={{ color: '#7C8665' }}>لا يوجد اسم مطابق — إن لم تكن مسجلًا اضغط «لا أملك حساب» بالأعلى</p>}
+                    {suggestions === 'error' && <p className="p-3 text-center text-[11px]" style={{ color: '#C4482E' }}>تعذر البحث، تحقق من الإنترنت</p>}
+                    {Array.isArray(suggestions) && suggestions.map((s) => (
+                      <button key={s.id} onClick={() => { setCustomer({ id: s.id, name: s.full_name, phone: s.mask }); showToast('مرحبًا ' + s.full_name + ' — اختر منتجاتك واضغط «اطلب الآن»', 'ok'); }}
+                        className="flex items-center justify-between gap-2 rounded-lg bg-white px-3 py-2 text-right text-[13.5px] font-bold transition hover:bg-[#E3E9C8] active:scale-[.98]"
+                        style={{ color: '#26301C' }}>
+                        <span>{s.full_name}</span>
+                        <small style={{ color: '#7C8665' }}>{s.mask}</small>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* صندوق الطلب */}
+                <div className="mt-auto flex flex-col gap-2 rounded-2xl p-2.5" style={{ background: '#E3E9C8' }}>
+                  <div className="no-scrollbar flex min-h-7 items-center gap-1.5 overflow-x-auto">
+                    {cart.size === 0 ? (
+                      <span className="text-[11.5px]" style={{ color: '#7C8665' }}>اضغط على أي منتج لإضافته إلى طلبك</span>
+                    ) : [...cart.entries()].map(([pid, qty]) => {
+                      const p = catalog?.products.find((x) => x.id === pid);
+                      if (!p) return null;
+                      return (
+                        <span key={pid} className="flex flex-none items-center gap-1.5 rounded-full bg-white px-2 py-1 text-[11.5px] font-bold"
+                          style={{ color: '#26301C' }}>
+                          {p.name_ar}
+                          <b className="grid min-w-[17px] place-items-center rounded-full px-1 text-[10px] text-white" style={{ background: '#26301C' }}>{qty}</b>
+                          <button onClick={() => decProduct(p)} className="grid size-4 place-items-center rounded-full text-[11px]" style={{ background: '#C4CF9E', color: '#6B7357' }}>×</button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                  <div className="text-[11px] font-medium" style={{ color: '#6B7357' }}>
+                    {itemsCount === 0 ? '' : itemsCount === 1 ? 'صنف واحد في طلبك' : itemsCount === 2 ? 'صنفان في طلبك' : `${itemsCount} أصناف في طلبك`}
+                  </div>
+                  {appliedCode ? (
+                    <div className="flex items-center justify-between rounded-xl px-3 py-2" style={{ background: '#E3E9C8', border: '1.5px solid #7C8F52' }}>
+                      <span className="text-[11.5px] font-extrabold" style={{ color: '#26301C' }}>🎁 {appliedCode.name} — الطلب مجاني</span>
+                      <button onClick={() => { setAppliedCode(null); setCodeMsg(null); setCodeInput(''); }}
+                        className="rounded-lg bg-white px-2 py-1 text-[10px] font-bold" style={{ color: '#6E6553' }}>إزالة</button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <input value={codeInput} onChange={(e) => setCodeInput(e.target.value.toUpperCase())} placeholder="رمز خصم؟ (من تطبيق Dose)"
+                        className="h-9 min-w-0 flex-1 rounded-lg border-[1.5px] bg-white px-2.5 text-[11.5px] font-bold outline-none"
+                        style={{ borderColor: '#D9C49C', color: '#221B12' }} />
+                      <button onClick={applyCode} disabled={codeBusy || !codeInput.trim()}
+                        className="flex-none rounded-lg px-3 py-2 text-[11px] font-extrabold disabled:opacity-40"
+                        style={{ background: '#E3E9C8', color: '#37422C' }}>{codeBusy ? '…' : 'تطبيق'}</button>
+                    </div>
+                  )}
+                  {codeMsg && (
+                    <p className="rounded-lg px-2.5 py-1.5 text-[10.5px] font-bold"
+                      style={{ background: codeMsg.ok ? '#E3E9C8' : '#FBEDE9', color: codeMsg.ok ? '#414D36' : '#C4482E' }}>{codeMsg.msg}</p>
+                  )}
+                  {shopClosed && (
+                    <div className="rounded-xl px-3 py-2.5 text-center text-[12.5px] font-black"
+                      style={{ background: '#FBEDE9', color: '#C4482E' }}>
+                      {catalog?.settings?.closed_message
+                        ? catalog.settings.closed_message
+                        : <>🌙 المحل مغلق الآن — نستقبلكم مرة أخرى الساعة {catalog?.settings?.work_open ?? 'بداية الدوام'}</>}
+                    </div>
+                  )}
+                  <button onClick={orderNow} disabled={!cart.size || !customer || shopClosed}
+                    className="w-full rounded-xl py-3 text-[15px] font-black shadow-md shadow-[#8a6a48]/30 transition active:scale-[.98] disabled:opacity-40"
+                    style={{ background: shopClosed ? '#D5DEB4' : '#C9D3A8', color: '#26301C' }}>
+                    {shopClosed ? 'الطلب متاح أثناء الدوام' : appliedCode ? 'اطلب الآن — مجاني 🎁' : 'اطلب الآن'}
+                  </button>
+                </div>
+
+                <p className="mt-2.5 flex items-start gap-2 rounded-xl px-3 py-2 text-[11px] leading-relaxed"
+                  style={{ background: '#EEF2DC', color: '#77825E' }}>
+                  <Icon name="info" size={13} className="mt-0.5 flex-none" style={{ color: '#A9907E' }} />
+                  لست مسجل؟ اضغط «لا أملك حساب» في الشريط العلوي وأنشئ حسابك في ثوانٍ
+                </p>
+              </div>
+            ) : (
+              <SignupForm onDone={(name) => { setView('lookup'); setQuery(name); showToast('تم إنشاء حسابك — اكتب اسمك واختره', 'ok'); }} onCancel={() => setView('lookup')} />
+            )}
+          </div>
+        </aside>
+      </main>
+
+      {/* ===== الشريط السفلي ===== */}
+      <footer className="flex h-11 items-center justify-between border-t px-5" style={{ background: '#E9EDD6', borderColor: '#D5DEB4' }}>
+        <div className="flex items-center gap-2">
+          <img src="/logo.jpg" alt="" className="size-6 rounded-lg object-cover shadow-sm" style={{ border: '1.5px solid white' }} />
+          <span className="font-serif text-[13px] font-black" style={{ color: '#26301C' }}>Dose <i className="not-italic font-sans text-[8.5px] font-bold tracking-[.2em] uppercase" style={{ color: '#7C8665' }}>Cafe</i></span>
+        </div>
+        <div className="flex items-center gap-1">
+          <a href={`tel:${catalog?.settings?.store_phone ?? '0936107119'}`} className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition hover:brightness-90" style={{ color: '#6B7357' }} dir="ltr">
+            <Icon name="phone" size={12} /> {catalog?.settings?.store_phone ?? '0936107119'}
+          </a>
+          <a href="https://www.instagram.com/dose__cafe" target="_blank" rel="noopener" className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition hover:brightness-90" style={{ color: '#6B7357' }} dir="ltr">
+            <Icon name="instagram" size={12} /> @dose__cafe
+          </a>
+        </div>
+      </footer>
+
+      {/* ===== نافذة تأكيد الطلب برقم الهاتف ===== */}
+      {step === 'confirm' && customer && (
+        <div className="fixed inset-0 z-[130] grid place-items-center bg-black/50 p-5 backdrop-blur-sm anim-fade" onClick={() => { if (!busy) { setStep('idle'); setConfirmErr(''); } }}>
+          <div className="w-full max-w-sm rounded-[2rem] bg-white p-6 text-center shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
+            <span className="mx-auto grid size-14 place-items-center rounded-2xl text-white" style={{ background: '#C9D3A8', color: '#26301C' }}>
+              <Icon name="phone" size={26} />
+            </span>
+            <h3 className="mt-3 text-lg font-black" style={{ color: '#26301C' }}>تأكيد الطلب برقم هاتفك</h3>
+            <p className="mt-1 text-[12px] font-bold" style={{ color: '#7C8665' }}>أدخل رقم هاتفك المسجّل للتأكيد</p>
+
+            <div className="mt-4 rounded-2xl p-4" style={{ background: '#EEF2DC' }}>
+              <p className="text-[11px] font-bold" style={{ color: '#7C8665' }}>الاسم</p>
+              <p className="text-[15px] font-black" style={{ color: '#26301C' }}>{customer.name}</p>
+              <p className="mt-2 text-[11px] font-bold" style={{ color: '#7C8665' }}>هاتف الحساب</p>
+              <p className="text-lg font-black tracking-widest" dir="ltr" style={{ color: '#26301C' }}>{customer.phone}</p>
+            </div>
+
+            <div className="mt-3 text-right">
+              <label className="mb-1 block text-[11px] font-bold" style={{ color: '#6B7357' }}>رقم هاتفك</label>
+              <input value={confirmPhone} onChange={(e) => { setConfirmPhone(e.target.value); setConfirmErr(''); }}
+                inputMode="numeric" dir="ltr" placeholder="09XXXXXXXX"
+                className="h-12 w-full rounded-xl border-[1.5px] bg-white px-3 text-center text-base font-black tracking-widest outline-none focus:shadow-sm"
+                style={{ borderColor: '#C4CF9E', color: '#26301C' }} />
+            </div>
+
+            <div className="mt-3 rounded-2xl p-3 text-right" style={{ background: '#FBF3E2' }}>
+              <p className="text-[10.5px] font-bold" style={{ color: '#7C8665' }}>ملخص الطلب</p>
+              <p className="mt-0.5 text-[12.5px] font-black" style={{ color: '#26301C' }}>
+                {[...cart.entries()].map(([pid, qty]) => {
+                  const p = catalog?.products.find((x) => x.id === pid);
+                  return p ? `${p.name_ar} ×${qty}` : '';
+                }).filter(Boolean).join('، ')}
+              </p>
+              <p className="mt-1 text-[11.5px] font-black" style={{ color: '#5C6B3C' }}>⭐ {[...cart.values()].reduce((a, b) => a + b, 0)} نقاط</p>
+            </div>
+
+            {confirmErr && <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-[11.5px] font-bold text-red-600">{confirmErr}</p>}
+
+            <button onClick={submitOrder} disabled={busy}
+              className="mt-4 w-full rounded-full py-3.5 text-[15px] font-black shadow-lg transition active:scale-[.98] disabled:opacity-50"
+              style={{ background: '#C9D3A8', color: '#26301C' }}>
+              {busy ? 'جارٍ الإرسال…' : 'تأكيد وإرسال الطلب'}
+            </button>
+            <button onClick={() => { setStep('idle'); setConfirmErr(''); }} disabled={busy}
+              className="mt-1.5 w-full py-2.5 text-[12.5px] font-bold" style={{ color: '#7C8665' }}>إلغاء</button>
+          </div>
+        </div>
+      )}
+
+      {/* ===== نجاح الطلب ===== */}
+      {step === 'success' && done && (
+        <div className="fixed inset-0 z-[130] grid place-items-center bg-black/50 p-6 backdrop-blur-sm anim-fade">
+          <div className="w-full max-w-sm rounded-[2rem] bg-white p-7 text-center shadow-2xl anim-pop">
+            <span className="mx-auto grid size-16 place-items-center rounded-full text-white shadow-lg" style={{ background: '#C9D3A8', color: '#26301C' }}>
+              <Icon name="check" size={30} strokeWidth={2.4} />
+            </span>
+            <h3 className="mt-3 text-lg font-black" style={{ color: '#26301C' }}>تم تسجيل طلبك بنجاح</h3>
+            <p className="mt-1 text-sm font-bold" style={{ color: '#6B7357' }}>طلب رقم #{done.orderNumber}</p>
+            <p className="mt-2 inline-block rounded-full px-4 py-1.5 text-[15px] font-black" style={{ background: '#E3E9C8', color: '#5C6B3C' }}>
+              ⭐ +{done.points} نقطة عند إكمال الطلب
+            </p>
+            {done.free && (
+              <p className="mt-1.5 inline-block rounded-full px-4 py-1.5 text-[13px] font-black" style={{ background: '#C9D3A8', color: '#26301C' }}>
+                🎁 طلب مجاني برمز الخصم
+              </p>
+            )}
+            <p className="mt-2 text-[11px] font-bold" style={{ color: '#7C8665' }}>
+              ستظهر النقاط في حساب {customer?.name} داخل تطبيق Dose
+            </p>
+            <button onClick={reset} className="mt-5 w-full rounded-full py-3.5 text-base font-black text-white shadow-lg active:scale-[.98]" style={{ background: '#C9D3A8', color: '#26301C' }}>
+              طلب جديد
+            </button>
+          </div>
+        </div>
+      )}
+
+      {toast && (
+        <div className={`fixed bottom-16 left-1/2 z-[300] mx-auto w-fit max-w-[90vw] -translate-x-1/2 rounded-full px-5 py-3 text-center text-[13px] font-bold shadow-2xl anim-pop ${
+          toast.kind === 'err' ? 'bg-[#C4482E] text-white' : 'bg-white'}`}
+          style={toast.kind !== 'err' ? { color: '#26301C', border: '1px solid #C4CF9E' } : {}}>{toast.msg}</div>
+      )}
+    </div>
+  );
+}
+
+/* إنشاء حساب من الكشك */
+function SignupForm({ onDone, onCancel }: { onDone: (name: string) => void; onCancel: () => void }) {
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    if (busy) return;
+    setErr('');
+    if (name.trim().length < 2) return setErr('فضلًا أدخل اسمك الكامل');
+        if (phone.replace(/\D/g, '').length < 8) return setErr('أدخل رقم هاتف صحيح');
+    setBusy(true);
+    try {
+      await rpc('create_customer', { p_full_name: name.trim(), p_phone: phone.replace(/\D/g, ''), p_device_id: deviceId });
+      onDone(name.trim());
+    } catch (e: any) { setErr(e.message); setBusy(false); }
+  };
+  const inputCls = 'h-11 w-full rounded-xl border-[1.5px] bg-white px-3 text-sm font-bold outline-none focus:shadow-sm';
+  const inputStyle = { borderColor: '#C4CF9E', color: '#26301C' };
+  return (
+    <div className="flex flex-1 flex-col">
+      <h2 className="text-center text-[17.5px] font-extrabold" style={{ color: '#26301C' }}>مرحبًا بك في <span className="font-serif" style={{ color: '#5C6B3C' }}>Dose</span></h2>
+      <p className="mb-4 mt-1 text-center text-[11.5px]" style={{ color: '#6B7357' }}>نشئ حسابك الآن واستمتع بالنقاط والمكافآت</p>
+
+      <label className="mb-1 block text-[11px] font-bold" style={{ color: '#6B7357' }}>الاسم الكامل</label>
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: سارة أحمد" className={`mb-3 ${inputCls}`} style={inputStyle} />
+
+      <label className="mb-1 block text-[11px] font-bold" style={{ color: '#6B7357' }}>رقم الهاتف</label>
+      <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="numeric" dir="ltr" placeholder="09XXXXXXXX"
+        className={`mb-3 text-center ${inputCls}`} style={inputStyle} />
+
+      {err && <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-center text-[11.5px] font-bold text-red-600">{err}</p>}
+
+      <p className="mt-3 flex items-start gap-2 rounded-xl px-3 py-2 text-[11px] leading-relaxed"
+        style={{ background: '#EEF2DC', color: '#77825E' }}>
+        <Icon name="lock" size={13} className="mt-0.5 flex-none" style={{ color: '#A9907E' }} />
+        يتم ربط حسابك بجهازك لإرسال إشعارات الطلب والنقاط
+      </p>
+
+      <button onClick={submit} disabled={busy}
+        className="mt-4 w-full rounded-xl py-3 text-[14.5px] font-black shadow-md shadow-[#8a6a48]/30 transition active:scale-[.98] disabled:opacity-50"
+        style={{ background: '#C9D3A8', color: '#26301C' }}>
+        {busy ? 'جارٍ الإنشاء…' : 'إنشاء الحساب والمتابعة'}
+      </button>
+      <button onClick={onCancel} className="mt-1 w-full py-2.5 text-[12.5px] font-bold" style={{ color: '#7C8665' }}>إلغاء والرجوع</button>
+    </div>
+  );
+}

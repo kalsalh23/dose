@@ -1,0 +1,12 @@
+p_phone text, p_pin text
+=====
+
+declare c public.customers; tok uuid;
+begin
+  select * into c from public.customers where phone = btrim(p_phone);
+  if c is null then raise exception 'wrong_pin'; end if;
+  perform public._check_pin(c, p_pin);
+  insert into public.customer_sessions (customer_id) values (c.id) returning token into tok;
+  return jsonb_build_object('token', tok, 'customer', jsonb_build_object(
+    'id', c.id, 'full_name', c.full_name, 'phone', c.phone, 'points', c.points, 'orders_count', c.orders_count));
+end 

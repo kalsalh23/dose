@@ -1,0 +1,7 @@
+p_query text
+=====
+
+  select c.id, c.full_name, '••• ' || right(c.phone, 3)
+  from public.customers c
+  where c.is_active and btrim(p_query) <> '' and c.full_name ilike '%' || btrim(p_query) || '%'
+  order by c.full_name asc limit 8;

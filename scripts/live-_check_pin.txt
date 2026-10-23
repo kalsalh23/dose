@@ -1,0 +1,19 @@
+p_customer customers, p_pin text
+=====
+
+begin
+  if p_customer.is_active is distinct from true then raise exception 'account_disabled'; end if;
+  if p_customer.pin_locked_until is not null and p_customer.pin_locked_until > now() then
+    raise exception 'pin_locked';
+  end if;
+  if p_customer.pin_hash = public._pin_hash(p_customer.phone, p_pin) then
+    update public.customers set pin_failed_attempts = 0, pin_locked_until = null where id = p_customer.id;
+    return true;
+  else
+    update public.customers
+      set pin_failed_attempts = pin_failed_attempts + 1,
+          pin_locked_until = case when pin_failed_attempts + 1 >= 5 then now() + interval '5 minutes' else pin_locked_until end
+      where id = p_customer.id;
+    raise exception 'wrong_pin';
+  end if;
+end 

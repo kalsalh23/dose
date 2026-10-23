@@ -1,0 +1,1 @@
+CREATE OR REPLACE FUNCTION public.test_func() RETURNS text LANGUAGE sql AS $$ SELECT 'hello' $$; SELECT 1;
