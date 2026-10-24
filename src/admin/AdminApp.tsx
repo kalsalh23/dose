@@ -580,6 +580,23 @@ function SalesTab({ token }: { token: string }) {
 
   useEffect(() => { load(); }, [load]);
 
+  const [salesFilter, setSalesFilter] = useState<'all' | 'store' | 'gifts' | 'kiosk'>('all');
+  const isReward = (o: any) => o.is_reward || o.total_cents === 0 || o.reward_code || o.promo_type === 'reward';
+  const ordersAll = (data?.orders ?? []) as any[];
+  const filteredOrders = ordersAll.filter((o) => {
+    if (salesFilter === 'all') return true;
+    if (salesFilter === 'store') return !isReward(o) && o.source !== 'kiosk';
+    if (salesFilter === 'gifts') return isReward(o);
+    if (salesFilter === 'kiosk') return !isReward(o) && o.source === 'kiosk';
+    return true;
+  });
+  const totals = {
+    total: filteredOrders.reduce((s, o) => s + Number(o.total_cents ?? 0), 0),
+    orders: filteredOrders.length,
+    kiosk: filteredOrders.filter((o) => o.source === 'kiosk').length,
+    kiosk_rewards: filteredOrders.filter(isReward).length,
+  };
+
   const num = (v: any) => Number(v ?? 0).toLocaleString('en-US');
   const daily = (data?.daily ?? []) as { day: string; total_cents: number; orders_count: number }[];
   const max = Math.max(1, ...daily.map((d) => d.total_cents));
@@ -606,6 +623,22 @@ function SalesTab({ token }: { token: string }) {
         <button onClick={load} className={btnCls}>تحديث</button>
       </div>
 
+      {/* تصنيف المبيعات */}
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-white p-3 ring-1 ring-beige">
+        <span className="text-[11px] font-black text-neutral-500">تصنيف:</span>
+        {[
+          { id: 'all', label: 'الكل' },
+          { id: 'store', label: 'طلبات المحل' },
+          { id: 'gifts', label: 'هدايا' },
+          { id: 'kiosk', label: 'طلبات الكشك' },
+        ].map((f) => (
+          <button key={f.id} onClick={() => setSalesFilter(f.id)}
+            className={`rounded-full px-3 py-1.5 text-[11px] font-extrabold transition ${salesFilter === f.id ? 'bg-coffee-900 text-cream shadow' : 'bg-[#E3E9C8] text-neutral-600 hover:text-neutral-900'}`}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       {range === 'custom' && (
         <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-white p-4 ring-1 ring-beige">
           <Field label="من تاريخ"><input type="date" className={inputCls} dir="ltr" value={from} onChange={(e) => setFrom(e.target.value)} /></Field>
@@ -619,35 +652,25 @@ function SalesTab({ token }: { token: string }) {
            <div className="grid gap-3 md:grid-cols-6">
              <div className="rounded-3xl bg-gradient-to-bl from-[#414D36] to-[#26301C] p-5 text-white shadow-lg shadow-[#26301C]/25">
                <p className="text-[11px] font-black text-[#C9D3A8]">إجمالي المبيعات</p>
-               <p className="mt-2 text-3xl font-black tracking-tight">{num(data.totals?.total)} <span className="text-base">ل.س</span></p>
+                <p className="mt-2 text-3xl font-black tracking-tight">{num(totals.total)} <span className="text-base">ل.س</span></p>
                <p className="mt-1 text-[11px] font-bold text-white/70">{range === 'today' ? 'اليوم' : range === 'week' ? 'آخر 7 أيام' : range === 'month' ? 'هذا الشهر' : data.from + ' — ' + data.to}</p>
              </div>
              <div className="rounded-3xl bg-gradient-to-bl from-[#5C6B3C] to-[#414D36] p-5 text-white shadow-lg shadow-[#26301C]/25">
                <p className="text-[11px] font-black text-[#C9D3A8]">عدد الطلبات</p>
-               <p className="mt-2 text-3xl font-black tracking-tight">{num(data.totals?.orders)}</p>
+                <p className="mt-2 text-3xl font-black tracking-tight">{num(totals.orders)}</p>
                <p className="mt-1 text-[11px] font-bold text-white/70">خلال {num(data.totals?.days)} يوم</p>
              </div>
              <div className="rounded-3xl bg-gradient-to-bl from-[#C9A96A] to-[#A08448] p-5 text-white shadow-lg shadow-[#26301C]/25">
                <p className="text-[11px] font-black text-[#F6E7C9]">من الكشك</p>
-               <p className="mt-2 text-3xl font-black tracking-tight">{num(data.totals?.kiosk)}</p>
+                <p className="mt-2 text-3xl font-black tracking-tight">{num(totals.kiosk)}</p>
                <p className="mt-1 text-[11px] font-bold text-white/80">طلب من الكشك</p>
              </div>
-             <div className="rounded-3xl bg-gradient-to-bl from-[#7C3AED] to-[#5B21B6] p-5 text-white shadow-lg shadow-[#5B21B6]/25">
-               <p className="text-[11px] font-black text-[#E9D5FF]">طلبات مكافآت من الكشك</p>
-               <p className="mt-2 text-3xl font-black tracking-tight">{num(data.totals?.kiosk_rewards ?? (data.orders ?? []).filter((o: any) => o.source === 'kiosk' && (o.is_reward || o.total_cents === 0 || o.reward_code)).length)}</p>
-               <p className="mt-1 text-[11px] font-bold text-white/80">مكافأة قادمة من الكشك</p>
-             </div>
-             <div className="rounded-3xl bg-gradient-to-bl from-[#7A5A22] to-[#5C4318] p-5 text-white shadow-lg shadow-[#26301C]/25">
-               <p className="text-[11px] font-black text-[#EAC98F]">متوسط يومي</p>
-               <p className="mt-2 text-3xl font-black tracking-tight">{num(data.totals?.avg_per_day)} <span className="text-base">ل.س</span></p>
-               <p className="mt-1 text-[11px] font-bold text-white/70">لكل يوم</p>
-             </div>
-             <div className="rounded-3xl bg-gradient-to-bl from-[#5C4318] to-[#3A2A0E] p-5 text-white shadow-lg shadow-[#26301C]/25">
-               <p className="text-[11px] font-black text-[#EAC98F]">متوسط الطلب</p>
-               <p className="mt-2 text-3xl font-black tracking-tight">{num(data.totals?.avg_per_order)} <span className="text-base">ل.س</span></p>
-               <p className="mt-1 text-[11px] font-bold text-white/70">لكل طلب</p>
-             </div>
-           </div>
+              <div className="rounded-3xl bg-gradient-to-bl from-[#7C3AED] to-[#5B21B6] p-5 text-white shadow-lg shadow-[#5B21B6]/25">
+                <p className="text-[11px] font-black text-[#E9D5FF]">طلبات مكافآت من الكشك</p>
+                <p className="mt-2 text-3xl font-black tracking-tight">{num(totals.kiosk_rewards)}</p>
+                <p className="mt-1 text-[11px] font-bold text-white/80">مكافأة قادمة من الكشك</p>
+              </div>
+            </div>
 
           {/* مبيعات يومية */}
           <Card className="p-5">
@@ -713,7 +736,7 @@ function SalesTab({ token }: { token: string }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {(data.orders ?? []).filter((o: any) => o.source === 'kiosk').map((o: any) => {
+                  {(filteredOrders.filter((o: any) => o.source === 'kiosk')).map((o: any) => {
                     const isReward = o.is_reward || (o.total_cents === 0) || o.reward_code || o.promo_type === 'reward';
                     return (
                       <tr key={o.id} className={isReward ? "border-b border-dashed border-[#D6C6FF] bg-[#F6F3FF]" : "border-b border-dashed border-beige bg-[#FFF9EC]"}>
@@ -1057,7 +1080,6 @@ function MenusTab({ token }: { token: string }) {
                 <Field label="اسم القائمة"><input className={inputCls} value={edit.title} onChange={(e) => setEdit({ ...edit, title: e.target.value })} placeholder="مثال: قائمة الإفطار" /></Field>
                 <Field label="رمز تعبيري"><input className={inputCls} value={edit.emoji} onChange={(e) => setEdit({ ...edit, emoji: e.target.value })} placeholder="☕" /></Field>
               </div>
-              <Field label="وصف مختصر (اختياري)"><input className={inputCls} value={edit.subtitle} onChange={(e) => setEdit({ ...edit, subtitle: e.target.value })} placeholder="مثال: أفضّل ما نبدأ به يومك" /></Field>
               <Field label="صورة القائمة (اختياري)"><ImageUploadField value={edit.image_url} onChange={(url) => setEdit({ ...edit, image_url: url })} folder="menus" /></Field>
               <Field label="معروضة للزبائن">
                 <select className={inputCls} value={String(edit.is_active)} onChange={(e) => setEdit({ ...edit, is_active: e.target.value === 'true' })}>
