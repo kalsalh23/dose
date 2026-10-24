@@ -1311,6 +1311,23 @@ export default function CustomerApp() {
   const cart = useCart();
   const { show, node: toastNode } = useToast();
   const [product, setProduct] = useState<Product | null>(null);
+  const productPushedRef = useRef(false);
+  useEffect(() => {
+    if (product) {
+      window.history.pushState({ doseProduct: true }, '');
+      productPushedRef.current = true;
+    } else if (productPushedRef.current) {
+      productPushedRef.current = false;
+      window.history.back();
+    }
+  }, [product]);
+  useEffect(() => {
+    const onPop = () => {
+      if (product) { productPushedRef.current = false; setProduct(null); }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [product]);
   const [flow, setFlow] = useState<OrderFlow>({ step: null, lines: [] });
   const [pinBusy, setPinBusy] = useState(false);
   const [doneOrder, setDoneOrder] = useState<{ orderNumber: number; points: number; free: boolean } | null>(null);
