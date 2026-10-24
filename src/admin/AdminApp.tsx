@@ -769,17 +769,16 @@ function ProductsTab({ token }: { token: string }) {
               </div>
               <Field label="صورة المنتج"><ImageUploadField value={edit.image_url} onChange={(url) => setEdit({ ...edit, image_url: url })} folder="products" /></Field>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="التصنيف">
-                  <select className={inputCls} value={edit.category_slug} onChange={(e) => setEdit({ ...edit, category_slug: e.target.value })}>
-                    {cats.map((c: any) => <option key={c.slug} value={c.slug}>{c.name_ar}</option>)}
+                <Field label="اختر القائمة التي ينتمي إليها المنتج">
+                  <select className={inputCls} value={edit.menu_id || ''} onChange={(e) => {
+                    const mid = e.target.value ? Number(e.target.value) : null;
+                    const m = menus.find((mm: any) => mm.id === mid);
+                    setEdit({ ...edit, menu_id: mid, category_slug: m?.category_slug || '' });
+                  }}>
+                    <option value="">— اختر القائمة —</option>
+                    {(menus.length ? menus : []).map((m: any) => <option key={m.id} value={m.id}>{m.emoji ? m.emoji + ' ' : ''}{m.title}{m.category_slug ? ' · ' + catName(m.category_slug) : ''}</option>)}
                   </select>
                 </Field>
-              <Field label="القائمة (اختياري)">
-                <select className={inputCls} value={edit.menu_id || ''} onChange={(e) => setEdit({ ...edit, menu_id: e.target.value ? Number(e.target.value) : null })}>
-                  <option value="">بدون قائمة</option>
-                  {(menus.length ? menus : []).map((m: any) => <option key={m.id} value={m.id}>{m.emoji ? m.emoji + ' ' : ''}{m.title}</option>)}
-                </select>
-              </Field>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="نشط">
