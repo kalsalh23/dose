@@ -459,7 +459,7 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
           {items.map((c) => {
             const active = selMenu === null && cat === c.slug;
             return (
-              <button key={c.slug} onClick={() => { setSelMenu(null); setCat(c.slug); setShowAll(false); jumpToMenu(); }} className="flex flex-none flex-col items-center gap-1.5 transition active:scale-95">
+              <button key={c.slug} onClick={() => { setSelMenu(null); setCat(c.slug); jumpToMenu(); }} className="flex flex-none flex-col items-center gap-1.5 transition active:scale-95">
                 <span className={`grid size-[62px] place-items-center overflow-hidden rounded-full shadow-md shadow-[#8a6a48]/15 transition-all ${active ? 'ring-2 ring-[#5C6B3C] ring-offset-2 ring-offset-[#F6E7C9]' : 'ring-1 ring-[#EAD3A0]'}`}>
                   {c.slug === 'all'
                     ? <span className='grid size-full place-items-center bg-gradient-to-br from-[#414D36] to-[#26301C] text-[#C9D3A8]'><Icon name='package' size={20} /></span>
@@ -473,7 +473,7 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
           {menuLists.map((m) => {
             const active = selMenu === m.id;
             return (
-              <button key={'menu-' + m.id} onClick={() => { setSelMenu(active ? null : m.id); setShowAll(false); jumpToMenu(); }} className="flex flex-none flex-col items-center gap-1.5 transition active:scale-95">
+              <button key={'menu-' + m.id} onClick={() => { setSelMenu(active ? null : m.id); jumpToMenu(); }} className="flex flex-none flex-col items-center gap-1.5 transition active:scale-95">
                 <span className={`grid size-[62px] place-items-center overflow-hidden rounded-full shadow-md shadow-[#8a6a48]/15 transition-all ${active ? 'ring-2 ring-[#B07C3A] ring-offset-2 ring-offset-[#F6E7C9]' : 'ring-1 ring-[#EAD3A0]'}`}>
                   {m.image_url
                     ? <img src={m.image_url} alt={m.title} className='size-full object-cover' loading='lazy' />
