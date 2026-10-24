@@ -367,6 +367,16 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
   const selMenuTitle = selMenu !== null ? (catalog?.menus ?? []).find((m) => m.id === selMenu)?.title : null;
   /* عند اختيار فئة أو قائمة محددة تُعرض كل منتجاتها فورًا، ويظهر «عرض الكل» فقط مع فئة الكل */
   const menuItems = searching || showAll || cat !== 'all' || selMenu !== null ? shown : shown.slice(0, 4);
+  const byCat = new Map<string, any[]>();
+  for (const p of menuItems) {
+    const key = p.category ?? 'all';
+    if (!byCat.has(key)) byCat.set(key, []);
+    byCat.get(key)!.push(p);
+  }
+  const catLabel = (slug: string) => {
+    const c = (catalog?.categories ?? []).find((x) => x.slug === slug);
+    return c ? c.name_ar : slug === 'all' ? 'الكل' : slug;
+  };
   const jumpToMenu = () => setTimeout(() => document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
 
   // إعدادات الهيرو
@@ -518,34 +528,41 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
             </button>
           )}
         </div>
-        <div className="grid grid-cols-2 gap-3.5 pb-4 sm:grid-cols-3">
-          {menuItems.map((p) => (
-            <button key={p.id} onClick={() => openProduct(p)}
-              className="rounded-[1.75rem] bg-white p-2.5 text-right shadow-sm shadow-[#8a6a48]/15 ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 hover:shadow-lg anim-rise">
-              <div className="relative">
-                <img src={p.image_url} alt={p.name_ar} loading="lazy" className={`h-28 w-full rounded-[1.3rem] object-cover ${p.is_available === false ? 'opacity-50 grayscale' : ''}`} />
-                <div className="absolute top-1.5 right-1.5 flex flex-col items-end gap-1">
-                  {p.is_available === false && (
-                    <span className="rounded-full bg-[#C4482E] px-2.5 py-1 text-[9px] font-black text-white shadow">نفذت الكمية</span>
-                  )}
-                  {hasOffer(p) && (
-                    <span className="rounded-full bg-[#C4482E] px-2.5 py-1 text-[9px] font-black text-white shadow">عرض</span>
-                  )}
-                </div>
+        <div className="pb-4">
+          {Array.from(byCat.entries()).map(([slug, catProducts]) => (
+            <div key={slug} className="mb-6">
+              <h3 className="mb-2 mt-4 text-[13px] font-extrabold text-[#7C8665] px-2">{catLabel(slug)}</h3>
+              <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3">
+                {catProducts.map((p) => (
+                  <button key={p.id} onClick={() => openProduct(p)}
+                    className="rounded-[1.75rem] bg-white p-2.5 text-right shadow-sm shadow-[#8a6a48]/15 ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 hover:shadow-lg anim-rise">
+                    <div className="relative">
+                      <img src={p.image_url} alt={p.name_ar} loading="lazy" className={`h-28 w-full rounded-[1.3rem] object-cover ${p.is_available === false ? 'opacity-50 grayscale' : ''}`} />
+                      <div className="absolute top-1.5 right-1.5 flex flex-col items-end gap-1">
+                        {p.is_available === false && (
+                          <span className="rounded-full bg-[#C4482E] px-2.5 py-1 text-[9px] font-black text-white shadow">نفذت الكمية</span>
+                        )}
+                        {hasOffer(p) && (
+                          <span className="rounded-full bg-[#C4482E] px-2.5 py-1 text-[9px] font-black text-white shadow">عرض</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-end justify-between px-1 pb-0.5 pt-2.5">
+                      <div className="min-w-0">
+                        {productMenuMap.get(p.id) && <p className="truncate text-[9.5px] font-bold text-[#B07C3A]">{productMenuMap.get(p.id)}</p>}
+                        <h3 className="truncate text-[13px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
+                        <p className="mt-0.5 text-[13px] font-black text-[#26301C]">
+                          {hasOffer(p) ? <><span className="text-[11px] font-bold text-neutral-400 line-through">{eur(p.price_cents, cur)}</span> {eur(effPrice(p), cur)}</> : eur(p.price_cents, cur)}
+                        </p>
+                      </div>
+                      <span className="grid size-9 flex-none place-items-center rounded-full bg-white shadow-md">
+                        <Icon name="plus" size={15} className="text-[#26301C]" />
+                      </span>
+                    </div>
+                  </button>
+                ))}
               </div>
-              <div className="flex items-end justify-between px-1 pb-0.5 pt-2.5">
-                <div className="min-w-0">
-                  {productMenuMap.get(p.id) && <p className="truncate text-[9.5px] font-bold text-[#B07C3A]">{productMenuMap.get(p.id)}</p>}
-                  <h3 className="truncate text-[13px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
-                  <p className="mt-0.5 text-[13px] font-black text-[#26301C]">
-                    {hasOffer(p) ? <><span className="text-[11px] font-bold text-neutral-400 line-through">{eur(p.price_cents, cur)}</span> {eur(effPrice(p), cur)}</> : eur(p.price_cents, cur)}
-                  </p>
-                </div>
-                <span className="grid size-9 flex-none place-items-center rounded-full bg-white shadow-md">
-                  <Icon name="plus" size={15} className="text-[#26301C]" />
-                </span>
-              </div>
-            </button>
+            </div>
           ))}
         </div>
         {cat !== "all" && (
