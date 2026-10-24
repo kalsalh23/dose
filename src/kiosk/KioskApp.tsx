@@ -18,6 +18,7 @@ export default function KioskApp() {
   const [cat, setCat] = useState('hot');
   const [cart, setCart] = useState<Map<number, number>>(new Map());
   const [query, setQuery] = useState('');
+const [prodQuery, setProdQuery] = useState('');
   const [suggestions, setSuggestions] = useState<Suggestion[] | 'idle' | 'loading' | 'empty' | 'error'>('idle');
   const [customer, setCustomer] = useState<{ id: string; name: string; phone: string } | null>(null);
   const [view, setView] = useState<'lookup' | 'signup'>('lookup');
@@ -67,7 +68,7 @@ export default function KioskApp() {
     }, 250);
   };
 
-  const products = (catalog?.products ?? []).filter((p) => p.category === cat);
+  const products = (catalog?.products ?? []).filter((p) => p.category === cat && (!prodQuery.trim() || (p.name_ar ?? '').toLowerCase().includes(prodQuery.trim().toLowerCase())));
   const effPrice = (p: { price_cents: number; sale_price_cents?: number | null }) =>
     p.sale_price_cents != null && p.sale_price_cents < p.price_cents ? p.sale_price_cents : p.price_cents;
   const hasOffer = (p: { price_cents: number; sale_price_cents?: number | null }) =>
@@ -207,6 +208,8 @@ const where = scope === 'product'
               <h1 className="text-[15.5px] font-extrabold" style={{ color: '#26301C' }}>قائمة <span className="font-serif" style={{ color: '#5C6B3C' }}>Dose</span></h1>
               <p className="mt-0.5 text-[11px]" style={{ color: '#7C8665' }}>اضغط على المنتج لإضافته إلى طلبك</p>
             </div>
+            <input value={prodQuery} onChange={(e) => setProdQuery(e.target.value)} placeholder="بحث في المنتجات…"
+              className="h-9 w-40 rounded-full border-2 border-[#D5DEB4] bg-white px-4 text-sm font-bold text-[#26301C] outline-none focus:border-[#7C8F52]" />
             <div className="flex gap-1 rounded-full p-1" style={{ background: '#EEF2DC', border: '1px solid #D5DEB4' }}>
               {catalog?.categories?.filter((c) => c.slug !== 'extras').map((c) => (
                 <button key={c.id} onClick={() => setCat(c.slug)}
