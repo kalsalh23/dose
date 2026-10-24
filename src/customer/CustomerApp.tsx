@@ -338,7 +338,6 @@ function PromoBanner({ settings }: { settings: Record<string, string> }) {
 function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }: { catalog: Catalog | null; openProduct: (p: Product) => void; ads: Ad[]; onOpenAd: (a: Ad) => void; selectedCat: string; onSelectCat: (s: string) => void }) {
   const cat = selectedCat;
   const setCat = onSelectCat;
-  const [showAll, setShowAll] = useState(false);
   const [q, setQ] = useState('');
   const [selMenu, setSelMenu] = useState<number | null>(null);
   const products = catalog?.products ?? [];
@@ -366,7 +365,7 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
   const searching = q.trim() !== '';
   const selMenuTitle = selMenu !== null ? (catalog?.menus ?? []).find((m) => m.id === selMenu)?.title : null;
   /* عند اختيار فئة أو قائمة محددة تُعرض كل منتجاتها فورًا، ويظهر «عرض الكل» فقط مع فئة الكل */
-  const menuItems = searching || showAll || cat !== 'all' || selMenu !== null ? shown : shown.slice(0, 4);
+  const menuItems = shown;
   const byCat = new Map<string, any[]>();
   for (const p of menuItems) {
     const key = p.category ?? 'all';
@@ -522,11 +521,6 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
       <section id='menu-section' className='mt-5'>
         <div className="mb-3 flex items-end justify-between px-1">
           <h2 className="text-[17px] font-black text-[#26301C]">{selMenuTitle ? selMenuTitle : 'استكشف المنيو'}</h2>
-          {!searching && cat === 'all' && shown.length > 4 && (
-            <button onClick={() => setShowAll(!showAll)} className='rounded-full bg-white px-3.5 py-1.5 text-[11px] font-black text-[#26301C] shadow-sm ring-1 ring-[#EAD3A0] transition active:scale-95'>
-              {showAll ? "عرض أقل" : "عرض الكل"}
-            </button>
-          )}
         </div>
         <div className="pb-4">
           {Array.from(byCat.entries()).map(([slug, catProducts]) => (
