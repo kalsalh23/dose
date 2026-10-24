@@ -807,13 +807,13 @@ function RewardsPage({ catalog, myData, session, onRedeem }: any) {
           const can = (myData?.customer?.points ?? session.customer.points) >= r.points_cost;
           return (
             <div key={r.id} className="flex items-center gap-4 py-2 anim-rise" style={{ animationDelay: `${i * 30}ms` }}>
-              <img src={r.image_url} alt={r.name_ar} loading="lazy" className="size-[72px] flex-none rounded-[1.3rem] object-cover shadow-md shadow-[#8a6a48]/25" />
+<img src={r.image_url} alt={r.name_ar} loading="lazy" className="size-[72px] flex-none rounded-[1.3rem] object-cover shadow-md shadow-[#8a6a48]/25" />
               <div className="min-w-0 flex-1">
                 <h3 className="text-[15px] font-extrabold text-[#26301C]">{r.name_ar}</h3>
                 <p className="mt-0.5 flex items-center gap-1 text-sm font-black text-[#7C8F52]">
                   <Icon name="star" size={13} filled /> {r.points_cost} نقطة
                 </p>
-                {r.expires_at && <p className="text-[10px] font-bold text-amber-700">صالح حتى: {fmtDateNum ? fmtDateNum(r.expires_at.slice(0,10).replace(/-/g,'')) : new Date(r.expires_at).toLocaleDateString('ar-EG')}</p>}
+                {r.expires_at && <p className="mt-1 text-[11px] font-extrabold text-amber-700">📅 صالح حتى: {fmtDateNum ? fmtDateNum(r.expires_at.slice(0,10).replace(/-/g,'')) : new Date(r.expires_at).toLocaleDateString('ar-EG')}</p>}
               </div>
               <button disabled={!can || busy} onClick={() => setConfirming(r)}
                 className={`rounded-full px-5 py-2.5 text-sm font-black transition active:scale-95 ${can ? 'bg-[#C9D3A8] text-[#26301C] shadow-md shadow-[#8a6a48]/30' : 'bg-[#E3E9C8] text-[#7C8665]'}`}>
