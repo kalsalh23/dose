@@ -6,7 +6,13 @@ import KioskApp from './kiosk/KioskApp';
 import AdminApp from './admin/AdminApp';
 import './index.css';
 
-/* تسجيل Service Worker (PWA) */
+/* منع الخروج من التطبيق عند ضغط «رجوع» — البقاء داخل التطبيق */
+if (typeof window !== 'undefined') {
+  window.history.pushState(null, '', window.location.href);
+  window.addEventListener('popstate', () => {
+    window.history.pushState(null, '', window.location.href);
+  });
+}
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
 }
