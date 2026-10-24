@@ -1910,8 +1910,8 @@ function AboutPage({ catalog }: { catalog: Catalog | null }) {
         {contactRow('tiktok', 'تيك توك', '@dose__cafe', 'https://www.tiktok.com/@dose__cafe')}
         {contactRow('facebook', 'فيسبوك', 'Dose Cafe', 'https://www.facebook.com/share/1DhShCC3Fm/')}
         {contactRow('pin', 'موقع المحل',
-          (catalog?.settings?.shop_lat ?? '35.1327334') + ' , ' + (catalog?.settings?.shop_lng ?? '36.7526210'),
-          'https://www.google.com/maps?q=' + (catalog?.settings?.shop_lat ?? '35.1327334') + ',' + (catalog?.settings?.shop_lng ?? '36.7526210'))}
+          (catalog?.settings?.shop_lat ?? '35.132845') + ' , ' + (catalog?.settings?.shop_lng ?? '36.752617'),
+          'https://www.google.com/maps?q=' + (catalog?.settings?.shop_lat ?? '35.132845') + ',' + (catalog?.settings?.shop_lng ?? '36.752617'))}
       </div>
 
       <h3 className="mb-2.5 mt-7 text-base font-black text-[#26301C]">فريق العمل</h3>

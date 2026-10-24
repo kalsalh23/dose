@@ -23,7 +23,7 @@ const sql = readFileSync(join(here, 'geo-proximity.sql'), 'utf8');
 console.log('apply:', JSON.stringify(await dbq(sql)));
 // موضع المحل الحقيقي + نطاق 500 م
 console.log('settings:', JSON.stringify(await dbq(`
-  insert into public.settings (key, value) values ('shop_lat','35.1327334'),('shop_lng','36.7526210'),('geo_radius','500')
+  insert into public.settings (key, value) values ('shop_lat','35.132845'),('shop_lng','36.752617'),('geo_radius','500')
   on conflict (key) do update set value = excluded.value;
   select key, value from settings where key in ('shop_lat','shop_lng','geo_radius') order by key;`)));
 const chk = await dbq(`select count(*)::int as fn from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='check_geo_proximity'`);
