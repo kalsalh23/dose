@@ -292,14 +292,51 @@ const useAdminAction = () => {
 function ImageUploadField({ value, onChange, folder }: { value: string; onChange: (url: string) => void; folder: string }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+
+  // ضغط الصورة إلى JPEG بجودة 0.75 وأقصى أبعاد 1280×1280 لتوفير المساحة في التخزين
+  const compress = (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let { width, height } = img;
+        const MAX = 1280;
+        if (width > MAX || height > MAX) {
+          const ratio = Math.min(MAX / width, MAX / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { reject(new Error('Canvas not supported')); return; }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) { reject(new Error('Compression failed')); return; }
+            const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+            resolve(compressed);
+          },
+          'image/jpeg',
+          0.75
+        );
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('failed to read image')); };
+      img.src = url;
+    });
+  };
+
   const upload = async (file: File) => {
     setBusy(true); setErr('');
     try {
-      if (!file.type.startsWith('image/')) throw new Error('اختر ملف صورة صحيحًا');
-      if (file.size > 5 * 1024 * 1024) throw new Error('حجم الصورة يجب أن يكون أقل من 5 ميجابايت');
-      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace('jpeg', 'jpg');
-      const path = folder + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
-      const { error } = await sb.storage.from('images').upload(path, file, { contentType: file.type });
+      if (!file.type.startsWith('image/')) throw new Error('اختر صورة صحيحة');
+      if (file.size > 10 * 1024 * 1024) throw new Error('حجم الصورة يجب أن يكون أقل من 10 ميجابايت');
+      const compressed = await compress(file);
+      if (compressed.size > 5 * 1024 * 1024) throw new Error('بعد الضغط لا تزال الصورة كبيرة جدًا — جرب صورة أصغر');
+      const path = folder + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.jpg';
+      const { error } = await sb.storage.from('images').upload(path, compressed, { contentType: 'image/jpeg' });
       if (error) throw error;
       onChange(sb.storage.from('images').getPublicUrl(path).data.publicUrl);
     } catch (e: any) {
