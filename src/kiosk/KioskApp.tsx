@@ -197,10 +197,12 @@ export default function KioskApp() {
             <div className="flex gap-1 rounded-full p-1" style={{ background: '#EEF2DC', border: '1px solid #D5DEB4' }}>
               {catalog?.categories?.filter((c) => c.slug !== 'extras').map((c) => (
                 <button key={c.id} onClick={() => setCat(c.slug)}
-                  className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-bold transition ${cat === c.slug ? 'shadow-md' : ''}`}
+                  className={`flex flex-col items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold transition ${cat === c.slug ? 'shadow-md' : ''}`}
                   style={cat === c.slug ? { background: '#26301C', color: '#F3DEBA' } : { color: '#6B7357' }}>
-                  <Icon name={catIcon(c.slug) as any} size={14} />
-                  {c.name_ar}
+                  <span className="grid size-8 place-items-center overflow-hidden rounded-full border-2" style={cat === c.slug ? { borderColor: '#F3DEBA', background: '#1f2516' } : { borderColor: '#D5DEB4', background: '#fff' }}>
+                    {c.image_url ? <img src={c.image_url} alt={c.name_ar} className="size-full object-cover" /> : <Icon name={catIcon(c.slug) as any} size={16} />}
+                  </span>
+                  <span className="text-[10px] font-extrabold">{c.name_ar}</span>
                 </button>
               ))}
             </div>
