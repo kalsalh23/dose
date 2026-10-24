@@ -1147,7 +1147,7 @@ function RewardsTab({ token }: { token: string }) {
           <thead><tr className="border-b border-beige text-neutral-400">
             <th className="p-3 font-extrabold">الكود</th><th className="p-3 font-extrabold">المكافأة</th>
             <th className="p-3 font-extrabold">العميل</th><th className="p-3 font-extrabold">النقاط</th>
-            <th className="p-3 font-extrabold">الحالة</th><th className="p-3"></th>
+<th className="p-3 font-extrabold">الحالة</th><th className="p-3 font-extrabold">صالح حتى</th><th className="p-3"></th>
           </tr></thead>
           <tbody>
             {redemptions.map((r) => (
@@ -1157,8 +1157,9 @@ function RewardsTab({ token }: { token: string }) {
                 <td className="p-3">{r.customer_name}</td>
                 <td className="p-3">⭐ {r.points_cost}</td>
                 <td className="p-3"><span className={`rounded-full px-2 py-1 text-[10px] font-extrabold ${r.status === 'unused' ? 'bg-emerald-100 text-emerald-700' : r.status === 'used' ? 'bg-neutral-100 text-neutral-500' : 'bg-red-50 text-red-500'}`}>
-                  {r.status === 'unused' ? 'غير مستخدم' : r.status === 'used' ? 'مستخدم' : 'منتهي'}</span></td>
-                <td className="p-3">
+{r.status === 'unused' ? 'غير مستخدم' : r.status === 'used' ? 'مستخدم' : 'منتهي'}</span></td>
+                 <td className="p-3 text-[10px] font-bold text-amber-700" dir="ltr">{r.expires_at ? new Date(r.expires_at).toLocaleDateString('ar-EG') : '—'}</td>
+                 <td className="p-3">
                   {r.status === 'unused' && (
                     <button disabled={busy} onClick={() => wrap(async () => { await arpc('admin_set_redemption_status', { p_token: token, p_code: r.code, p_status: 'used' }); load(); })}
                       className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[10px] font-extrabold text-neutral-700">تعليم كمستخدم</button>
