@@ -106,16 +106,20 @@ export default function KioskApp() {
             ? cartLines.filter((l) => String(l.id) === String(target)).reduce((a, l) => a + (l.p?.price_cents ?? 0) * l.qty, 0)
             : scope === 'category'
             ? cartLines.filter((l) => l.p?.category === target).reduce((a, l) => a + (l.p?.price_cents ?? 0) * l.qty, 0)
+            : scope === 'menu'
+            ? cartLines.filter((l) => (catalog?.menus ?? []).some((m) => (m.items ?? []).some((it) => it.id === l.p?.id))).reduce((a, l) => a + (l.p?.price_cents ?? 0) * l.qty, 0)
             : 1;
           if (eligible === 0) {
             setCodeMsg({ msg: 'الكود لا ينطبق على منتجات طلبك الحالية', ok: false });
             setCodeBusy(false);
             return;
           }
-          const where = scope === 'product'
-            ? 'على ' + (products.find((p) => String(p.id) === String(target))?.name_ar ?? 'منتج محدد')
+const where = scope === 'product'
+            ? 'على ' + (products.find((p) => String(p.id) === String(target))?.name_ar ?? 'product محدد')
             : scope === 'category'
             ? 'على فئة ' + ((catalog?.categories ?? []).find((c) => c.slug === target)?.name_ar ?? 'محددة')
+            : scope === 'menu'
+            ? 'على قائمة ' + ((catalog?.menus ?? []).find((m) => String(m.id) === String(target))?.title ?? 'محددة')
             : 'على الطلب كاملًا';
           setAppliedCode({ code: res.code, name: 'خصم ' + res.discount_percent + '%' });
           setCodeMsg({ msg: 'مطبق: خصم ' + res.discount_percent + '% ' + where, ok: true });

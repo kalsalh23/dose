@@ -1513,6 +1513,7 @@ function PromoTab({ token }: { token: string }) {
             <option value="all">على الطلب كاملًا</option>
             <option value="product">منتج محدد فقط</option>
             <option value="category">فئة محددة فقط</option>
+            <option value="menu">menu قائمة محددة فقط</option>
           </select>
         </Field>
         {settings.promo_scope === 'product' && (
@@ -1528,6 +1529,14 @@ function PromoTab({ token }: { token: string }) {
             <select className={inputCls} value={settings.promo_target ?? ''} onChange={(e) => setSettings({ ...settings, promo_target: e.target.value })}>
               <option value="">— اختر —</option>
               {(catalog?.categories ?? []).map((c: any) => <option key={c.id} value={c.slug}>{c.name_ar}</option>)}
+            </select>
+          </Field>
+        )}
+        {settings.promo_scope === 'menu' && (
+          <Field label="اختر القائمة المخصصة">
+            <select className={inputCls} value={settings.promo_target ?? ''} onChange={(e) => setSettings({ ...settings, promo_target: e.target.value })}>
+              <option value="">— اختر —</option>
+              {(catalog?.menus ?? []).map((m: any) => <option key={m.id} value={String(m.id)}>{(m.emoji || '☕') + ' ' + m.title}</option>)}
             </select>
           </Field>
         )}
