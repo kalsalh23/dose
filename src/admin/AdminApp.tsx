@@ -950,6 +950,11 @@ function MenusTab({ token }: { token: string }) {
                   <option value="true">نعم</option><option value="false">لا</option>
                 </select>
               </Field>
+              <Field label="التصنيف (الفئة التي تظهر فيها القائمة)">
+                <select className={inputCls} value={edit.category_slug || 'hot_drinks'} onChange={(e) => setEdit({ ...edit, category_slug: e.target.value })}>
+                  {cats.map((c: any) => <option key={c.slug} value={c.slug}>{c.name_ar}</option>)}
+                </select>
+              </Field>
 
                <Field label={`منتجات القائمة (${(edit.product_ids ?? []).length})`}>
                  <div className="space-y-2">
