@@ -360,6 +360,8 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
   const promoDisc = catalog?.settings?.promo_discount;
   const mostOrdered = catalog?.most_ordered ?? [];
   const menuLists = (catalog?.menus ?? []).filter((m) => (m.items ?? []).length > 0);
+  const productMenuMap = new Map<number, string>();
+  for (const m of (catalog?.menus ?? [])) for (const it of (m.items ?? [])) productMenuMap.set(it.id, m.title);
   const items = [{ slug: 'all', name_ar: 'الكل' }, ...(catalog?.categories ?? [])];
   const searching = q.trim() !== '';
   const selMenuTitle = selMenu !== null ? (catalog?.menus ?? []).find((m) => m.id === selMenu)?.title : null;
@@ -533,6 +535,7 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
               </div>
               <div className="flex items-end justify-between px-1 pb-0.5 pt-2.5">
                 <div className="min-w-0">
+                  {productMenuMap.get(p.id) && <p className="truncate text-[9.5px] font-bold text-[#B07C3A]">{productMenuMap.get(p.id)}</p>}
                   <h3 className="truncate text-[13px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
                   <p className="mt-0.5 text-[13px] font-black text-[#26301C]">
                     {hasOffer(p) ? <><span className="text-[11px] font-bold text-neutral-400 line-through">{eur(p.price_cents, cur)}</span> {eur(effPrice(p), cur)}</> : eur(p.price_cents, cur)}
