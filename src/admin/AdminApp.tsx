@@ -776,7 +776,7 @@ function ProductsTab({ token }: { token: string }) {
                     setEdit({ ...edit, menu_id: mid, category_slug: m?.category_slug || '' });
                   }}>
                     <option value="">— اختر القائمة —</option>
-                    {(menus.length ? menus : []).map((m: any) => <option key={m.id} value={m.id}>{m.emoji ? m.emoji + ' ' : ''}{m.title}{m.category_slug ? ' · ' + catName(m.category_slug) : ''}</option>)}
+                    {(menus.length ? menus : []).map((m: any) => <option key={m.id} value={m.id}>{m.emoji ? m.emoji + ' ' : ''}{m.title}</option>)}
                   </select>
                 </Field>
               </div>
