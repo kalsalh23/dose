@@ -509,7 +509,7 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
       {/* استكشف المنيو */}
       <section id='menu-section' className='mt-5'>
         <div className="mb-3 flex items-end justify-between px-1">
-          <h2 className="text-[17px] font-black text-[#26301C]">استكشف المنيو</h2>
+          <h2 className="text-[17px] font-black text-[#26301C]">{selMenuTitle ? selMenuTitle : 'استكشف المنيو'}</h2>
           {!searching && cat === 'all' && shown.length > 4 && (
             <button onClick={() => setShowAll(!showAll)} className='rounded-full bg-white px-3.5 py-1.5 text-[11px] font-black text-[#26301C] shadow-sm ring-1 ring-[#EAD3A0] transition active:scale-95'>
               {showAll ? "عرض أقل" : "عرض الكل"}
