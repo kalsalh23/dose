@@ -27,7 +27,7 @@ export default function KioskApp() {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<{ orderNumber: number; points: number; free: boolean } | null>(null);
   const [codeInput, setCodeInput] = useState('');
-  const [appliedCode, setAppliedCode] = useState<{ code: string; name: string } | null>(null);
+  const [appliedCode, setAppliedCode] = useState<{ code: string; name: string; productId?: any } | null>(null);
   const [codeMsg, setCodeMsg] = useState<{ msg: string; ok: boolean } | null>(null);
   const [codeBusy, setCodeBusy] = useState(false);
   const [toast, setToast] = useState<{ msg: string; kind?: 'ok' | 'err' } | null>(null);
@@ -76,6 +76,7 @@ export default function KioskApp() {
 
   const addProduct = (p: Product) => {
     if (p.is_available === false) { showToast('نفذت كمية هذا المنتج 😔 — جرّب ما شابه'); return; }
+    if (appliedCode?.productId && String(p.id) !== String(appliedCode.productId)) { showToast('هذا الكود مخصص لمنتج محدد فقط'); return; }
     setCart((m) => new Map(m).set(p.id, (m.get(p.id) ?? 0) + 1));
   };
   const decProduct = (p: Product) => {
@@ -125,7 +126,15 @@ const where = scope === 'product'
           setCodeMsg({ msg: 'مطبق: خصم ' + res.discount_percent + '% ' + where, ok: true });
           showToast('تم تطبيق كود الخصم', 'ok');
         } else {
-          setAppliedCode({ code: res.code, name: res.reward_name });
+          const rewardProduct = (catalog?.products ?? []).find((p: any) => p.name_ar === res.reward_name);
+          setAppliedCode({ code: res.code, name: res.reward_name, productId: rewardProduct?.id });
+          setCart((m) => {
+            if (!rewardProduct) return m;
+            const n = new Map();
+            const q = m.get(rewardProduct.id);
+            if (q) n.set(rewardProduct.id, q);
+            return n;
+          });
           setCodeMsg({ msg: 'مطبق: ' + res.reward_name + ' — الطلب مجاني 🎁', ok: true });
           showToast('تم تطبيق رمز المكافأة — طلبك مجاني', 'ok');
         }
