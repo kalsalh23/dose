@@ -512,12 +512,18 @@ const { busy, wrap } = useAdminAction();
                     : <span className="ms-1 rounded-full bg-[#EEF2DC] px-2 py-1 text-[10px] font-extrabold text-[#5C6B3C]">⏱️ {o.fulfillment_type === 'delivery' ? 'يوصل خلال 15-20 دقيقة' : 'جاهز خلال 5-10 دقيقة'}</span>
               )}
             </div>
-            <span className="text-[11px] font-bold text-neutral-400">{fmtDateTimeNum(o.created_at)} · {o.source === 'kiosk' ? 'كشك المحل' : o.source === 'customer' ? 'تطبيق العميل' : 'إداري'}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-neutral-400">{fmtDateTimeNum(o.created_at)} · {o.source === 'kiosk' ? 'كشك المحل' : o.source === 'customer' ? 'تطبيق العميل' : 'إداري'}</span>
+                  {o.source === 'kiosk' && (o.is_reward || o.total_cents === 0) && <span className="rounded-full bg-[#EDE7FF] px-2 py-0.5 text-[9px] font-extrabold text-[#6D28D9]">مكافأة</span>}
+                </div>
           </div>
           <div className="mt-3 grid gap-3 text-xs md:grid-cols-4">
             <div><p className="font-bold text-neutral-400">العميل</p><p className="mt-0.5 font-extrabold text-coffee-900">{o.customer_name}</p><p dir="ltr" className="text-neutral-500">{o.customer_phone}</p></div>
             <div><p className="font-bold text-neutral-400">نوع الطلب</p><p className="mt-0.5 font-extrabold text-coffee-900">{o.fulfillment_type === 'delivery' ? '🚚 توصيل' : '🏪 استلام'}</p></div>
-            <div><p className="font-bold text-neutral-400">الإجمالي / النقاط</p><p className="mt-0.5 font-extrabold text-gold-deep">{eur(o.total_cents, 'ل.س')} · ⭐{o.total_points}</p></div>
+              <div className="flex flex-col gap-1">
+              <span className="text-sm font-extrabold text-gold-deep">{eur(o.total_cents, 'ل.س')} · ⭐{o.total_points}</span>
+              {o.source === 'kiosk' && (o.is_reward || o.total_cents === 0) && <span className="inline-flex w-fit items-center rounded-full bg-[#EDE7FF] px-2 py-0.5 text-[9px] font-extrabold text-[#6D28D9]">طلب مكافأة من الكشك</span>}
+            </div>
             <div className="flex flex-col gap-1.5">
               {o.delivery_map_url && (
                 <a href={o.delivery_map_url} target="_blank" rel="noopener" className="rounded-xl bg-blue-50 px-3 py-2 text-center text-[11px] font-extrabold text-blue-700 hover:bg-blue-100">📍 فتح موقع العميل على الخريطة</a>
@@ -609,34 +615,39 @@ function SalesTab({ token }: { token: string }) {
 
       {loaded && data ? (
         <>
-          {/* أرقام الفترة */}
-          <div className="grid gap-3 md:grid-cols-5">
-            <div className="rounded-3xl bg-gradient-to-bl from-[#414D36] to-[#26301C] p-5 text-white shadow-lg shadow-[#26301C]/25">
-              <p className="text-[11px] font-black text-[#C9D3A8]">إجمالي المبيعات</p>
-              <p className="mt-2 text-3xl font-black tracking-tight">{num(data.totals?.total)} <span className="text-base">ل.س</span></p>
-              <p className="mt-1 text-[11px] font-bold text-white/70">{range === 'today' ? 'اليوم' : range === 'week' ? 'آخر 7 أيام' : range === 'month' ? 'هذا الشهر' : data.from + ' — ' + data.to}</p>
-            </div>
-            <div className="rounded-3xl bg-gradient-to-bl from-[#5C6B3C] to-[#414D36] p-5 text-white shadow-lg shadow-[#26301C]/25">
-              <p className="text-[11px] font-black text-[#C9D3A8]">عدد الطلبات</p>
-              <p className="mt-2 text-3xl font-black tracking-tight">{num(data.totals?.orders)}</p>
-              <p className="mt-1 text-[11px] font-bold text-white/70">خلال {num(data.totals?.days)} يوم</p>
-            </div>
-            <div className="rounded-3xl bg-gradient-to-bl from-[#C9A96A] to-[#A08448] p-5 text-white shadow-lg shadow-[#26301C]/25">
-              <p className="text-[11px] font-black text-[#F6E7C9]">من الكشك</p>
-              <p className="mt-2 text-3xl font-black tracking-tight">{num(data.totals?.kiosk)}</p>
-              <p className="mt-1 text-[11px] font-bold text-white/80">طلب من الكشك</p>
-            </div>
-            <div className="rounded-3xl bg-gradient-to-bl from-[#7A5A22] to-[#5C4318] p-5 text-white shadow-lg shadow-[#26301C]/25">
-              <p className="text-[11px] font-black text-[#EAC98F]">متوسط يومي</p>
-              <p className="mt-2 text-3xl font-black tracking-tight">{num(data.totals?.avg_per_day)} <span className="text-base">ل.س</span></p>
-              <p className="mt-1 text-[11px] font-bold text-white/70">لكل يوم</p>
-            </div>
-            <div className="rounded-3xl bg-gradient-to-bl from-[#5C4318] to-[#3A2A0E] p-5 text-white shadow-lg shadow-[#26301C]/25">
-              <p className="text-[11px] font-black text-[#EAC98F]">متوسط الطلب</p>
-              <p className="mt-2 text-3xl font-black tracking-tight">{num(data.totals?.avg_per_order)} <span className="text-base">ل.س</span></p>
-              <p className="mt-1 text-[11px] font-bold text-white/70">لكل طلب</p>
-            </div>
-          </div>
+           {/* أرقام الفترة */}
+           <div className="grid gap-3 md:grid-cols-6">
+             <div className="rounded-3xl bg-gradient-to-bl from-[#414D36] to-[#26301C] p-5 text-white shadow-lg shadow-[#26301C]/25">
+               <p className="text-[11px] font-black text-[#C9D3A8]">إجمالي المبيعات</p>
+               <p className="mt-2 text-3xl font-black tracking-tight">{num(data.totals?.total)} <span className="text-base">ل.س</span></p>
+               <p className="mt-1 text-[11px] font-bold text-white/70">{range === 'today' ? 'اليوم' : range === 'week' ? 'آخر 7 أيام' : range === 'month' ? 'هذا الشهر' : data.from + ' — ' + data.to}</p>
+             </div>
+             <div className="rounded-3xl bg-gradient-to-bl from-[#5C6B3C] to-[#414D36] p-5 text-white shadow-lg shadow-[#26301C]/25">
+               <p className="text-[11px] font-black text-[#C9D3A8]">عدد الطلبات</p>
+               <p className="mt-2 text-3xl font-black tracking-tight">{num(data.totals?.orders)}</p>
+               <p className="mt-1 text-[11px] font-bold text-white/70">خلال {num(data.totals?.days)} يوم</p>
+             </div>
+             <div className="rounded-3xl bg-gradient-to-bl from-[#C9A96A] to-[#A08448] p-5 text-white shadow-lg shadow-[#26301C]/25">
+               <p className="text-[11px] font-black text-[#F6E7C9]">من الكشك</p>
+               <p className="mt-2 text-3xl font-black tracking-tight">{num(data.totals?.kiosk)}</p>
+               <p className="mt-1 text-[11px] font-bold text-white/80">طلب من الكشك</p>
+             </div>
+             <div className="rounded-3xl bg-gradient-to-bl from-[#7C3AED] to-[#5B21B6] p-5 text-white shadow-lg shadow-[#5B21B6]/25">
+               <p className="text-[11px] font-black text-[#E9D5FF]">طلبات مكافآت من الكشك</p>
+               <p className="mt-2 text-3xl font-black tracking-tight">{num(data.totals?.kiosk_rewards ?? (data.orders ?? []).filter((o: any) => o.source === 'kiosk' && (o.is_reward || o.total_cents === 0)).length)}</p>
+               <p className="mt-1 text-[11px] font-bold text-white/80">مكافأة قادمة من الكشك</p>
+             </div>
+             <div className="rounded-3xl bg-gradient-to-bl from-[#7A5A22] to-[#5C4318] p-5 text-white shadow-lg shadow-[#26301C]/25">
+               <p className="text-[11px] font-black text-[#EAC98F]">متوسط يومي</p>
+               <p className="mt-2 text-3xl font-black tracking-tight">{num(data.totals?.avg_per_day)} <span className="text-base">ل.س</span></p>
+               <p className="mt-1 text-[11px] font-bold text-white/70">لكل يوم</p>
+             </div>
+             <div className="rounded-3xl bg-gradient-to-bl from-[#5C4318] to-[#3A2A0E] p-5 text-white shadow-lg shadow-[#26301C]/25">
+               <p className="text-[11px] font-black text-[#EAC98F]">متوسط الطلب</p>
+               <p className="mt-2 text-3xl font-black tracking-tight">{num(data.totals?.avg_per_order)} <span className="text-base">ل.س</span></p>
+               <p className="mt-1 text-[11px] font-bold text-white/70">لكل طلب</p>
+             </div>
+           </div>
 
           {/* مبيعات يومية */}
           <Card className="p-5">
@@ -684,8 +695,11 @@ function SalesTab({ token }: { token: string }) {
 {/* طلبات الك shack — مميزة بلون مختلف */}
           <Card className="p-5">
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-xs font-extrabold text-coffee-900">قائمة (ك shack = لون مختلف)</p>
-              <span className="rounded-full bg-[#C9A96A] px-2 py-0.5 text-[9px] font-black text-white">ك shack</span>
+              <p className="text-xs font-extrabold text-coffee-900">طلبات الكشك (مميزة باللون)</p>
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-[#C9A96A] px-2 py-0.5 text-[9px] font-black text-white">كشك</span>
+                <span className="rounded-full bg-[#EDE7FF] px-2 py-0.5 text-[9px] font-black text-[#6D28D9]">مكافأة</span>
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-right text-xs">
@@ -699,21 +713,28 @@ function SalesTab({ token }: { token: string }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {(data.orders ?? []).filter((o: any) => o.source === 'kiosk').map((o: any) => (
-                    <tr key={o.id} className="border-b border-dashed border-beige bg-[#FFF9EC]">
-                      <td className="py-2 font-mono font-black text-coffee-900" dir="ltr">#{o.order_number}</td>
-                      <td className="py-2">{o.customer_name || '—'}</td>
-                      <td className="py-2 text-center font-black text-gold-deep">{o.total_cents} ل.س</td>
-                      <td className="py-2 text-center">
-                        <span className={`rounded-full px-2 py-0.5 text-[9px] font-extrabold ${o.status === 'ready' ? 'bg-emerald-100 text-emerald-700' : o.status === 'completed' ? 'bg-neutral-100 text-neutral-500' : 'bg-red-50 text-red-500'}`}>
-                          {o.status === 'ready' ? 'جاهز' : o.status === 'completed' ? 'مكتمل' : o.status}
-                        </span>
-                      </td>
-                      <td className="py-2 text-[10px] font-bold text-neutral-400">{fmtDateTimeNum(o.created_at)}</td>
-                    </tr>
-                  ))}
+                  {(data.orders ?? []).filter((o: any) => o.source === 'kiosk').map((o: any) => {
+                    const isReward = o.is_reward || (o.total_cents === 0);
+                    return (
+                      <tr key={o.id} className={isReward ? "border-b border-dashed border-[#D6C6FF] bg-[#F6F3FF]" : "border-b border-dashed border-beige bg-[#FFF9EC]"}>
+                        <td className="py-2 font-mono font-black text-coffee-900" dir="ltr">#{o.order_number}</td>
+                        <td className="py-2">{o.customer_name || '—'}</td>
+                        <td className="py-2 text-center font-black text-gold-deep">{isReward ? 'مجاني' : (o.total_cents + ' ل.س')}</td>
+                        <td className="py-2 text-center">
+                          {isReward ? (
+                            <span className="rounded-full px-2 py-0.5 text-[9px] font-extrabold bg-[#EDE7FF] text-[#6D28D9]">مكافأة من الكشك</span>
+                          ) : (
+                            <span className={`rounded-full px-2 py-0.5 text-[9px] font-extrabold ${o.status === 'ready' ? 'bg-emerald-100 text-emerald-700' : o.status === 'completed' ? 'bg-neutral-100 text-neutral-500' : 'bg-red-50 text-red-500'}`}>
+                              {o.status === 'ready' ? 'جاهز' : o.status === 'completed' ? 'مكتمل' : o.status}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 text-[10px] font-bold text-neutral-400">{fmtDateTimeNum(o.created_at)}</td>
+                      </tr>
+                    );
+                  })}
                   {(data.orders ?? []).filter((o: any) => o.source === 'kiosk').length === 0 && (
-                    <tr><td colSpan={5} className="py-6 text-center text-xs font-bold text-neutral-400">لا توجد طلبات من ك shack في هذه الفترة</td></tr>
+                    <tr><td colSpan={5} className="py-6 text-center text-xs font-bold text-neutral-400">لا توجد طلبات من الكشك في هذه الفترة</td></tr>
                   )}
                 </tbody>
               </table>
