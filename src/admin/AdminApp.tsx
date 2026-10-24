@@ -1317,7 +1317,7 @@ function RewardsTab({ token }: { token: string }) {
             <h3 className="text-base font-extrabold text-coffee-900">{edit.id ? 'تعديل مكافأة' : 'مكافأة جديدة'}</h3>
             <div className="mt-4 space-y-3">
               <Field label="الاسم"><input className={inputCls} value={edit.name_ar} onChange={(e) => setEdit({ ...edit, name_ar: e.target.value })} /></Field>
-              <Field label="النقاط المطلوبة"><input type="number" className={inputCls} value={edit.points_cost} onChange={(e) => setEdit({ ...edit, points_cost: +e.target.value })} /></Field>
+              <Field label="النقاط المطلوبة"><input type="number" min={1} max={20} className={inputCls} value={edit.points_cost} onChange={(e) => setEdit({ ...edit, points_cost: Math.min(20, Math.max(1, +e.target.value)) })} /></Field>
               <Field label="عدد أيام الاستبدال">
                 <input type="number" min="0" className={inputCls} value={edit.redemption_days ?? ''} onChange={(e) => setEdit({ ...edit, redemption_days: e.target.value })} placeholder="مثال: 7" />
               </Field>
