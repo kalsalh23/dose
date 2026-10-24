@@ -1760,9 +1760,10 @@ function HeroTab({ token }: { token: string }) {
   const load = useCallback(() => { arpc<Record<string, string>>('admin_get_settings', { p_token: token }).then(setSettings).catch(() => {}); }, [token]);
   useEffect(() => { load(); }, [load]);
 
-  const heroTitle = settings.hero_title ?? '';
-  const heroSubtitle = settings.hero_subtitle ?? '';
-  const heroImage = settings.hero_image_url ?? '';
+const heroTitle = settings.hero_title ?? '';
+const heroSubtitle = settings.hero_subtitle ?? '';
+const heroBadge = settings.hero_badge ?? '';
+const heroImage = settings.hero_image_url ?? '';
   const heroActive = settings.hero_active !== 'false';
 
   return (
@@ -1772,6 +1773,9 @@ function HeroTab({ token }: { token: string }) {
       <Card className="space-y-4">
         <Field label="عنوان الهيرو">
           <input className={inputCls} value={heroTitle} onChange={(e) => setSettings({ ...settings, hero_title: e.target.value })} placeholder="مثال: قهوتك على ذوقك" />
+        </Field>
+        <Field label="شارة الهيرو (النص العلوي)">
+          <input className={inputCls} value={heroBadge} onChange={(e) => setSettings({ ...settings, hero_badge: e.target.value })} placeholder="مثال: قهوة مختصة في كل رشفة" />
         </Field>
         <Field label=" Sadd al-Hero (اختياري)">
           <input className={inputCls} value={heroSubtitle} onChange={(e) => setSettings({ ...settings, hero_subtitle: e.target.value })} placeholder="مثال: وحلويات تُدللها" />
@@ -1792,7 +1796,7 @@ function HeroTab({ token }: { token: string }) {
         <button disabled={busy} onClick={async () => {
           setBusy(true);
           try {
-            await arpc('admin_save_settings', { p_token: token, p_settings: { hero_title: heroTitle, hero_subtitle: heroSubtitle, hero_image_url: heroImage, hero_active: String(heroActive) } });
+            await arpc('admin_save_settings', { p_token: token, p_settings: { hero_title: heroTitle, hero_subtitle: heroSubtitle, hero_badge: heroBadge, hero_image_url: heroImage, hero_active: String(heroActive) } });
             setMsg('حُفظ تفاصيل الهيرو — سارٍ فورًا في التطبيقات ✓');
             setTimeout(() => setMsg(''), 4000);
           } catch (e: any) { alert(e.message); }

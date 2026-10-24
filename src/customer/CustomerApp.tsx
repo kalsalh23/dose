@@ -379,8 +379,9 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
   const jumpToMenu = () => setTimeout(() => document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
 
   // إعدادات الهيرو
-  const heroTitle = (catalog?.settings?.hero_title ?? '').trim();
-  const heroSubtitle = (catalog?.settings?.hero_subtitle ?? '').trim();
+const heroTitle = (catalog?.settings?.hero_title ?? '').trim();
+const heroSubtitle = (catalog?.settings?.hero_subtitle ?? '').trim();
+const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
   const heroImage = (catalog?.settings?.hero_image_url ?? '').trim();
   const heroActive = catalog?.settings?.hero_active !== 'false';
 
@@ -419,7 +420,7 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
             </>
           ) : (
             <>
-              <span className='rounded-full bg-white/10 px-3 py-1 text-[10px] font-black text-[#C9D3A8]'>قهوة مختصة في كل رشفة</span>
+              <span className='rounded-full bg-white/10 px-3 py-1 text-[10px] font-black text-[#C9D3A8]'>{heroBadge || 'قهوة مختصة في كل رشفة'}</span>
               <h2 className='mt-2.5 text-[22px] font-black leading-snug'>
                 {heroTitle ? heroTitle.replace(/\n/g, '\n') : 'قهوتك على ذوقك،\nوحلويات تُدللها'}
               </h2>
