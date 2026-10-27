@@ -1942,8 +1942,8 @@ function AboutPage({ catalog }: { catalog: Catalog | null }) {
         {contactRow('tiktok', 'تيك توك', '@dose__cafe', 'https://www.tiktok.com/@dose__cafe')}
         {contactRow('facebook', 'فيسبوك', 'Dose Cafe', 'https://www.facebook.com/share/1DhShCC3Fm/')}
         {contactRow('pin', 'موقع المحل',
-          catalog?.settings?.shop_maps_url ?? '4QM3+428 Dose_cafe، أبي الفداء، حماه، سوريا',
-          catalog?.settings?.shop_maps_url ?? 'https://www.google.com/maps/search/?api=1&query=4QM3+428')}
+          catalog?.settings?.shop_maps_url ?? 'https://maps.app.goo.gl/L6585pHJTeobKMM5A?g_st=aw',
+          catalog?.settings?.shop_maps_url ?? 'https://maps.app.goo.gl/L6585pHJTeobKMM5A?g_st=aw')}
       </div>
 
       <h3 className="mb-2.5 mt-7 text-base font-black text-[#26301C]">فريق العمل</h3>
