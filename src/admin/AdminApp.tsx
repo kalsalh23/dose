@@ -1687,6 +1687,7 @@ function SettingsTab({ token }: { token: string }) {
   const fields = [
     { key: 'whatsapp_number', label: 'رقم WhatsApp للمحل (بصيغة دولية بدون +)' },
     { key: 'store_phone', label: 'رقم هاتف المحل' },
+    { key: 'shop_maps_url', label: 'رابط موقع المحل على خرائط جوجل (Google Maps)' },
     { key: 'currency_symbol', label: 'رمز العملة' },
     { key: 'points_award_mode', label: 'منح النقاط (on_create: عند الطلب — on_complete: عند الإكمال)' },
   ];
