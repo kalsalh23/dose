@@ -40,7 +40,17 @@ function useAppSession() {
 
 function useCatalog() {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
-  useEffect(() => { rpc<Catalog>('get_catalog').then(setCatalog).catch(() => {}); }, []);
+  useEffect(() => {
+    rpc<Catalog>('get_catalog').then((c) => {
+      const seen = new Set<string>();
+      c.categories = c.categories.filter((cat) => {
+        if (seen.has(cat.slug)) return false;
+        seen.add(cat.slug);
+        return true;
+      });
+      setCatalog(c);
+    }).catch(() => {});
+  }, []);
   return catalog;
 }
 
@@ -523,43 +533,50 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
         <div className="mb-3 flex items-end justify-between px-1">
           <h2 className="text-[17px] font-black text-[#26301C]">{selMenuTitle ? selMenuTitle : 'استكشف المنيو'}</h2>
         </div>
-        <div className="pb-4">
-          {Array.from(byCat.entries()).map(([slug, catProducts]) => (
-            <div key={slug} className="mb-6">
-              <h3 className="mb-2 mt-4 text-[13px] font-extrabold text-[#7C8665] px-2">{catLabel(slug)}</h3>
-              <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3">
-                {catProducts.map((p) => (
-                  <button key={p.id} onClick={() => openProduct(p)}
-                    className="rounded-[1.75rem] bg-white p-2.5 text-right shadow-sm shadow-[#8a6a48]/15 ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 hover:shadow-lg anim-rise">
-                    <div className="relative">
-                      <img src={p.image_url} alt={p.name_ar} loading="lazy" className={`h-28 w-full rounded-[1.3rem] object-cover ${p.is_available === false ? 'opacity-50 grayscale' : ''}`} />
-                      <div className="absolute top-1.5 right-1.5 flex flex-col items-end gap-1">
-                        {p.is_available === false && (
-                          <span className="rounded-full bg-[#C4482E] px-2.5 py-1 text-[9px] font-black text-white shadow">نفذت الكمية</span>
-                        )}
-                        {hasOffer(p) && (
-                          <span className="rounded-full bg-[#C4482E] px-2.5 py-1 text-[9px] font-black text-white shadow">عرض</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-end justify-between px-1 pb-0.5 pt-2.5">
-                      <div className="min-w-0">
-                        {productMenuMap.get(p.id) && <p className="truncate text-[9.5px] font-bold text-[#B07C3A]">{productMenuMap.get(p.id)}</p>}
-                        <h3 className="truncate text-[13px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
-                        <p className="mt-0.5 text-[13px] font-black text-[#26301C]">
-                          {hasOffer(p) ? <><span className="text-[11px] font-bold text-neutral-400 line-through">{eur(p.price_cents, cur)}</span> {eur(effPrice(p), cur)}</> : eur(p.price_cents, cur)}
-                        </p>
-                      </div>
-                      <span className="grid size-9 flex-none place-items-center rounded-full bg-white shadow-md">
-                        <Icon name="plus" size={15} className="text-[#26301C]" />
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+         <div className="pb-4">
+           {catalog?.categories?.map((c) => {
+             const catProducts = shown.filter((p) => p.category === c.slug);
+             return (
+               <div key={c.slug} className="mb-6">
+                 <h3 className="mb-2 mt-4 text-[13px] font-extrabold text-[#7C8665] px-2">{c.name_ar}</h3>
+                 {catProducts.length > 0 ? (
+                   <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3">
+                     {catProducts.map((p) => (
+                       <button key={p.id} onClick={() => openProduct(p)}
+                         className="rounded-[1.75rem] bg-white p-2.5 text-right shadow-sm shadow-[#8a6a48]/15 ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 hover:shadow-lg anim-rise">
+                         <div className="relative">
+                           <img src={p.image_url} alt={p.name_ar} loading="lazy" className={`h-28 w-full rounded-[1.3rem] object-cover ${p.is_available === false ? 'opacity-50 grayscale' : ''}`} />
+                           <div className="absolute top-1.5 right-1.5 flex flex-col items-end gap-1">
+                             {p.is_available === false && (
+                               <span className="rounded-full bg-[#C4482E] px-2.5 py-1 text-[9px] font-black text-white shadow">نفذت الكمية</span>
+                             )}
+                             {hasOffer(p) && (
+                               <span className="rounded-full bg-[#C4482E] px-2.5 py-1 text-[9px] font-black text-white shadow">عرض</span>
+                             )}
+                           </div>
+                         </div>
+                         <div className="flex items-end justify-between px-1 pb-0.5 pt-2.5">
+                           <div className="min-w-0">
+                             {productMenuMap.get(p.id) && <p className="truncate text-[9.5px] font-bold text-[#B07C3A]">{productMenuMap.get(p.id)}</p>}
+                             <h3 className="truncate text-[13px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
+                             <p className="mt-0.5 text-[13px] font-black text-[#26301C]">
+                               {hasOffer(p) ? <><span className="text-[11px] font-bold text-neutral-400 line-through">{eur(p.price_cents, cur)}</span> {eur(effPrice(p), cur)}</> : eur(p.price_cents, cur)}
+                             </p>
+                           </div>
+                           <span className="grid size-9 flex-none place-items-center rounded-full bg-white shadow-md">
+                             <Icon name="plus" size={15} className="text-[#26301C]" />
+                           </span>
+                         </div>
+                       </button>
+                     ))}
+                   </div>
+                 ) : (
+                   <p className="text-center text-[11px] text-[#94826A] py-4">لا توجد منتجات في هذا القسم</p>
+                 )}
+               </div>
+             );
+           })}
+         </div>
         {cat !== "all" && (
           <p className="pb-2 text-center text-[11px] text-[#94826A]">عرض فئة: {catalog?.categories?.find((c) => c.slug === cat)?.name_ar}</p>
         )}
