@@ -526,7 +526,7 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
         </section>
       )}
 
-      {/* استكشف المنيو — بطاقات عمودية مكدسة طولياً */}
+      {/* استكشف المنيو — بطاقات مشابهة للأكثر طلباً مكدسة طولياً */}
       <section id='menu-section' className='mt-5'>
         <div className="mb-3 flex items-end justify-between px-1">
           <h2 className="text-[17px] font-black text-[#26301C]">{selMenuTitle ? selMenuTitle : 'استكشف المنيو'}</h2>
@@ -541,24 +541,20 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
                   <div className="flex flex-col gap-3">
                     {catProducts.map((p, i) => (
                       <button key={p.id} onClick={() => openProduct(p)}
-                        className='w-full rounded-[1.4rem] bg-white p-3 text-right shadow-sm ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 anim-rise'
+                        className='w-full flex-none rounded-[1.4rem] bg-white p-2.5 text-right shadow-sm ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 anim-rise'
                         style={{ animationDelay: `${i * 20}ms` }}>
                         <div className="relative">
-                          <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-32 w-full rounded-[1.2rem] object-cover" />
+                          <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-24 w-full rounded-[1rem] object-cover" />
                           {p.is_available === false && <span className="absolute top-1.5 left-1.5 rounded-full bg-[#26301C] px-2 py-0.5 text-[8.5px] font-black text-[#C9D3A8] shadow">نفذت الكمية</span>}
                           {hasOffer(p) && <span className="absolute top-1.5 right-1.5 rounded-full bg-[#C4482E] px-2 py-0.5 text-[8.5px] font-black text-white shadow">عرض</span>}
                         </div>
-                        <div className="mt-2 flex items-end justify-between">
-                          <div className="min-w-0">
-                            {productMenuMap.get(p.id) && <p className="truncate text-[9px] font-bold text-[#B07C3A]">{productMenuMap.get(p.id)}</p>}
-                            <h3 className="truncate text-[13px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
-                            <p className="mt-0.5 text-[12px] font-black text-[#26301C]">
-                              {hasOffer(p) ? <><span className="text-[10px] font-bold text-neutral-400 line-through">{eur(p.price_cents, cur)}</span> {eur(effPrice(p), cur)}</> : eur(p.price_cents, cur)}
-                            </p>
-                          </div>
-                          <span className="grid size-9 flex-none place-items-center rounded-full bg-white shadow-md">
-                            <Icon name="plus" size={15} className="text-[#26301C]" />
+                        <h3 className="mt-1.5 truncate text-[13px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
+                        <p className="truncate text-[9.5px] font-semibold uppercase tracking-wide text-[#94826A]">{p.name_en}</p>
+                        <div className="mt-1 flex items-center justify-between">
+                          <span className="text-[13px] font-black text-[#26301C]">
+                            {hasOffer(p) ? <><span className="text-neutral-400 line-through">{eur(p.price_cents, cur)}</span> {eur(effPrice(p), cur)}</> : eur(p.price_cents, cur)}
                           </span>
+                          <span className="grid size-7 place-items-center rounded-full bg-[#C9D3A8] text-[#26301C]"><Icon name="plus" size={13} strokeWidth={3} /></span>
                         </div>
                       </button>
                     ))}
