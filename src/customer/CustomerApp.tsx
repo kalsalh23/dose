@@ -304,7 +304,7 @@ const CAT_IMAGES: Record<string, string> = {
 };
 
 function FeaturedCategories({ catalog, cat, setCat }: { catalog: Catalog | null; cat: string; setCat: (s: string) => void }) {
-  const items = [{ slug: 'all', name_ar: 'الكل' }, ...(catalog?.categories ?? [])];
+  const items = (catalog?.categories ?? []);
   return (
     <section className="mt-6">
       <h2 className="mb-3 text-[17px] font-black text-[#26301C]">فئات مميزة</h2>
@@ -345,13 +345,12 @@ function PromoBanner({ settings }: { settings: Record<string, string> }) {
 }
 
 /* ============================ الرئيسية ============================ */
-function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }: { catalog: Catalog | null; openProduct: (p: Product) => void; ads: Ad[]; onOpenAd: (a: Ad) => void; selectedCat: string; onSelectCat: (s: string) => void }) {
+function Home({ catalog, openProduct, ads, onOpenAd, selectedCat }: { catalog: Catalog | null; openProduct: (p: Product) => void; ads: Ad[]; onOpenAd: (a: Ad) => void; selectedCat: string | null }) {
   const cat = selectedCat;
-  const setCat = onSelectCat;
   const [q, setQ] = useState('');
   const [selMenu, setSelMenu] = useState<number | null>(null);
   const products = catalog?.products ?? [];
-  let shown = cat === 'all' ? products : products.filter((p) => p.category === cat);
+  let shown = !cat ? products : products.filter((p) => p.category === cat);
   /* القائمة المختارة: تُعرض منتجاتها فقط */
   if (selMenu !== null) {
     const list = (catalog?.menus ?? []).find((m) => m.id === selMenu);
@@ -367,26 +366,11 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
   const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
   const promoCode = catalog?.settings?.promo_code;
   const promoDisc = catalog?.settings?.promo_discount;
-  const mostOrdered = catalog?.most_ordered ?? [];
   const menuLists = (catalog?.menus ?? []).filter((m) => (m.items ?? []).length > 0);
   const productMenuMap = new Map<number, string>();
   for (const m of (catalog?.menus ?? [])) for (const it of (m.items ?? [])) productMenuMap.set(it.id, m.title);
-  const items = [{ slug: 'all', name_ar: 'الكل' }, ...(catalog?.categories ?? [])];
   const searching = q.trim() !== '';
   const selMenuTitle = selMenu !== null ? (catalog?.menus ?? []).find((m) => m.id === selMenu)?.title : null;
-  /* عند اختيار فئة أو قائمة محددة تُعرض كل منتجاتها فورًا، ويظهر «عرض الكل» فقط مع فئة الكل */
-  const menuItems = shown;
-  const byCat = new Map<string, any[]>();
-  for (const p of menuItems) {
-    const key = p.category ?? 'all';
-    if (!byCat.has(key)) byCat.set(key, []);
-    byCat.get(key)!.push(p);
-  }
-  const catLabel = (slug: string) => {
-    const c = (catalog?.categories ?? []).find((x) => x.slug === slug);
-    return c ? c.name_ar : slug === 'all' ? 'الكل' : slug;
-  };
-  const jumpToMenu = () => setTimeout(() => document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
 
   // إعدادات الهيرو
 const heroTitle = (catalog?.settings?.hero_title ?? '').trim();
@@ -464,69 +448,7 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
         {q && <button onClick={() => setQ('')} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7C8665]" aria-label="مسح"><Icon name="x" size={15} /></button>}
       </div>
 
-      {/* الفئات + القوائم — دوائر */}
-      <section className="mt-5">
-        <div className="no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-1">
-          {items.map((c) => {
-            const active = selMenu === null && cat === c.slug;
-            return (
-              <button key={c.slug} onClick={() => { setSelMenu(null); setCat(c.slug); jumpToMenu(); }} className="flex flex-none flex-col items-center gap-1.5 transition active:scale-95">
-                <span className={`grid size-[62px] place-items-center overflow-hidden rounded-full shadow-md shadow-[#8a6a48]/15 transition-all ${active ? 'ring-2 ring-[#5C6B3C] ring-offset-2 ring-offset-[#F6E7C9]' : 'ring-1 ring-[#EAD3A0]'}`}>
-                  {c.slug === 'all'
-                    ? <span className='grid size-full place-items-center bg-gradient-to-br from-[#414D36] to-[#26301C] text-[#C9D3A8]'><Icon name='package' size={20} /></span>
-                    : <img src={CAT_IMAGES[c.slug] ?? '/img/latte.jpg'} alt={c.name_ar} className='size-full object-cover' loading='lazy' />}
-                </span>
-                <span className={`text-[11px] font-extrabold ${active ? 'text-[#26301C]' : 'text-[#7C8665]'}`}>{c.name_ar}</span>
-              </button>
-            );
-          })}
-          {/* القوائم التي بناها صاحب المحل */}
-          {menuLists.map((m) => {
-            const active = selMenu === m.id;
-            return (
-              <button key={'menu-' + m.id} onClick={() => { setSelMenu(active ? null : m.id); jumpToMenu(); }} className="flex flex-none flex-col items-center gap-1.5 transition active:scale-95">
-                <span className={`grid size-[62px] place-items-center overflow-hidden rounded-full shadow-md shadow-[#8a6a48]/15 transition-all ${active ? 'ring-2 ring-[#B07C3A] ring-offset-2 ring-offset-[#F6E7C9]' : 'ring-1 ring-[#EAD3A0]'}`}>
-                  {m.image_url
-                    ? <img src={m.image_url} alt={m.title} className='size-full object-cover' loading='lazy' />
-                    : <span className='grid size-full place-items-center bg-gradient-to-br from-[#7A5A22] to-[#5C4318] text-xl'>{m.emoji || '☕'}</span>}
-                </span>
-                <span className={`text-[11px] font-extrabold ${active ? 'text-[#7A5A22]' : 'text-[#7C8665]'}`}>{m.title}</span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
 
-
-      {/* الأكثر طلبًا — بطاقات أفقية */}
-      {!searching && mostOrdered.length > 0 && (
-        <section className="mt-5">
-          <h2 className="mb-3 flex items-center gap-1.5 text-[17px] font-black text-[#26301C]">
-            <Icon name='star' size={15} filled className='text-[#B07C3A]' /> الأكثر طلبًا
-          </h2>
-          <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
-            {mostOrdered.map((p, i) => (
-              <button key={p.id} onClick={() => openProduct(p as unknown as Product)}
-                className='w-40 flex-none rounded-[1.4rem] bg-white p-2.5 text-right shadow-sm ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 anim-rise'
-                style={{ animationDelay: `${i * 35}ms` }}>
-                <div className="relative">
-                  <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-24 w-full rounded-[1rem] object-cover" />
-                  <span className="absolute top-1.5 left-1.5 rounded-full bg-[#26301C] px-2 py-0.5 text-[8.5px] font-black text-[#C9D3A8] shadow">الأكثر طلبًا</span>
-                  {hasOffer(p) && <span className="absolute top-1.5 right-1.5 rounded-full bg-[#C4482E] px-2 py-0.5 text-[8.5px] font-black text-white shadow">عرض</span>}
-                </div>
-                <h3 className="mt-1.5 truncate text-[13px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
-                <p className="truncate text-[9.5px] font-semibold uppercase tracking-wide text-[#94826A]">{p.name_en}</p>
-                <div className="mt-1 flex items-center justify-between">
-                  <span className="text-[13px] font-black text-[#26301C]">
-                    {hasOffer(p) ? <><span className="text-neutral-400 line-through">{eur(p.price_cents, cur)}</span> {eur(effPrice(p), cur)}</> : eur(p.price_cents, cur)}
-                  </span>
-                  <span className="grid size-7 place-items-center rounded-full bg-[#C9D3A8] text-[#26301C]"><Icon name="plus" size={13} strokeWidth={3} /></span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* استكشف المنيو */}
       <section id='menu-section' className='mt-5'>
@@ -577,7 +499,7 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
              );
            })}
          </div>
-        {cat !== "all" && (
+        {cat != null && (
           <p className="pb-2 text-center text-[11px] text-[#94826A]">عرض فئة: {catalog?.categories?.find((c) => c.slug === cat)?.name_ar}</p>
         )}
       </section>
@@ -1352,7 +1274,7 @@ export default function CustomerApp() {
   const [pinBusyConfirm, setPinBusyConfirm] = useState(false);
   const [adOpen, setAdOpen] = useState<Ad | null>(null);
   const [closedOpen, setClosedOpen] = useState(false);
-  const [selectedCat, setSelectedCat] = useState('all');
+  const [selectedCat, setSelectedCat] = useState<string | null>(null);
   const [welcomeDone, setWelcomeDone] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
   const [midAdDue, setMidAdDue] = useState(false);
@@ -1588,7 +1510,7 @@ export default function CustomerApp() {
 
       <main className="flex-1 px-4 pb-36 pt-2">
         <Routes>
-          <Route path="/" element={<Home catalog={catalog} openProduct={setProduct} ads={heroAds} onOpenAd={(a) => setAdOpen(a)} selectedCat={selectedCat} onSelectCat={setSelectedCat} />} />
+          <Route path="/" element={<Home catalog={catalog} openProduct={setProduct} ads={heroAds} onOpenAd={(a) => setAdOpen(a)} selectedCat={selectedCat} />} />
           <Route path="/cart" element={
             <CartPage lines={cart.lines} setQty={cart.setQty} remove={cart.remove}
               onOrder={() => startOrder(cart.lines)}
