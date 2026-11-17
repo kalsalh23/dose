@@ -526,38 +526,49 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
         </section>
       )}
 
-      {/* استكشف المنيو — بطاقات أفقية قابلة للتمرير */}
+      {/* استكشف المنيو — بطاقات عمودية مكدسة طولياً */}
       <section id='menu-section' className='mt-5'>
         <div className="mb-3 flex items-end justify-between px-1">
           <h2 className="text-[17px] font-black text-[#26301C]">{selMenuTitle ? selMenuTitle : 'استكشف المنيو'}</h2>
         </div>
          <div className="pb-4">
-          <div className="flex flex-col gap-4">
-            {shown.map((p, i) => (
-              <button key={p.id} onClick={() => openProduct(p)}
-                className='w-full flex-none rounded-[1.4rem] bg-white p-3 text-right shadow-sm ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 anim-rise'
-                style={{ animationDelay: `${i * 20}ms` }}>
-                <div className="relative">
-                  <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-32 w-full rounded-[1.2rem] object-cover" />
-                  {p.is_available === false && <span className="absolute top-1.5 left-1.5 rounded-full bg-[#26301C] px-2 py-0.5 text-[8.5px] font-black text-[#C9D3A8] shadow">نفذت الكمية</span>}
-                  {hasOffer(p) && <span className="absolute top-1.5 right-1.5 rounded-full bg-[#C4482E] px-2 py-0.5 text-[8.5px] font-black text-white shadow">عرض</span>}
-                </div>
-                <div className="mt-2 flex items-end justify-between">
-                  <div className="min-w-0">
-                    {productMenuMap.get(p.id) && <p className="truncate text-[9px] font-bold text-[#B07C3A]">{productMenuMap.get(p.id)}</p>}
-                    <h3 className="truncate text-[13px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
-                    <p className="mt-0.5 text-[12px] font-black text-[#26301C]">
-                      {hasOffer(p) ? <><span className="text-[10px] font-bold text-neutral-400 line-through">{eur(p.price_cents, cur)}</span> {eur(effPrice(p), cur)}</> : eur(p.price_cents, cur)}
-                    </p>
+          {catalog?.categories?.map((c) => {
+            const catProducts = shown.filter((p) => p.category === c.slug);
+            return (
+              <div key={c.slug} className="mb-6">
+                <h3 className="mb-2 mt-4 text-[13px] font-extrabold text-[#7C8665] px-2">{c.name_ar}</h3>
+                {catProducts.length > 0 ? (
+                  <div className="flex flex-col gap-3">
+                    {catProducts.map((p, i) => (
+                      <button key={p.id} onClick={() => openProduct(p)}
+                        className='w-full rounded-[1.4rem] bg-white p-3 text-right shadow-sm ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 anim-rise'
+                        style={{ animationDelay: `${i * 20}ms` }}>
+                        <div className="relative">
+                          <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-32 w-full rounded-[1.2rem] object-cover" />
+                          {p.is_available === false && <span className="absolute top-1.5 left-1.5 rounded-full bg-[#26301C] px-2 py-0.5 text-[8.5px] font-black text-[#C9D3A8] shadow">نفذت الكمية</span>}
+                          {hasOffer(p) && <span className="absolute top-1.5 right-1.5 rounded-full bg-[#C4482E] px-2 py-0.5 text-[8.5px] font-black text-white shadow">عرض</span>}
+                        </div>
+                        <div className="mt-2 flex items-end justify-between">
+                          <div className="min-w-0">
+                            {productMenuMap.get(p.id) && <p className="truncate text-[9px] font-bold text-[#B07C3A]">{productMenuMap.get(p.id)}</p>}
+                            <h3 className="truncate text-[13px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
+                            <p className="mt-0.5 text-[12px] font-black text-[#26301C]">
+                              {hasOffer(p) ? <><span className="text-[10px] font-bold text-neutral-400 line-through">{eur(p.price_cents, cur)}</span> {eur(effPrice(p), cur)}</> : eur(p.price_cents, cur)}
+                            </p>
+                          </div>
+                          <span className="grid size-9 flex-none place-items-center rounded-full bg-white shadow-md">
+                            <Icon name="plus" size={15} className="text-[#26301C]" />
+                          </span>
+                        </div>
+                      </button>
+                    ))}
                   </div>
-                  <span className="grid size-9 flex-none place-items-center rounded-full bg-white shadow-md">
-                    <Icon name="plus" size={15} className="text-[#26301C]" />
-                  </span>
-                </div>
-              </button>
-            ))}
-            {shown.length === 0 && <p className="text-center text-[11px] text-[#94826A] py-4">لا توجد منتجات في هذا القسم</p>}
-          </div>
+                ) : (
+                  <p className="text-center text-[11px] text-[#94826A] py-4">لا توجد منتجات في هذا القسم</p>
+                )}
+              </div>
+            );
+          })}
          </div>
         {cat != null && (
           <p className="pb-2 text-center text-[11px] text-[#94826A]">عرض فئة: {catalog?.categories?.find((c) => c.slug === cat)?.name_ar}</p>
