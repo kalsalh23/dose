@@ -552,12 +552,44 @@ const statusChip = (s: string) => ({ pending: 'bg-amber-100 text-amber-800', con
 
 /* ============================ المبيعات ============================ */
 type SalesRange = 'today' | 'week' | 'month' | 'custom';
+type SalesFilter = 'all' | 'store' | 'gifts' | 'kiosk';
+
+/** شريط اختيار لأزرار الفترة/التصنيف — زر واحد محدد في كل مرة */
+function FilterPills<T extends string>({ value, options, onChange }: { value: T; options: { id: T; label: string; badge?: number }[]; onChange: (v: T) => void }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {options.map((o) => (
+        <button key={o.id} onClick={() => onChange(o.id)}
+          className={`rounded-full px-3.5 py-1.5 text-[11px] font-extrabold transition ${value === o.id ? 'bg-coffee-900 text-cream shadow' : 'bg-[#EEF2DC] text-neutral-600 hover:bg-[#E3E9C8] hover:text-neutral-900'}`}>
+          {o.label}{typeof o.badge === 'number' && o.badge > 0 && (
+            <span className={`ms-1.5 rounded-full px-1.5 py-0.5 text-[9px] ${value === o.id ? 'bg-cream/20 text-cream' : 'bg-coffee-900/10 text-coffee-900'}`}>{o.badge}</span>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** بطاقة رقم/إحصائية موحّدة لعرض ملخص المبيعات */
+function StatCard({ label, value, sub, tone }: { label: string; value: string; sub: string; tone: string }) {
+  return (
+    <div className={`rounded-3xl p-4 text-white shadow-lg ${tone}`}>
+      <p className="text-[11px] font-black opacity-80">{label}</p>
+      <p className="mt-1.5 text-2xl font-black tracking-tight">{value}</p>
+      <p className="mt-0.5 text-[10px] font-bold opacity-70">{sub}</p>
+    </div>
+  );
+}
+
 function SalesTab({ token }: { token: string }) {
   const [range, setRange] = useState<SalesRange>('today');
   const [from, setFrom] = useState<string>('');
   const [to, setTo] = useState<string>('');
   const [data, setData] = useState<any>(null);
   const [loaded, setLoaded] = useState(false);
+  const [salesFilter, setSalesFilter] = useState<SalesFilter>('all');
+  const [q, setQ] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'ready' | 'completed'>('all');
 
   const todayStr = () => (new Date(Date.now() - new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 10);
   const dates = (r: SalesRange) => {
@@ -580,16 +612,39 @@ function SalesTab({ token }: { token: string }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const [salesFilter, setSalesFilter] = useState<'all' | 'store' | 'gifts' | 'kiosk'>('all');
-  const isReward = (o: any) => o.is_reward || o.total_cents === 0 || o.reward_code || o.promo_type === 'reward';
+  const isReward = (o: any) => !!(o.is_reward || o.total_cents === 0 || o.reward_code || o.promo_type === 'reward');
   const ordersAll = (data?.orders ?? []) as any[];
+
+  const filterOpts: { id: SalesFilter; label: string }[] = [
+    { id: 'all', label: 'الكل' },
+    { id: 'store', label: 'طلبات المحل' },
+    { id: 'gifts', label: 'هدايا' },
+    { id: 'kiosk', label: 'طلبات الكشك' },
+  ];
+  // عدد الطلبات لكل تصنيف (من كل الطلبات، قبل بحث العميل/الحالة)
+  const filterCount = (id: SalesFilter) => ordersAll.filter((o) => {
+    if (id === 'store') return !isReward(o) && o.source !== 'kiosk';
+    if (id === 'gifts') return isReward(o);
+    if (id === 'kiosk') return !isReward(o) && o.source === 'kiosk';
+    return true;
+  }).length;
+
+  const qNorm = q.trim().toLowerCase();
   const filteredOrders = ordersAll.filter((o) => {
-    if (salesFilter === 'all') return true;
-    if (salesFilter === 'store') return !isReward(o) && o.source !== 'kiosk';
-    if (salesFilter === 'gifts') return isReward(o);
-    if (salesFilter === 'kiosk') return !isReward(o) && o.source === 'kiosk';
+    // 1) تصنيف المبيعات
+    if (salesFilter === 'store' && (isReward(o) || o.source === 'kiosk')) return false;
+    if (salesFilter === 'gifts' && !isReward(o)) return false;
+    if (salesFilter === 'kiosk' && (isReward(o) || o.source !== 'kiosk')) return false;
+    // 2) تصفية الحالة
+    if (statusFilter !== 'all' && o.status !== statusFilter) return false;
+    // 3) بحث حر (رقم الطلب / اسم العميل / الهاتف)
+    if (qNorm) {
+      const hay = `${o.order_number} ${o.customer_name ?? ''} ${o.customer_phone ?? ''}`.toLowerCase();
+      if (!hay.includes(qNorm)) return false;
+    }
     return true;
   });
+
   const totals = {
     total: filteredOrders.reduce((s, o) => s + Number(o.total_cents ?? 0), 0),
     orders: filteredOrders.length,
@@ -598,89 +653,100 @@ function SalesTab({ token }: { token: string }) {
   };
 
   const num = (v: any) => Number(v ?? 0).toLocaleString('en-US');
+  const money = (v: any) => num(v) + ' ل.س';
   const daily = (data?.daily ?? []) as { day: string; total_cents: number; orders_count: number }[];
   const max = Math.max(1, ...daily.map((d) => d.total_cents));
   const products = (data?.products ?? []) as { name_ar: string; qty: number; revenue_cents: number }[];
+
+  // خيارات الفترة مع أسماء المدى الحالي
   const ranges: { id: SalesRange; label: string }[] = [
     { id: 'today', label: 'اليوم' },
     { id: 'week', label: 'آخر 7 أيام' },
     { id: 'month', label: 'هذا الشهر' },
     { id: 'custom', label: 'فترة مخصصة' },
   ];
+  const periodLabel = range === 'today' ? 'اليوم' : range === 'week' ? 'آخر 7 أيام' : range === 'month' ? 'هذا الشهر' : (data ? data.from + ' — ' + data.to : '');
+  const activeFilterCount = (salesFilter !== 'all' ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0) + (q.trim() ? 1 : 0);
+  const clearFilters = () => { setSalesFilter('all'); setStatusFilter('all'); setQ(''); };
 
   return (
     <div className="space-y-4">
-      <h2 className="text-base font-extrabold text-coffee-900">المبيعات والجرد</h2>
-
-      {/* اختيار الفترة */}
-      <div className="flex flex-wrap items-center gap-2">
-        {ranges.map((r) => (
-          <button key={r.id} onClick={() => setRange(r.id)}
-            className={`rounded-full px-4 py-2 text-xs font-extrabold transition ${range === r.id ? 'bg-coffee-900 text-cream shadow' : 'bg-[#E3E9C8] text-neutral-600 hover:text-neutral-900'}`}>
-            {r.label}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-extrabold text-coffee-900">المبيعات والجرد</h2>
+          {loaded && data && <span className="rounded-full bg-[#EEF2DC] px-2.5 py-1 text-[10px] font-black text-[#5C6B3C]">{periodLabel}</span>}
+        </div>
         <button onClick={load} className={btnCls}>تحديث</button>
       </div>
 
-      {/* تصنيف المبيعات */}
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-white p-3 ring-1 ring-beige">
-        <span className="text-[11px] font-black text-neutral-500">تصنيف:</span>
-        {[
-          { id: 'all', label: 'الكل' },
-          { id: 'store', label: 'طلبات المحل' },
-          { id: 'gifts', label: 'هدايا' },
-          { id: 'kiosk', label: 'طلبات الكشك' },
-        ].map((f) => (
-          <button key={f.id} onClick={() => setSalesFilter(f.id)}
-            className={`rounded-full px-3 py-1.5 text-[11px] font-extrabold transition ${salesFilter === f.id ? 'bg-coffee-900 text-cream shadow' : 'bg-[#E3E9C8] text-neutral-600 hover:text-neutral-900'}`}>
-            {f.label}
-          </button>
-        ))}
+      {/* الفترة الزمنية */}
+      <div className="rounded-2xl bg-white p-3 ring-1 ring-beige">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-[11px] font-black text-neutral-500">الفترة:</span>
+          <FilterPills<SalesRange> value={range} options={ranges} onChange={setRange} />
+        </div>
+        {range === 'custom' && (
+          <div className="mt-3 flex flex-wrap items-end gap-3">
+            <Field label="من تاريخ"><input type="date" className={`${inputCls} sm:w-44`} dir="ltr" value={from} onChange={(e) => setFrom(e.target.value)} /></Field>
+            <Field label="إلى تاريخ"><input type="date" className={`${inputCls} sm:w-44`} dir="ltr" value={to} onChange={(e) => setTo(e.target.value)} /></Field>
+          </div>
+        )}
       </div>
 
-      {range === 'custom' && (
-        <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-white p-4 ring-1 ring-beige">
-          <Field label="من تاريخ"><input type="date" className={inputCls} dir="ltr" value={from} onChange={(e) => setFrom(e.target.value)} /></Field>
-          <Field label="إلى تاريخ"><input type="date" className={inputCls} dir="ltr" value={to} onChange={(e) => setTo(e.target.value)} /></Field>
+      {/* الفلترة: تصنيف + حالة + بحث حر */}
+      <div className="space-y-3 rounded-2xl bg-white p-3 ring-1 ring-beige">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-[11px] font-black text-neutral-500">تصفية النتائج{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}:</span>
+          <div className="flex items-center gap-2">
+            {activeFilterCount > 0 && (
+              <button onClick={clearFilters} className="rounded-full bg-[#E3E9C8] px-3 py-1.5 text-[10px] font-extrabold text-neutral-700 hover:bg-[#D6DDB8]">مسح الفلاتر</button>
+            )}
+            <input type="text" value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث: رقم، اسم، هاتف…" className={`${inputCls} h-9 w-44 text-xs`} dir="rtl" />
+          </div>
         </div>
-      )}
+        <FilterPills<SalesFilter> value={salesFilter} options={filterOpts.map((f) => ({ ...f, badge: filterCount(f.id) }))} onChange={setSalesFilter} />
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] font-black text-neutral-500">الحالة:</span>
+          {([
+            { id: 'all', label: 'الكل' },
+            { id: 'ready', label: 'جاهز' },
+            { id: 'completed', label: 'مكتمل' },
+          ] as { id: 'all' | 'ready' | 'completed'; label: string }[]).map((s) => (
+            <button key={s.id} onClick={() => setStatusFilter(s.id)}
+              className={`rounded-full px-3 py-1 text-[10px] font-extrabold transition ${statusFilter === s.id ? 'bg-[#5C6B3C] text-white' : 'bg-[#FAF5EA] text-neutral-500 ring-1 ring-beige hover:text-neutral-900'}`}>
+              {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {loaded && data ? (
         <>
-           {/* أرقام الفترة */}
-           <div className="grid gap-3 md:grid-cols-6">
-             <div className="rounded-3xl bg-gradient-to-bl from-[#414D36] to-[#26301C] p-5 text-white shadow-lg shadow-[#26301C]/25">
-               <p className="text-[11px] font-black text-[#C9D3A8]">إجمالي المبيعات</p>
-                <p className="mt-2 text-3xl font-black tracking-tight">{num(totals.total)} <span className="text-base">ل.س</span></p>
-               <p className="mt-1 text-[11px] font-bold text-white/70">{range === 'today' ? 'اليوم' : range === 'week' ? 'آخر 7 أيام' : range === 'month' ? 'هذا الشهر' : data.from + ' — ' + data.to}</p>
-             </div>
-             <div className="rounded-3xl bg-gradient-to-bl from-[#5C6B3C] to-[#414D36] p-5 text-white shadow-lg shadow-[#26301C]/25">
-               <p className="text-[11px] font-black text-[#C9D3A8]">عدد الطلبات</p>
-                <p className="mt-2 text-3xl font-black tracking-tight">{num(totals.orders)}</p>
-               <p className="mt-1 text-[11px] font-bold text-white/70">خلال {num(data.totals?.days)} يوم</p>
-             </div>
-             <div className="rounded-3xl bg-gradient-to-bl from-[#C9A96A] to-[#A08448] p-5 text-white shadow-lg shadow-[#26301C]/25">
-               <p className="text-[11px] font-black text-[#F6E7C9]">من الكشك</p>
-                <p className="mt-2 text-3xl font-black tracking-tight">{num(totals.kiosk)}</p>
-               <p className="mt-1 text-[11px] font-bold text-white/80">طلب من الكشك</p>
-             </div>
-              <div className="rounded-3xl bg-gradient-to-bl from-[#7C3AED] to-[#5B21B6] p-5 text-white shadow-lg shadow-[#5B21B6]/25">
-                <p className="text-[11px] font-black text-[#E9D5FF]">طلبات مكافآت من الكشك</p>
-                <p className="mt-2 text-3xl font-black tracking-tight">{num(totals.kiosk_rewards)}</p>
-                <p className="mt-1 text-[11px] font-bold text-white/80">مكافأة قادمة من الكشك</p>
-              </div>
-            </div>
+          {/* أرقام الفترة (حسب التصفية الحالية) */}
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <StatCard label="إجمالي المبيعات" value={money(totals.total)} sub={periodLabel} tone="bg-gradient-to-bl from-[#414D36] to-[#26301C] shadow-[#26301C]/25" />
+            <StatCard label="عدد الطلبات" value={num(totals.orders)} sub={'خلال ' + num(data.totals?.days) + ' يوم'} tone="bg-gradient-to-bl from-[#5C6B3C] to-[#414D36] shadow-[#26301C]/25" />
+            <StatCard label="من الكشك" value={num(totals.kiosk)} sub="طلب من الكشك" tone="bg-gradient-to-bl from-[#C9A96A] to-[#A08448] shadow-[#26301C]/25" />
+            <StatCard label="طلبات مكافآت" value={num(totals.kiosk_rewards)} sub="مكافأة من الكشك" tone="bg-gradient-to-bl from-[#7C3AED] to-[#5B21B6] shadow-[#5B21B6]/25" />
+          </div>
+
+          {activeFilterCount > 0 && (
+            <p className="rounded-xl bg-[#FFF9EC] px-3 py-2 text-[10.5px] font-bold text-[#8A6D2F]">
+              الأرقام أعلاه أدناه تعكس التصفية الحالية ({filteredOrders.length} طلب). الجدول والرسم يعرضان كامل الفترة.
+            </p>
+          )}
 
           {/* مبيعات يومية */}
           <Card className="p-5">
-            <p className="mb-4 text-xs font-extrabold text-coffee-900">المبيعات اليومية</p>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-xs font-extrabold text-coffee-900">المبيعات اليومية</p>
+              <span className="text-[10px] font-bold text-neutral-400">القيم بـ (ل.س) — بعدد الطلبات</span>
+            </div>
             <div className="flex items-end gap-1.5 overflow-x-auto pb-1" dir="ltr">
               {daily.map((d) => (
-                <div key={d.day} className="flex min-w-[36px] flex-1 flex-col items-center gap-1.5">
+                <div key={d.day} className="flex min-w-[40px] flex-1 flex-col items-center gap-1.5">
                   <span className="text-[8.5px] font-black text-neutral-500">{d.total_cents > 0 ? (d.total_cents / 1000).toLocaleString('en-US') + 'k' : ''}</span>
-                  <div className="w-full rounded-t-lg bg-gradient-to-t from-[#5C6B3C] to-[#A9B87F] transition-all"
-                    style={{ height: `${d.total_cents > 0 ? 10 + Math.round((d.total_cents / max) * 90) : 3}px` }} />
+                  <div className="w-full rounded-t-lg bg-gradient-to-t from-[#5C6B3C] to-[#A9B87F] transition-all" style={{ height: `${d.total_cents > 0 ? 10 + Math.round((d.total_cents / max) * 90) : 3}px` }} />
                   <span className="text-[8px] font-bold text-neutral-400">{d.day.slice(5)}</span>
                   <span className="text-[8px] font-black text-neutral-600">{d.orders_count > 0 ? d.orders_count : ''}</span>
                 </div>
@@ -690,78 +756,93 @@ function SalesTab({ token }: { token: string }) {
 
           {/* جرد المنتجات */}
           <Card className="p-5">
-            <p className="mb-4 text-xs font-extrabold text-coffee-900">جرد المنتجات المباعة في الفترة</p>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-xs font-extrabold text-coffee-900">جرد المنتجات المباعة في الفترة</p>
+              <span className="text-[10px] font-bold text-neutral-400">مرتّبة حسب الإيراد</span>
+            </div>
             {products.length === 0 ? (
               <p className="py-6 text-center text-xs font-bold text-neutral-400">لا توجد أصناف في هذه الفترة</p>
             ) : (
-              <table className="w-full text-right text-xs">
-                <thead>
-                  <tr className="border-b border-beige text-[10px] font-black text-neutral-400">
-                    <th className="pb-2">الصنف</th>
-                    <th className="pb-2 text-center">العدد</th>
-                    <th className="pb-2 text-left">الإيراد</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {products.map((p, i) => (
-                    <tr key={i} className="border-b border-dashed border-beige last:border-0">
-                      <td className="py-2 font-extrabold text-coffee-900">{p.name_ar}</td>
-                      <td className="py-2 text-center font-black text-[#5C6B3C]">{p.qty}</td>
-                      <td className="py-2 text-left font-extrabold text-gold-deep">{p.revenue_cents.toLocaleString('en-US')} ل.س</td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-right text-xs">
+                  <thead>
+                    <tr className="border-b border-beige text-[10px] font-black text-neutral-400">
+                      <th className="pb-2">الصنف</th>
+                      <th className="pb-2 text-center">العدد</th>
+                      <th className="pb-2 text-left">الإيراد</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {products.map((p, i) => (
+                      <tr key={i} className="border-b border-dashed border-beige last:border-0">
+                        <td className="py-2 font-extrabold text-coffee-900">{p.name_ar}</td>
+                        <td className="py-2 text-center font-black text-[#5C6B3C]">{p.qty}</td>
+                        <td className="py-2 text-left font-extrabold text-gold-deep">{money(p.revenue_cents)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </Card>
 
-{/* طلبات الك shack — مميزة بلون مختلف */}
+          {/* جدول الطلبات المفصّل — يعكس التصفية */}
           <Card className="p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-xs font-extrabold text-coffee-900">طلبات الكشك (مميزة باللون)</p>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-extrabold text-coffee-900">تفاصيل الطلبات ({filteredOrders.length})</p>
               <div className="flex items-center gap-2">
                 <span className="rounded-full bg-[#C9A96A] px-2 py-0.5 text-[9px] font-black text-white">كشك</span>
                 <span className="rounded-full bg-[#EDE7FF] px-2 py-0.5 text-[9px] font-black text-[#6D28D9]">مكافأة</span>
               </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-right text-xs">
-                <thead>
-                  <tr className="border-b border-beige text-[10px] font-black text-neutral-400">
-                    <th className="pb-2">رقم</th>
-                    <th className="pb-2">العميل</th>
-                    <th className="pb-2 text-center">الإجمالي</th>
-                    <th className="pb-2 text-center">الحالة</th>
-                    <th className="pb-2">الوقت</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(filteredOrders.filter((o: any) => o.source === 'kiosk')).map((o: any) => {
-                    const isReward = o.is_reward || (o.total_cents === 0) || o.reward_code || o.promo_type === 'reward';
-                    return (
-                      <tr key={o.id} className={isReward ? "border-b border-dashed border-[#D6C6FF] bg-[#F6F3FF]" : "border-b border-dashed border-beige bg-[#FFF9EC]"}>
-                        <td className="py-2 font-mono font-black text-coffee-900" dir="ltr">#{o.order_number}</td>
-                        <td className="py-2">{o.customer_name || '—'}</td>
-                        <td className="py-2 text-center font-black text-gold-deep">{isReward ? 'مجاني' : (o.total_cents + ' ل.س')}</td>
-                        <td className="py-2 text-center">
-                          {isReward ? (
-                            <span className="rounded-full px-2 py-0.5 text-[9px] font-extrabold bg-[#EDE7FF] text-[#6D28D9]">مكافأة من الكشك</span>
-                          ) : (
-                            <span className={`rounded-full px-2 py-0.5 text-[9px] font-extrabold ${o.status === 'ready' ? 'bg-emerald-100 text-emerald-700' : o.status === 'completed' ? 'bg-neutral-100 text-neutral-500' : 'bg-red-50 text-red-500'}`}>
-                              {o.status === 'ready' ? 'جاهز' : o.status === 'completed' ? 'مكتمل' : o.status}
+            {filteredOrders.length === 0 ? (
+              <p className="py-6 text-center text-xs font-bold text-neutral-400">لا توجد طلبات مطابقة لهذه التصفية</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-right text-xs">
+                  <thead>
+                    <tr className="border-b border-beige text-[10px] font-black text-neutral-400">
+                      <th className="pb-2">رقم</th>
+                      <th className="pb-2">العميل</th>
+                      <th className="pb-2 text-center">الإجمالي</th>
+                      <th className="pb-2 text-center">الحالة</th>
+                      <th className="pb-2">المصدر</th>
+                      <th className="pb-2">الوقت</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredOrders.map((o: any) => {
+                      const reward = isReward(o);
+                      return (
+                        <tr key={o.id} className={reward ? "border-b border-dashed border-[#D6C6FF] bg-[#F6F3FF]" : "border-b border-dashed border-beige bg-[#FFF9EC]"}>
+                          <td className="py-2 font-mono font-black text-coffee-900" dir="ltr">#{o.order_number}</td>
+                          <td className="py-2">
+                            <div className="font-bold text-coffee-900">{o.customer_name || '—'}</div>
+                            <div dir="ltr" className="text-[10px] text-neutral-400">{o.customer_phone || ''}</div>
+                          </td>
+                          <td className="py-2 text-center font-black text-gold-deep">{reward ? 'مجاني' : money(o.total_cents)}</td>
+                          <td className="py-2 text-center">
+                            {reward ? (
+                              <span className="rounded-full px-2 py-0.5 text-[9px] font-extrabold bg-[#EDE7FF] text-[#6D28D9]">مكافأة</span>
+                            ) : (
+                              <span className={`rounded-full px-2 py-0.5 text-[9px] font-extrabold ${o.status === 'ready' ? 'bg-emerald-100 text-emerald-700' : o.status === 'completed' ? 'bg-neutral-100 text-neutral-500' : 'bg-red-50 text-red-500'}`}>
+                                {statusLabel(o.status)}
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2">
+                            <span className="rounded-full px-2 py-0.5 text-[9px] font-bold bg-[#FAF5EA] text-neutral-500 ring-1 ring-beige">
+                              {o.source === 'kiosk' ? 'كشك المحل' : o.source === 'customer' ? 'تطبيق العميل' : 'إداري'}
                             </span>
-                          )}
-                        </td>
-                        <td className="py-2 text-[10px] font-bold text-neutral-400">{fmtDateTimeNum(o.created_at)}</td>
-                      </tr>
-                    );
-                  })}
-                  {(data.orders ?? []).filter((o: any) => o.source === 'kiosk').length === 0 && (
-                    <tr><td colSpan={5} className="py-6 text-center text-xs font-bold text-neutral-400">لا توجد طلبات من الكشك في هذه الفترة</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                          </td>
+                          <td className="py-2 text-[10px] font-bold text-neutral-400">{fmtDateTimeNum(o.created_at)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </Card>
 
           <p className="rounded-xl bg-[#EEF2DC] px-3 py-2 text-[10.5px] font-bold leading-relaxed text-[#77825E]">
