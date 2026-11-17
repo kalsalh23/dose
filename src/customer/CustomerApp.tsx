@@ -345,13 +345,13 @@ function PromoBanner({ settings }: { settings: Record<string, string> }) {
 }
 
 /* ============================ الرئيسية ============================ */
-function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }: { catalog: Catalog | null; openProduct: (p: Product) => void; ads: Ad[]; onOpenAd: (a: Ad) => void; selectedCat: string; onSelectCat: (s: string) => void }) {
+function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }: { catalog: Catalog | null; openProduct: (p: Product) => void; ads: Ad[]; onOpenAd: (a: Ad) => void; selectedCat: string | null; onSelectCat: (s: string | null) => void }) {
   const cat = selectedCat;
   const setCat = onSelectCat;
   const [q, setQ] = useState('');
   const [selMenu, setSelMenu] = useState<number | null>(null);
   const products = catalog?.products ?? [];
-  let shown = cat === 'all' ? products : products.filter((p) => p.category === cat);
+  let shown = !cat ? products : products.filter((p) => p.category === cat);
   /* القائمة المختارة: تُعرض منتجاتها فقط */
   if (selMenu !== null) {
     const list = (catalog?.menus ?? []).find((m) => m.id === selMenu);
@@ -371,7 +371,7 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
   const menuLists = (catalog?.menus ?? []).filter((m) => (m.items ?? []).length > 0);
   const productMenuMap = new Map<number, string>();
   for (const m of (catalog?.menus ?? [])) for (const it of (m.items ?? [])) productMenuMap.set(it.id, m.title);
-  const items = [{ slug: 'all', name_ar: 'الكل' }, ...(catalog?.categories ?? [])];
+  const items = (catalog?.categories ?? []);
   const searching = q.trim() !== '';
   const selMenuTitle = selMenu !== null ? (catalog?.menus ?? []).find((m) => m.id === selMenu)?.title : null;
   /* عند اختيار فئة أو قائمة محددة تُعرض كل منتجاتها فورًا، ويظهر «عرض الكل» فقط مع فئة الكل */
@@ -384,7 +384,7 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
   }
   const catLabel = (slug: string) => {
     const c = (catalog?.categories ?? []).find((x) => x.slug === slug);
-    return c ? c.name_ar : slug === 'all' ? 'الكل' : slug;
+    return c ? c.name_ar : slug;
   };
   const jumpToMenu = () => setTimeout(() => document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
 
@@ -468,13 +468,11 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
       <section className="mt-5">
         <div className="no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-1">
           {items.map((c) => {
-            const active = selMenu === null && cat === c.slug;
+            const active = cat === c.slug;
             return (
               <button key={c.slug} onClick={() => { setSelMenu(null); setCat(c.slug); jumpToMenu(); }} className="flex flex-none flex-col items-center gap-1.5 transition active:scale-95">
                 <span className={`grid size-[62px] place-items-center overflow-hidden rounded-full shadow-md shadow-[#8a6a48]/15 transition-all ${active ? 'ring-2 ring-[#5C6B3C] ring-offset-2 ring-offset-[#F6E7C9]' : 'ring-1 ring-[#EAD3A0]'}`}>
-                  {c.slug === 'all'
-                    ? <span className='grid size-full place-items-center bg-gradient-to-br from-[#414D36] to-[#26301C] text-[#C9D3A8]'><Icon name='package' size={20} /></span>
-                    : <img src={CAT_IMAGES[c.slug] ?? '/img/latte.jpg'} alt={c.name_ar} className='size-full object-cover' loading='lazy' />}
+                  <img src={CAT_IMAGES[c.slug] ?? '/img/latte.jpg'} alt={c.name_ar} className='size-full object-cover' loading='lazy' />
                 </span>
                 <span className={`text-[11px] font-extrabold ${active ? 'text-[#26301C]' : 'text-[#7C8665]'}`}>{c.name_ar}</span>
               </button>
@@ -534,30 +532,34 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
           <h2 className="text-[17px] font-black text-[#26301C]">{selMenuTitle ? selMenuTitle : 'استكشف المنيو'}</h2>
         </div>
          <div className="pb-4">
-          <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
+          <div className="flex flex-col gap-4">
             {shown.map((p, i) => (
               <button key={p.id} onClick={() => openProduct(p)}
-                className='w-40 flex-none rounded-[1.4rem] bg-white p-2.5 text-right shadow-sm ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 anim-rise'
-                style={{ animationDelay: `${i * 35}ms` }}>
+                className='w-full flex-none rounded-[1.4rem] bg-white p-3 text-right shadow-sm ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 anim-rise'
+                style={{ animationDelay: `${i * 20}ms` }}>
                 <div className="relative">
-                  <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-24 w-full rounded-[1rem] object-cover" />
+                  <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-32 w-full rounded-[1.2rem] object-cover" />
                   {p.is_available === false && <span className="absolute top-1.5 left-1.5 rounded-full bg-[#26301C] px-2 py-0.5 text-[8.5px] font-black text-[#C9D3A8] shadow">نفذت الكمية</span>}
                   {hasOffer(p) && <span className="absolute top-1.5 right-1.5 rounded-full bg-[#C4482E] px-2 py-0.5 text-[8.5px] font-black text-white shadow">عرض</span>}
                 </div>
-                <h3 className="mt-1.5 truncate text-[13px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
-                <p className="truncate text-[9.5px] font-semibold uppercase tracking-wide text-[#94826A]">{p.name_en}</p>
-                <div className="mt-1 flex items-center justify-between">
-                  <span className="text-[13px] font-black text-[#26301C]">
-                    {hasOffer(p) ? <><span className="text-neutral-400 line-through">{eur(p.price_cents, cur)}</span> {eur(effPrice(p), cur)}</> : eur(p.price_cents, cur)}
+                <div className="mt-2 flex items-end justify-between">
+                  <div className="min-w-0">
+                    {productMenuMap.get(p.id) && <p className="truncate text-[9px] font-bold text-[#B07C3A]">{productMenuMap.get(p.id)}</p>}
+                    <h3 className="truncate text-[13px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
+                    <p className="mt-0.5 text-[12px] font-black text-[#26301C]">
+                      {hasOffer(p) ? <><span className="text-[10px] font-bold text-neutral-400 line-through">{eur(p.price_cents, cur)}</span> {eur(effPrice(p), cur)}</> : eur(p.price_cents, cur)}
+                    </p>
+                  </div>
+                  <span className="grid size-9 flex-none place-items-center rounded-full bg-white shadow-md">
+                    <Icon name="plus" size={15} className="text-[#26301C]" />
                   </span>
-                  <span className="grid size-7 place-items-center rounded-full bg-[#C9D3A8] text-[#26301C]"><Icon name="plus" size={13} strokeWidth={3} /></span>
                 </div>
               </button>
             ))}
             {shown.length === 0 && <p className="text-center text-[11px] text-[#94826A] py-4">لا توجد منتجات في هذا القسم</p>}
           </div>
          </div>
-        {cat !== "all" && (
+        {cat != null && (
           <p className="pb-2 text-center text-[11px] text-[#94826A]">عرض فئة: {catalog?.categories?.find((c) => c.slug === cat)?.name_ar}</p>
         )}
       </section>
@@ -1332,7 +1334,7 @@ export default function CustomerApp() {
   const [pinBusyConfirm, setPinBusyConfirm] = useState(false);
   const [adOpen, setAdOpen] = useState<Ad | null>(null);
   const [closedOpen, setClosedOpen] = useState(false);
-  const [selectedCat, setSelectedCat] = useState('all');
+  const [selectedCat, setSelectedCat] = useState<string | null>(null);
   const [welcomeDone, setWelcomeDone] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
   const [midAdDue, setMidAdDue] = useState(false);
