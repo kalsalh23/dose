@@ -44,8 +44,8 @@ function useCatalog() {
     rpc<Catalog>('get_catalog').then((c) => {
       const seen = new Set<string>();
       c.categories = c.categories.filter((cat) => {
-        if (seen.has(cat.slug)) return false;
-        seen.add(cat.slug);
+        if (seen.has(cat.name_ar)) return false;
+        seen.add(cat.name_ar);
         return true;
       });
       setCatalog(c);
