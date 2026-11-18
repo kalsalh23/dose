@@ -538,7 +538,7 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
               <div key={c.slug} className="mb-6">
                 <h3 className="mb-2 mt-4 text-[13px] font-extrabold text-[#7C8665] px-2">{c.name_ar}</h3>
                 {catProducts.length > 0 ? (
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-3" style={{ display: 'flex', flexDirection: 'column' }}>
                     {catProducts.map((p, i) => (
                       <button key={p.id} onClick={() => openProduct(p)}
                         className='w-full flex-none rounded-[1.4rem] bg-white p-2.5 text-right shadow-sm ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 anim-rise'
