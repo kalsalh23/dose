@@ -410,6 +410,7 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
     return c ? c.name_ar : slug;
   };
   const jumpToMenu = () => setTimeout(() => document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  const jumpToCat = (slug: string) => setTimeout(() => document.getElementById('cat-' + slug)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
 
   // إعدادات الهيرو
 const heroTitle = (catalog?.settings?.hero_title ?? '').trim();
@@ -493,7 +494,7 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
           {items.map((c) => {
             const active = cat === c.slug;
             return (
-              <button key={c.slug} onClick={() => { setSelMenu(null); setCat(c.slug); jumpToMenu(); }} className="flex flex-none flex-col items-center gap-1.5 transition active:scale-95">
+              <button key={c.slug} onClick={() => { setSelMenu(null); setCat(c.slug); jumpToCat(c.slug); }} className="flex flex-none flex-col items-center gap-1.5 transition active:scale-95">
                 <span className={`grid size-[62px] place-items-center overflow-hidden rounded-full shadow-md shadow-[#8a6a48]/15 transition-all ${active ? 'ring-2 ring-[#5C6B3C] ring-offset-2 ring-offset-[#F6E7C9]' : 'ring-1 ring-[#EAD3A0]'}`}>
                   <img src={CAT_IMAGES[c.slug] ?? '/img/latte.jpg'} alt={c.name_ar} className='size-full object-cover' loading='lazy' />
                 </span>
@@ -560,7 +561,7 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
             const expanded = expandedCatSlugs.has(c.slug);
             const showProducts = expanded ? catProducts : catProducts.slice(0, 6);
             return (
-              <div key={c.slug} className="mb-6">
+              <div key={c.slug} id={'cat-' + c.slug} className="mb-6 scroll-mt-24">
                 <div className="mb-2 mt-4 flex items-center gap-2 px-2">
                   <Icon name={CAT_ICONS[c.slug] ?? 'star'} size={14} className="text-[#5C6B3C]" />
                   <h3 className="text-[14px] font-black text-[#26301C]">{c.name_ar}</h3>
@@ -606,9 +607,6 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
             );
           })}
          </div>
-        {cat != null && (
-          <p className="pb-2 text-center text-[11px] text-[#94826A]">عرض فئة: {catalog?.categories?.find((c) => c.slug === cat)?.name_ar}</p>
-        )}
       </section>
     </div>
   );
