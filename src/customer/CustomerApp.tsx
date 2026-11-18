@@ -574,7 +574,7 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
                         setExpandedCatSlugs((s) => { const n = new Set(s); n.add(c.slug); return n; });
                       }
                     }}
-                      className="ml-auto text-[11px] font-bold text-[#5C6B3C] hover:text-[#26301C] underline underline-offset-4">
+                      className="ms-auto text-[11px] font-bold text-[#5C6B3C] hover:text-[#26301C] underline underline-offset-4">
                       {expanded ? 'إظهار أقل' : `عرض الكل (${catProducts.length})`}
                     </button>
                   )}
