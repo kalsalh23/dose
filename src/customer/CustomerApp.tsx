@@ -1994,12 +1994,12 @@ function AboutPage({ catalog }: { catalog: Catalog | null }) {
 
       <h3 className="mb-2.5 mt-7 text-base font-black text-[#26301C]">فريق العمل</h3>
       <div className="overflow-hidden rounded-[2rem] bg-gradient-to-bl from-[#414D36] via-[#37422C] to-[#23291B] p-5 text-white shadow-xl shadow-[#8a6a48]/40">
-        <p className="flex items-center justify-center gap-2 text-xs font-black tracking-wide text-[#C9D3A8]">
-          <Icon name="star" size={13} filled /> بطاقة مميزة
-        </p>
+          <p className="flex items-center justify-center gap-2 text-xs font-black tracking-wide text-[#C9D3A8]">
+            <Icon name="gift" size={13} filled /> هدية مقدمة من ..
+          </p>
         <div className="mt-4 space-y-3">
-          {credit('براء دهبية', 'صاحب الفكرة والدعم', '0966333006')}
           {credit('قصي مهند الصالح', 'مطور المنصة وبرمجتها', '0952639157')}
+          {credit('براء دهبية', 'صاحب الفكرة والدعم', '0966333006')}
         </div>
         <p className="mt-4 text-center text-[10px] font-bold text-white/60">صُنعت هذه المنصة بحب — Dose Cafe</p>
       </div>
