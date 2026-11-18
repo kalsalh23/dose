@@ -552,7 +552,7 @@ const statusChip = (s: string) => ({ pending: 'bg-amber-100 text-amber-800', con
 
 /* ============================ المبيعات ============================ */
 type SalesRange = 'today' | 'week' | 'month' | 'custom';
-type SalesFilter = 'all' | 'store' | 'gifts' | 'kiosk';
+type SalesFilter = 'all' | 'app' | 'store' | 'gifts';
 
 /** شريط اختيار لأزرار الفترة/التصنيف — زر واحد محدد في كل مرة */
 function FilterPills<T extends string>({ value, options, onChange }: { value: T; options: { id: T; label: string; badge?: number }[]; onChange: (v: T) => void }) {
@@ -588,8 +588,6 @@ function SalesTab({ token }: { token: string }) {
   const [data, setData] = useState<any>(null);
   const [loaded, setLoaded] = useState(false);
   const [salesFilter, setSalesFilter] = useState<SalesFilter>('all');
-  const [q, setQ] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'ready' | 'completed'>('all');
 
   const todayStr = () => (new Date(Date.now() - new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 10);
   const dates = (r: SalesRange) => {
@@ -617,39 +615,32 @@ function SalesTab({ token }: { token: string }) {
 
   const filterOpts: { id: SalesFilter; label: string }[] = [
     { id: 'all', label: 'الكل' },
-    { id: 'store', label: 'طلبات المحل' },
+    { id: 'store', label: 'طلبات التطبيق' },
+    { id: 'kiosk', label: 'طلبات المحل' },
     { id: 'gifts', label: 'هدايا' },
-    { id: 'kiosk', label: 'طلبات الكشك' },
   ];
   // عدد الطلبات لكل تصنيف (من كل الطلبات، قبل بحث العميل/الحالة)
   const filterCount = (id: SalesFilter) => ordersAll.filter((o) => {
-    if (id === 'store') return !isReward(o) && o.source !== 'kiosk';
+    if (id === 'app') return !isReward(o) && o.source === 'customer';
+    if (id === 'store') return !isReward(o) && o.source === 'kiosk';
     if (id === 'gifts') return isReward(o);
-    if (id === 'kiosk') return !isReward(o) && o.source === 'kiosk';
     return true;
   }).length;
 
-  const qNorm = q.trim().toLowerCase();
   const filteredOrders = ordersAll.filter((o) => {
     // 1) تصنيف المبيعات
-    if (salesFilter === 'store' && (isReward(o) || o.source === 'kiosk')) return false;
+    if (salesFilter === 'app' && (isReward(o) || o.source !== 'customer')) return false;
+    if (salesFilter === 'store' && (isReward(o) || o.source !== 'kiosk')) return false;
     if (salesFilter === 'gifts' && !isReward(o)) return false;
-    if (salesFilter === 'kiosk' && (isReward(o) || o.source !== 'kiosk')) return false;
-    // 2) تصفية الحالة
-    if (statusFilter !== 'all' && o.status !== statusFilter) return false;
-    // 3) بحث حر (رقم الطلب / اسم العميل / الهاتف)
-    if (qNorm) {
-      const hay = `${o.order_number} ${o.customer_name ?? ''} ${o.customer_phone ?? ''}`.toLowerCase();
-      if (!hay.includes(qNorm)) return false;
-    }
     return true;
   });
 
   const totals = {
     total: filteredOrders.reduce((s, o) => s + Number(o.total_cents ?? 0), 0),
     orders: filteredOrders.length,
-    kiosk: filteredOrders.filter((o) => o.source === 'kiosk').length,
-    kiosk_rewards: filteredOrders.filter(isReward).length,
+    app: filteredOrders.filter((o) => o.source === 'customer' && !isReward(o)).length,
+    store: filteredOrders.filter((o) => o.source === 'kiosk' && !isReward(o)).length,
+    gifts: filteredOrders.filter(isReward).length,
   };
 
   const num = (v: any) => Number(v ?? 0).toLocaleString('en-US');
@@ -666,8 +657,8 @@ function SalesTab({ token }: { token: string }) {
     { id: 'custom', label: 'فترة مخصصة' },
   ];
   const periodLabel = range === 'today' ? 'اليوم' : range === 'week' ? 'آخر 7 أيام' : range === 'month' ? 'هذا الشهر' : (data ? data.from + ' — ' + data.to : '');
-  const activeFilterCount = (salesFilter !== 'all' ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0) + (q.trim() ? 1 : 0);
-  const clearFilters = () => { setSalesFilter('all'); setStatusFilter('all'); setQ(''); };
+  const activeFilterCount = (salesFilter !== 'all' ? 1 : 0);
+  const clearFilters = () => { setSalesFilter('all'); };
 
   return (
     <div className="space-y-4">
@@ -693,7 +684,7 @@ function SalesTab({ token }: { token: string }) {
         )}
       </div>
 
-      {/* الفلترة: تصنيف + حالة + بحث حر */}
+      {/* الفلترة: تصنيف المبيعات */}
       <div className="space-y-3 rounded-2xl bg-white p-3 ring-1 ring-beige">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-[11px] font-black text-neutral-500">تصفية النتائج{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}:</span>
@@ -701,23 +692,9 @@ function SalesTab({ token }: { token: string }) {
             {activeFilterCount > 0 && (
               <button onClick={clearFilters} className="rounded-full bg-[#E3E9C8] px-3 py-1.5 text-[10px] font-extrabold text-neutral-700 hover:bg-[#D6DDB8]">مسح الفلاتر</button>
             )}
-            <input type="text" value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث: رقم، اسم، هاتف…" className={`${inputCls} h-9 w-44 text-xs`} dir="rtl" />
           </div>
         </div>
         <FilterPills<SalesFilter> value={salesFilter} options={filterOpts.map((f) => ({ ...f, badge: filterCount(f.id) }))} onChange={setSalesFilter} />
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[11px] font-black text-neutral-500">الحالة:</span>
-          {([
-            { id: 'all', label: 'الكل' },
-            { id: 'ready', label: 'جاهز' },
-            { id: 'completed', label: 'مكتمل' },
-          ] as { id: 'all' | 'ready' | 'completed'; label: string }[]).map((s) => (
-            <button key={s.id} onClick={() => setStatusFilter(s.id)}
-              className={`rounded-full px-3 py-1 text-[10px] font-extrabold transition ${statusFilter === s.id ? 'bg-[#5C6B3C] text-white' : 'bg-[#FAF5EA] text-neutral-500 ring-1 ring-beige hover:text-neutral-900'}`}>
-              {s.label}
-            </button>
-          ))}
-        </div>
       </div>
 
       {loaded && data ? (
@@ -726,8 +703,9 @@ function SalesTab({ token }: { token: string }) {
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <StatCard label="إجمالي المبيعات" value={money(totals.total)} sub={periodLabel} tone="bg-gradient-to-bl from-[#414D36] to-[#26301C] shadow-[#26301C]/25" />
             <StatCard label="عدد الطلبات" value={num(totals.orders)} sub={'خلال ' + num(data.totals?.days) + ' يوم'} tone="bg-gradient-to-bl from-[#5C6B3C] to-[#414D36] shadow-[#26301C]/25" />
-            <StatCard label="من الكشك" value={num(totals.kiosk)} sub="طلب من الكشك" tone="bg-gradient-to-bl from-[#C9A96A] to-[#A08448] shadow-[#26301C]/25" />
-            <StatCard label="طلبات مكافآت" value={num(totals.kiosk_rewards)} sub="مكافأة من الكشك" tone="bg-gradient-to-bl from-[#7C3AED] to-[#5B21B6] shadow-[#5B21B6]/25" />
+            <StatCard label="طلبات التطبيق" value={num(totals.app)} sub="طلب من التطبيق" tone="bg-gradient-to-bl from-[#3B82F6] to-[#1E40AF] shadow-[#1E40AF]/25" />
+            <StatCard label="طلبات المحل" value={num(totals.store)} sub="طلب من المحل" tone="bg-gradient-to-bl from-[#C9A96A] to-[#A08448] shadow-[#26301C]/25" />
+            <StatCard label="هدايا" value={num(totals.gifts)} sub="طلب مكافأة" tone="bg-gradient-to-bl from-[#7C3AED] to-[#5B21B6] shadow-[#5B21B6]/25" />
           </div>
 
           {activeFilterCount > 0 && (
@@ -791,8 +769,9 @@ function SalesTab({ token }: { token: string }) {
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs font-extrabold text-coffee-900">تفاصيل الطلبات ({filteredOrders.length})</p>
               <div className="flex items-center gap-2">
-                <span className="rounded-full bg-[#C9A96A] px-2 py-0.5 text-[9px] font-black text-white">كشك</span>
-                <span className="rounded-full bg-[#EDE7FF] px-2 py-0.5 text-[9px] font-black text-[#6D28D9]">مكافأة</span>
+                <span className="rounded-full bg-[#3B82F6] px-2 py-0.5 text-[9px] font-black text-white">تطبيق</span>
+                <span className="rounded-full bg-[#C9A96A] px-2 py-0.5 text-[9px] font-black text-white">محل</span>
+                <span className="rounded-full bg-[#EDE7FF] px-2 py-0.5 text-[9px] font-black text-[#6D28D9]">هدايا</span>
               </div>
             </div>
             {filteredOrders.length === 0 ? (
@@ -832,7 +811,7 @@ function SalesTab({ token }: { token: string }) {
                           </td>
                           <td className="py-2">
                             <span className="rounded-full px-2 py-0.5 text-[9px] font-bold bg-[#FAF5EA] text-neutral-500 ring-1 ring-beige">
-                              {o.source === 'kiosk' ? 'كشك المحل' : o.source === 'customer' ? 'تطبيق العميل' : 'إداري'}
+                              {o.source === 'kiosk' ? 'طلبات المحل' : o.source === 'customer' ? 'طلبات التطبيق' : 'إداري'}
                             </span>
                           </td>
                           <td className="py-2 text-[10px] font-bold text-neutral-400">{fmtDateTimeNum(o.created_at)}</td>

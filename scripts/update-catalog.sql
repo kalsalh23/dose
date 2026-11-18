@@ -29,9 +29,9 @@ returns jsonb language sql stable security definer set search_path = public as $
         group by p.id, p.name_ar, p.name_en, p.price_cents, p.sale_price_cents, p.points, p.image_url
         order by order_count desc, p.id
         limit 6) x),
-    'rewards', (select coalesce(jsonb_agg(x order by x.sort_order), '[]'::jsonb) from (
-        select id, name_ar, name_en, image_url, points_cost, sort_order, expires_at, redemption_days
-        from public.rewards where is_active) x),
+     'rewards', (select coalesce(jsonb_agg(x order by x.sort_order), '[]'::jsonb) from (
+         select id, name_ar, name_en, image_url, points_cost, sort_order, expires_at, redemption_days
+         from public.rewards where is_active and (expires_at is null or expires_at > now())) x),
     'ads', (select coalesce(jsonb_agg(x order by x.id), '[]'::jsonb) from (
         select id, image_url, title, description_ar, old_price_cents, new_price_cents, discount_percent,
                full_screen, show_in_hero, popup_after_2min, category_slug
