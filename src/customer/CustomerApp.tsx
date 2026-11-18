@@ -216,11 +216,8 @@ function WelcomeScreen({ onClose }: { onClose: () => void }) {
       <h1 className="mt-8 text-4xl font-black text-[#26301C]">حب من طرف قهوة</h1>
       <p className="mt-2 text-sm font-bold tracking-wide text-[#7C8665]">Dose Coffee & More</p>
 
-      <div className="absolute bottom-10 flex items-center justify-center">
-        <svg className="welcome-spinner" viewBox="0 0 48 48" aria-hidden="true">
-          <circle className="welcome-spinner-track" cx="24" cy="24" r="18" />
-          <circle className="welcome-spinner-fill" cx="24" cy="24" r="18" />
-        </svg>
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-32 welcome-progress-bar" aria-hidden="true">
+        <div className="welcome-progress-fill" />
       </div>
     </div>
   );
