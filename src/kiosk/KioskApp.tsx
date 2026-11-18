@@ -336,7 +336,7 @@ const where = scope === 'product'
                     </div>
                   ) : (
                     <div className="flex items-center gap-1.5">
-                      <input value={codeInput} onChange={(e) => setCodeInput(e.target.value.toUpperCase())} placeholder="رمز خصم؟ (من تطبيق Dose)"
+                      <input value={codeInput} onChange={(e) => setCodeInput(e.target.value)} placeholder="رمز خصم؟ (من تطبيق Dose)"
                         className="h-9 min-w-0 flex-1 rounded-lg border-[1.5px] bg-white px-2.5 text-[11.5px] font-bold outline-none"
                         style={{ borderColor: '#D9C49C', color: '#221B12' }} />
                       <button onClick={applyCode} disabled={codeBusy || !codeInput.trim()}

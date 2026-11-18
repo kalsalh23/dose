@@ -1595,7 +1595,7 @@ function PromoTab({ token }: { token: string }) {
             <p className="mt-1 text-[11px] font-extrabold text-[#7C8F52]">خصم {settings.promo_discount}%</p>
           </div>
         )}
-        <Field label="الكود (حروف وأرقام)"><input className={inputCls} dir="ltr" value={settings.promo_code ?? ''} onChange={(e) => setSettings({ ...settings, promo_code: e.target.value.toUpperCase() })} placeholder="DOSE50" /></Field>
+        <Field label="الكود (أحرف كبيرة وصغيرة وأرقام ورموز كما تشاء)"><input className={inputCls} dir="ltr" value={settings.promo_code ?? ''} onChange={(e) => setSettings({ ...settings, promo_code: e.target.value })} placeholder="DOSE50" /></Field>
         <Field label="نسبة الخصم % (1 - 90)"><input type="number" className={inputCls} value={settings.promo_discount ?? ''} onChange={(e) => setSettings({ ...settings, promo_discount: e.target.value })} placeholder="20" /></Field>
         <Field label="نطاق الكود">
           <select className={inputCls} value={settings.promo_scope ?? 'all'} onChange={(e) => setSettings({ ...settings, promo_scope: e.target.value, promo_target: '' })}>
