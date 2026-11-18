@@ -1134,12 +1134,19 @@ function CodesPage({ myData, session }: { myData: MyData | null; session: Sessio
 }
 
 function MyCodes({ redemptions }: { redemptions: Redemption[] }) {
+  const now = Date.now();
+  const visible = redemptions.filter((r) => {
+    if (r.status === 'expired') return false;
+    const exp = r.expires_at || (r as any).reward_expires_at;
+    if (r.status === 'unused' && exp && new Date(exp).getTime() <= now) return false;
+    return true;
+  });
   return (
     <div className="mt-6 anim-rise">
       <h3 className="mb-3 text-base font-black text-[#26301C]">أكواد مكافآتك</h3>
-      {redemptions.length === 0 && <p className="rounded-[1.5rem] bg-[#E3E9C8] p-6 text-center text-xs font-bold text-[#7C8665]">لا توجد استبدالات بعد — اجمع النقاط واستبدلها من «استبدل نقاطك»</p>}
+      {visible.length === 0 && <p className="rounded-[1.5rem] bg-[#E3E9C8] p-6 text-center text-xs font-bold text-[#7C8665]">لا توجد استبدالات بعد — اجمع النقاط واستبدلها من «استبدل نقاطك»</p>}
       <div className="space-y-2.5">
-        {redemptions.map((r) => (
+        {visible.map((r) => (
           <div key={r.code} className="flex items-center justify-between rounded-[1.5rem] bg-[#E3E9C8] p-4">
             <div>
               <p className="text-sm font-extrabold text-[#26301C]">{r.reward_name}</p>
@@ -1155,7 +1162,7 @@ function MyCodes({ redemptions }: { redemptions: Redemption[] }) {
           </div>
         ))}
       </div>
-      {redemptions.length > 0 && (
+      {visible.length > 0 && (
         <p className="mt-4 flex items-center justify-center gap-2 rounded-[1.4rem] border-2 border-dashed border-[#C9A96A] bg-[#F6E7C9]/70 px-4 py-3.5 text-center text-[11.5px] font-black leading-relaxed text-[#8A6A48]">
           <Icon name="store" size={15} className="flex-none" />
           هذا الكود يُستخدم ضمن المحل حصرًا
