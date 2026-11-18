@@ -6,6 +6,11 @@ export default function SplashScreen() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (sessionStorage.getItem('splashShown')) {
+      navigate('/app', { replace: true });
+      return;
+    }
+    sessionStorage.setItem('splashShown', 'true');
     const timer = setTimeout(() => {
       navigate('/app', { replace: true });
     }, 2000);
