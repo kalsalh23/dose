@@ -364,6 +364,19 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
     const needle = q.trim().toLowerCase();
     shown = shown.filter((p) => p.name_ar.includes(needle) || p.name_en.toLowerCase().includes(needle));
   }
+  /* منتجات قسم المنيو: كل الفئات مع احترام البحث/القائمة المختارة دون تصفية الفئة */
+  let menuProducts = products;
+  if (selMenu !== null) {
+    const list = (catalog?.menus ?? []).find((m) => m.id === selMenu);
+    if (list) {
+      const ids = new Set((list.items ?? []).map((p) => p.id));
+      menuProducts = products.filter((p) => ids.has(p.id));
+    }
+  }
+  if (q.trim()) {
+    const needle = q.trim().toLowerCase();
+    menuProducts = menuProducts.filter((p) => p.name_ar.includes(needle) || p.name_en.toLowerCase().includes(needle));
+  }
   const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
   const promoCode = catalog?.settings?.promo_code;
   const promoDisc = catalog?.settings?.promo_discount;
@@ -533,7 +546,7 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
         </div>
          <div className="pb-4">
           {catalog?.categories?.map((c) => {
-            const catProducts = shown.filter((p) => p.category === c.slug);
+            const catProducts = menuProducts.filter((p) => p.category === c.slug);
             return (
               <div key={c.slug} className="mb-6">
                 <h3 className="mb-2 mt-4 text-[14px] font-black text-[#26301C] px-2">{c.name_ar}</h3>
