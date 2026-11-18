@@ -979,24 +979,16 @@ function ProductsTab({ token }: { token: string }) {
                 <Field label="النقاط"><input type="number" className={inputCls} value={edit.points} onChange={(e) => setEdit({ ...edit, points: +e.target.value })} /></Field>
               </div>
               <Field label="صورة المنتج"><ImageUploadField value={edit.image_url} onChange={(url) => setEdit({ ...edit, image_url: url })} folder="products" /></Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="التصنيف (الفئة)">
-                  <select className={inputCls} value={edit.category_slug || ''} onChange={(e) => setEdit({ ...edit, category_slug: e.target.value })}>
-                    <option value="">— اختر الفئة —</option>
-                    {cats.map((c: any) => <option key={c.slug} value={c.slug}>{c.name_ar}</option>)}
-                  </select>
-                </Field>
-                <Field label="القائمة (اختياري)">
-                  <select className={inputCls} value={edit.menu_id || ''} onChange={(e) => {
-                    const mid = e.target.value ? Number(e.target.value) : null;
-                    const m = menus.find((mm: any) => mm.id === mid);
-                    setEdit((prev: any) => ({ ...prev, menu_id: mid, category_slug: m?.category_slug || prev.category_slug }));
-                  }}>
-                    <option value="">— بدون قائمة —</option>
-                    {menus.map((m: any) => <option key={m.id} value={m.id}>{m.emoji ? m.emoji + ' ' : ''}{m.title}</option>)}
-                  </select>
-                </Field>
-              </div>
+              <Field label="القائمة (اختياري)">
+                <select className={inputCls} value={edit.menu_id || ''} onChange={(e) => {
+                  const mid = e.target.value ? Number(e.target.value) : null;
+                  const m = menus.find((mm: any) => mm.id === mid);
+                  setEdit((prev: any) => ({ ...prev, menu_id: mid, category_slug: m?.category_slug || prev.category_slug }));
+                }}>
+                  <option value="">— بدون قائمة —</option>
+                  {menus.map((m: any) => <option key={m.id} value={m.id}>{m.emoji ? m.emoji + ' ' : ''}{m.title}</option>)}
+                </select>
+              </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="نشط">
                   <select className={inputCls} value={String(edit.is_active)} onChange={(e) => setEdit({ ...edit, is_active: e.target.value === 'true' })}>
