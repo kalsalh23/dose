@@ -210,15 +210,15 @@ const where = scope === 'product'
             </div>
             <input value={prodQuery} onChange={(e) => setProdQuery(e.target.value)} placeholder="بحث في المنتجات…"
               className="h-9 w-40 rounded-full border-2 border-[#D5DEB4] bg-white px-4 text-sm font-bold text-[#26301C] outline-none focus:border-[#7C8F52]" />
-            <div className="flex gap-1 rounded-full p-1" style={{ background: '#EEF2DC', border: '1px solid #D5DEB4' }}>
+            <div className="flex gap-1.5 rounded-full p-1.5" style={{ background: '#EEF2DC', border: '1px solid #D5DEB4' }}>
               {catalog?.categories?.filter((c) => c.slug !== 'extras').map((c) => (
                 <button key={c.id} onClick={() => setCat(c.slug)}
-                  className={`flex flex-col items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition ${cat === c.slug ? 'shadow-md' : ''}`}
+                  className={`flex items-center gap-3 rounded-full px-4 py-2 text-sm font-bold transition ${cat === c.slug ? 'shadow-md' : ''}`}
                   style={cat === c.slug ? { background: '#26301C', color: '#F3DEBA' } : { color: '#6B7357' }}>
-                  <span className="grid size-10 place-items-center overflow-hidden rounded-full border-2" style={cat === c.slug ? { borderColor: '#F3DEBA', background: '#1f2516' } : { borderColor: '#D5DEB4', background: '#fff' }}>
-                    {c.image_url ? <img src={c.image_url} alt={c.name_ar} className="size-full object-cover" /> : <Icon name={catIcon(c.slug) as any} size={20} />}
+                  <span className="flex-shrink-0 grid size-9 place-items-center overflow-hidden rounded-full border-2" style={cat === c.slug ? { borderColor: '#F3DEBA', background: '#1f2516' } : { borderColor: '#D5DEB4', background: '#fff' }}>
+                    {c.image_url ? <img src={c.image_url} alt={c.name_ar} className="size-full object-cover" /> : <Icon name={catIcon(c.slug) as any} size={18} />}
                   </span>
-                  <span className="text-[11px] font-extrabold">{c.name_ar}</span>
+                  <span className="text-[12px] font-extrabold whitespace-nowrap">{c.name_ar}</span>
                 </button>
               ))}
             </div>
