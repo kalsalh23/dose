@@ -1,4 +1,4 @@
-const CACHE = 'dose-v2';
+const CACHE = 'dose-v3';
 const CORE = ['/', '/logo.jpg', '/manifest.webmanifest'];
 
 self.addEventListener('install', (e) => {
