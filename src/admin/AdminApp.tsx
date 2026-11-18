@@ -615,8 +615,8 @@ function SalesTab({ token }: { token: string }) {
 
   const filterOpts: { id: SalesFilter; label: string }[] = [
     { id: 'all', label: 'الكل' },
-    { id: 'store', label: 'طلبات التطبيق' },
-    { id: 'kiosk', label: 'طلبات المحل' },
+    { id: 'app', label: 'طلبات التطبيق' },
+    { id: 'store', label: 'طلبات المحل' },
     { id: 'gifts', label: 'هدايا' },
   ];
   // عدد الطلبات لكل تصنيف (من كل الطلبات، قبل بحث العميل/الحالة)

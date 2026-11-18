@@ -1,4 +1,4 @@
-export interface Category { id: number; slug: string; name_ar: string; emoji: string; sort_order: number }
+export interface Category { id: number; slug: string; name_ar: string; emoji: string; sort_order: number; image_url?: string | null }
 export interface Product {
   id: number; category_id: number; category: string; name_ar: string; name_en: string;
   description_ar: string; price_cents: number; points: number; image_url: string; sort_order: number; options?: string;
