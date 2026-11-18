@@ -538,11 +538,11 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
               <div key={c.slug} className="mb-6">
                 <h3 className="mb-2 mt-4 text-[14px] font-black text-[#26301C] px-2">{c.name_ar}</h3>
                 {catProducts.length > 0 ? (
-                  <div className="flex flex-col gap-3" style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {catProducts.map((p, i) => (
                       <button key={p.id} onClick={() => openProduct(p)}
-                        className='w-full block rounded-[1.4rem] bg-white p-2.5 text-right shadow-sm ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 anim-rise'
-                        style={{ display: 'block', width: '100%', animationDelay: `${i * 20}ms` }}>
+                        className='w-full rounded-[1.4rem] bg-white p-2.5 text-right shadow-sm ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 anim-rise'
+                        style={{ animationDelay: `${i * 20}ms` }}>
                         <div className="relative">
                           <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-24 w-full rounded-[1rem] object-cover" />
                           {p.is_available === false && <span className="absolute top-1.5 left-1.5 rounded-full bg-[#26301C] px-2 py-0.5 text-[8.5px] font-black text-[#C9D3A8] shadow">نفذت الكمية</span>}
