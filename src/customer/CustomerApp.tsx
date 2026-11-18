@@ -350,6 +350,7 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
   const setCat = onSelectCat;
   const [q, setQ] = useState('');
   const [selMenu, setSelMenu] = useState<number | null>(null);
+  const [expandedCatSlugs, setExpandedCatSlugs] = useState<Set<string>>(new Set());
   const products = catalog?.products ?? [];
   let shown = !cat ? products : products.filter((p) => p.category === cat);
   /* القائمة المختارة: تُعرض منتجاتها فقط */
@@ -547,12 +548,28 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
          <div className="pb-4">
           {catalog?.categories?.map((c) => {
             const catProducts = menuProducts.filter((p) => p.category === c.slug);
+            const expanded = expandedCatSlugs.has(c.slug);
+            const showProducts = expanded ? catProducts : catProducts.slice(0, 6);
             return (
               <div key={c.slug} className="mb-6">
-                <h3 className="mb-2 mt-4 text-[14px] font-black text-[#26301C] px-2">{c.name_ar}</h3>
-                {catProducts.length > 0 ? (
+                <div className="mb-2 mt-4 flex items-end justify-between px-2">
+                  <h3 className="text-[14px] font-black text-[#26301C]">{c.name_ar}</h3>
+                  {catProducts.length > 6 && (
+                    <button onClick={() => {
+                      if (expanded) {
+                        setExpandedCatSlugs((s) => { const n = new Set(s); n.delete(c.slug); return n; });
+                      } else {
+                        setExpandedCatSlugs((s) => { const n = new Set(s); n.add(c.slug); return n; });
+                      }
+                    }}
+                      className="text-[11px] font-bold text-[#5C6B3C] hover:text-[#26301C] underline underline-offset-4">
+                      {expanded ? 'إظهار أقل' : `عرض الكل (${catProducts.length})`}
+                    </button>
+                  )}
+                </div>
+                {showProducts.length > 0 ? (
                   <div className="grid grid-cols-2 gap-3">
-                    {catProducts.map((p, i) => (
+                    {showProducts.map((p, i) => (
                       <button key={p.id} onClick={() => openProduct(p)}
                         className='w-full rounded-[1.4rem] bg-white p-2.5 text-right shadow-sm ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 anim-rise'
                         style={{ animationDelay: `${i * 20}ms` }}>
