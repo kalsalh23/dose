@@ -17,7 +17,7 @@ export default function SplashScreen() {
       <div className="splash-center">
         <div className="splash-logo-wrapper">
           <img
-            src="/logo.png"
+            src="/logo.jpg"
             alt="Dose Coffee & More"
             className="splash-logo"
             width="120"
