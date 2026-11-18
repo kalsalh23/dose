@@ -4,7 +4,6 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import CustomerApp from './customer/CustomerApp';
 import KioskApp from './kiosk/KioskApp';
 import AdminApp from './admin/AdminApp';
-import SplashScreen from './components/SplashScreen';
 import './index.css';
 
 if ('serviceWorker' in navigator) {
@@ -15,8 +14,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<SplashScreen />} />
-        <Route path="/app/*" element={<CustomerApp />} />
+        <Route path="/*" element={<CustomerApp />} />
         <Route path="/kiosk" element={<KioskApp />} />
         <Route path="/admin" element={<AdminApp />} />
       </Routes>
