@@ -574,7 +574,8 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
                         setExpandedCatSlugs((s) => { const n = new Set(s); n.add(c.slug); return n; });
                       }
                     }}
-                      className="ms-auto text-[11px] font-bold text-[#5C6B3C] hover:text-[#26301C] underline underline-offset-4">
+                      className="ms-auto flex items-center gap-1 rounded-full bg-[#E3E9C8] px-3 py-1 text-[11px] font-extrabold text-[#414D36] shadow-sm ring-1 ring-[#C4CF9E] transition hover:bg-[#D5DEB4] active:scale-95">
+                      <Icon name="chevron" size={11} strokeWidth={2.6} className={expanded ? 'rotate-90' : '-rotate-90'} />
                       {expanded ? 'إظهار أقل' : `عرض الكل (${catProducts.length})`}
                     </button>
                   )}
