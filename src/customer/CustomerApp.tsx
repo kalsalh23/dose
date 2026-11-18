@@ -210,23 +210,18 @@ function WelcomeScreen({ onClose }: { onClose: () => void }) {
       <div className="pointer-events-none absolute -top-10 -left-10 size-44 rounded-full bg-[#D5DEB4]/60 blur-2xl" />
       <div className="pointer-events-none absolute bottom-16 -right-12 size-52 rounded-full bg-[#C4CF9E]/50 blur-2xl" />
 
-      <div className="relative size-44">
-        <img src="/logo.jpg" alt="Dose Coffee & More"
-          className="size-36 rounded-[2.2rem] object-cover shadow-2xl shadow-[#8a6a48]/45 ring-4 ring-white absolute top-4 left-4" />
-        <svg className="absolute top-0 left-0 size-44" viewBox="0 0 176 176" aria-hidden="true" style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }}>
-          <defs>
-            <linearGradient id="welcome-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#5C6B3C" />
-              <stop offset="100%" stopColor="#7C8665" />
-            </linearGradient>
-          </defs>
-          <circle className="welcome-ring-track" cx="88" cy="88" r="78" />
-          <circle className="welcome-ring-fill" cx="88" cy="88" r="78" />
-        </svg>
-      </div>
+      <img src="/logo.jpg" alt="Dose Coffee & More"
+        className="size-36 rounded-[2.2rem] object-cover shadow-2xl shadow-[#8a6a48]/45 ring-4 ring-white" />
 
       <h1 className="mt-8 text-4xl font-black text-[#26301C]">حب من طرف قهوة</h1>
       <p className="mt-2 text-sm font-bold tracking-wide text-[#7C8665]">Dose Coffee & More</p>
+
+      <div className="absolute bottom-10 flex items-center justify-center">
+        <svg className="welcome-spinner" viewBox="0 0 48 48" aria-hidden="true">
+          <circle className="welcome-spinner-track" cx="24" cy="24" r="18" />
+          <circle className="welcome-spinner-fill" cx="24" cy="24" r="18" />
+        </svg>
+      </div>
     </div>
   );
 }

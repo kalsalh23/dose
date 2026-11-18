@@ -48,23 +48,29 @@ body {
 @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(50%); } }
 @keyframes pulse-slow { 0%,100%{opacity:1} 50%{opacity:.75} }
-@keyframes welcome-ring-draw { to { stroke-dashoffset: 0; } }
-@keyframes welcome-ring-rotate { from { transform: rotate(-90deg); } to { transform: rotate(270deg); } }
+@keyframes welcome-spin { to { transform: rotate(360deg); } }
+@keyframes welcome-dash { 0% { stroke-dashoffset: 113.1; transform: rotate(-90deg); } 50% { stroke-dashoffset: 37.7; transform: rotate(360deg); } 100% { stroke-dashoffset: 113.1; transform: rotate(630deg); } }
 
-.welcome-ring-track {
-  fill: none;
-  stroke: rgba(92, 107, 60, 0.15);
-  stroke-width: 4;
+.welcome-spinner {
+  width: 48px;
+  height: 48px;
+  animation: welcome-spin 3s linear infinite;
 }
 
-.welcome-ring-fill {
+.welcome-spinner-track {
   fill: none;
-  stroke: url(#welcome-gradient);
-  stroke-width: 4;
+  stroke: rgba(92, 107, 60, 0.15);
+  stroke-width: 3;
+}
+
+.welcome-spinner-fill {
+  fill: none;
+  stroke: #5C6B3C;
+  stroke-width: 3;
   stroke-linecap: round;
-  stroke-dasharray: 490.09; /* 2 * PI * 78 */
-  stroke-dashoffset: 490.09;
-  animation: welcome-ring-draw 2.8s cubic-bezier(0.4, 0, 0.2, 1) 0.1s forwards;
+  stroke-dasharray: 113.1; /* 2 * PI * 18 */
+  stroke-dashoffset: 113.1;
+  animation: welcome-dash 1.5s ease-in-out infinite;
 }
 
 .anim-pop { animation: pop-in .28s cubic-bezier(.22,.8,.3,1) both; }
