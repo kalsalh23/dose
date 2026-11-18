@@ -303,6 +303,15 @@ const CAT_IMAGES: Record<string, string> = {
   dessert: '/img/chocolate-cake.jpg',
 };
 
+const CAT_ICONS: Record<string, IconName> = {
+  hot_drinks: 'coffee',
+  cold_drinks: 'snow',
+  matcha_tea: 'coffee',
+  fresh: 'gift',
+  mojito: 'snow',
+  dessert: 'cake',
+};
+
 function FeaturedCategories({ catalog, cat, setCat }: { catalog: Catalog | null; cat: string; setCat: (s: string) => void }) {
   const items = (catalog?.categories ?? []);
   return (
@@ -552,7 +561,8 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
             const showProducts = expanded ? catProducts : catProducts.slice(0, 6);
             return (
               <div key={c.slug} className="mb-6">
-                <div className="mb-2 mt-4 flex items-end justify-between px-2">
+                <div className="mb-2 mt-4 flex items-center gap-2 px-2">
+                  <Icon name={CAT_ICONS[c.slug] ?? 'star'} size={14} className="text-[#5C6B3C]" />
                   <h3 className="text-[14px] font-black text-[#26301C]">{c.name_ar}</h3>
                   {catProducts.length > 6 && (
                     <button onClick={() => {
