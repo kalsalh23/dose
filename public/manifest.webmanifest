@@ -2,7 +2,7 @@
   "name": "Dose Cafe",
   "short_name": "Dose Cafe",
   "description": "منصة Dose Coffee & More — اطلب، اجمع النقاط، واستبدلها بمكافآت",
-  "start_url": "/",
+  "start_url": "/app",
   "display": "standalone",
   "background_color": "#E9EDD6",
   "theme_color": "#414D36",

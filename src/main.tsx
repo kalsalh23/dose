@@ -16,7 +16,7 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<SplashScreen />} />
-        <Route path="/app" element={<CustomerApp />} />
+        <Route path="/app/*" element={<CustomerApp />} />
         <Route path="/kiosk" element={<KioskApp />} />
         <Route path="/admin" element={<AdminApp />} />
       </Routes>
