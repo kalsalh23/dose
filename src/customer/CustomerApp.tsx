@@ -420,50 +420,56 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
   const heroImage = (catalog?.settings?.hero_image_url ?? '').trim();
   const heroActive = catalog?.settings?.hero_active !== 'false';
 
-  // الهيرو المتنقل — إعلان كل 7 ثوانٍ
+  /* شرائح الهيرو: الهيرو المخصص (إن مفعّل) + الإعلانات — تتبدّل كل 10 ثوانٍ، والهيرو لا يُخفى أبدًا */
+  const heroSlides = useMemo(() => {
+    const list: { key: string; image: string; badge: string; title: string; desc: string }[] = [];
+    if (heroActive && (heroTitle || heroSubtitle || heroImage || heroBadge)) {
+      list.push({
+        key: 'custom',
+        image: heroImage || '/img/v60.jpg',
+        badge: heroBadge || 'قهوة مختصة في كل رشفة',
+        title: heroTitle || 'قهوتك على ذوقك،\nوحلويات تُدللها',
+        desc: heroSubtitle || 'اطلب من القهوة والحلويات من المنيو واستمتع بجمع النقاط',
+      });
+    }
+    for (const a of ads) {
+      list.push({ key: 'ad-' + a.id, image: a.image_url, badge: 'عرض حصري', title: a.title, desc: a.description_ar ?? '' });
+    }
+    if (list.length === 0) {
+      list.push({
+        key: 'default',
+        image: '/img/v60.jpg',
+        badge: 'قهوة مختصة في كل رشفة',
+        title: 'قهوتك على ذوقك،\nوحلويات تُدللها',
+        desc: 'اطلب من القهوة والحلويات من المنيو واستمتع بجمع النقاط',
+      });
+    }
+    return list;
+  }, [heroActive, heroTitle, heroSubtitle, heroBadge, heroImage, ads]);
+
   const [heroIdx, setHeroIdx] = useState(0);
   useEffect(() => {
-    if (ads.length <= 1) return;
-    const t = setInterval(() => setHeroIdx((i) => (i + 1) % ads.length), 7000);
+    setHeroIdx(0);
+    if (heroSlides.length <= 1) return;
+    const t = setInterval(() => setHeroIdx((i) => (i + 1) % heroSlides.length), 10000);
     return () => clearInterval(t);
-  }, [ads.length]);
-  const currentAd = ads[heroIdx];
+  }, [heroSlides.length]);
+  const heroSlide = heroSlides[heroIdx % heroSlides.length];
   const scrollToMenu = () => document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth' });
 
   return (
     <div className="anim-rise">
       {/* الهيرو */}
-      {heroActive && (
       <div className='relative overflow-hidden rounded-[1.8rem] p-5 text-white shadow-xl shadow-[#26301C]/40'>
-        {heroImage ? (
-          <img src={heroImage} alt='' className='absolute inset-0 size-full object-cover' />
-        ) : ads.length > 0 ? (
-          ads.map((a, i) => (
-            <img key={a.id} src={a.image_url} alt='' className={`absolute inset-0 size-full object-cover transition-opacity duration-1000 ${heroIdx === i ? 'opacity-100' : 'opacity-0'}`} />
-          ))
-        ) : (
-          <img src='/img/v60.jpg' alt='' className='absolute inset-0 size-full object-cover' />
-        )}
+        {heroSlides.map((s, i) => (
+          <img key={s.key} src={s.image} alt='' className={`absolute inset-0 size-full object-cover transition-opacity duration-1000 ${heroIdx % heroSlides.length === i ? 'opacity-100' : 'opacity-0'}`} />
+        ))}
         <div className='absolute inset-0 bg-gradient-to-bl from-[#26301C]/80 via-[#3A4531]/60 to-[#414D36]/75' />
         <div className='pointer-events-none absolute -bottom-16 -left-10 size-44 rounded-full bg-white/5 blur-2xl' />
         <div className='relative'>
-          {currentAd && !heroImage && ads.length > 0 ? (
-            <>
-              <span className='rounded-full bg-white/10 px-3 py-1 text-[10px] font-black text-[#C9D3A8]'>عرض حصري</span>
-              <h2 className='mt-2.5 text-[22px] font-black leading-snug'>{currentAd.title}</h2>
-              <p className='mt-1.5 text-[11px] font-medium text-white/80'>{currentAd.description_ar}</p>
-            </>
-          ) : (
-            <>
-              <span className='rounded-full bg-white/10 px-3 py-1 text-[10px] font-black text-[#C9D3A8]'>{heroBadge || 'قهوة مختصة في كل رشفة'}</span>
-              <h2 className='mt-2.5 text-[22px] font-black leading-snug'>
-                {heroTitle ? heroTitle.replace(/\n/g, '\n') : 'قهوتك على ذوقك،\nوحلويات تُدللها'}
-              </h2>
-              <p className='mt-1.5 text-[11px] font-medium text-white/75'>
-                {heroSubtitle || 'اطلب من القهوة والحلويات من المنيو واستمتع بجمع النقاط'}
-              </p>
-            </>
-          )}
+          <span className='rounded-full bg-white/10 px-3 py-1 text-[10px] font-black text-[#C9D3A8]'>{heroSlide.badge}</span>
+          <h2 className='mt-2.5 whitespace-pre-line text-[22px] font-black leading-snug'>{heroSlide.title}</h2>
+          <p className='mt-1.5 text-[11px] font-medium text-white/80'>{heroSlide.desc}</p>
           <div className='mt-4 flex items-end justify-between gap-2'>
             {promoCode && promoDisc ? (
               <div className='rounded-xl border-2 border-dashed border-[#C9D3A8]/80 bg-[#26301C]/70 px-2.5 py-1.5 text-center backdrop-blur-sm'>
@@ -478,7 +484,6 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
           </div>
         </div>
       </div>
-      )}
 
       {/* البحث */}
       {/* البحث */}
