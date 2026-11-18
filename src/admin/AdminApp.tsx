@@ -867,7 +867,6 @@ function ProductsTab({ token }: { token: string }) {
       try {
         const { data } = await sb.rpc('get_catalog');
         setCats((data as any)?.categories ?? []);
-        setMenus((data as any)?.menus ?? []);
       } catch {}
     })();
   }, []);
