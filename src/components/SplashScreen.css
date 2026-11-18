@@ -1,0 +1,112 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
+
+.splash-screen {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #E8EDDF 0%, #DDE3D5 100%);
+  position: relative;
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.splash-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%232F3E2E' fill-opacity='0.05'%3E%3Cpath d='M30 3c-3.314 0-6 2.686-6 6s2.686 6 6 6 6-2.686 6-6-2.686-6-6-6zm0 4c-1.105 0-2 .895-2 2s.895 2 2 2 2-.895 2-2-.895-2-2-2zm18 18c-3.314 0-6 2.686-6 6s2.686 6 6 6 6-2.686 6-6-2.686-6-6-6zm0 4c-1.105 0-2 .895-2 2s.895 2 2 2 2-.895 2-2-.895-2-2-2zm-18 18c-3.314 0-6 2.686-6 6s2.686 6 6 6 6-2.686 6-6-2.686-6-6-6zm0 4c-1.105 0-2 .895-2 2s.895 2 2 2 2-.895 2-2-.895-2-2-2zm18-18c-3.314 0-6 2.686-6 6s2.686 6 6 6 6-2.686 6-6-2.686-6-6-6zm0 4c-1.105 0-2 .895-2 2s.895 2 2 2 2-.895 2-2-.895-2-2-2z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.splash-logo {
+  width: 120px;
+  height: 120px;
+  border-radius: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  object-fit: cover;
+  background: #fff;
+}
+
+.splash-arabic {
+  font-family: 'Cairo', sans-serif;
+  font-weight: 600;
+  font-size: 28px;
+  color: #2F3E2E;
+  margin-top: 24px;
+  margin-bottom: 0;
+  text-align: center;
+  line-height: 1.3;
+  letter-spacing: 0.5px;
+}
+
+.splash-english {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  color: #5A6B58;
+  margin-top: 8px;
+  margin-bottom: 0;
+  text-align: center;
+  letter-spacing: 0.3px;
+}
+
+.splash-loading {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 160px;
+  height: 3px;
+  background: rgba(47, 62, 46, 0.15);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.splash-loading::after {
+  content: '';
+  display: block;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, #2F3E2E, #5A6B58);
+  border-radius: 3px;
+  animation: splash-loading 1.8s ease-in-out infinite;
+}
+
+@keyframes splash-loading {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(150%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+
+@media (max-width: 480px) {
+  .splash-logo {
+    width: 100px;
+    height: 100px;
+    border-radius: 20px;
+  }
+  
+  .splash-arabic {
+    font-size: 24px;
+    margin-top: 20px;
+  }
+  
+  .splash-english {
+    font-size: 14px;
+    margin-top: 6px;
+  }
+  
+  .splash-loading {
+    bottom: 60px;
+    width: 140px;
+  }
+}

@@ -571,12 +571,26 @@ function FilterPills<T extends string>({ value, options, onChange }: { value: T;
 }
 
 /** بطاقة رقم/إحصائية موحّدة لعرض ملخص المبيعات */
-function StatCard({ label, value, sub, tone }: { label: string; value: string; sub: string; tone: string }) {
+function StatCard({ label, value, sub, tone, icon }: { 
+  label: string; value: string; sub: string; tone: string; icon?: React.ReactNode 
+}) {
   return (
-    <div className={`rounded-3xl p-4 text-white shadow-lg ${tone}`}>
-      <p className="text-[11px] font-black opacity-80">{label}</p>
-      <p className="mt-1.5 text-2xl font-black tracking-tight">{value}</p>
-      <p className="mt-0.5 text-[10px] font-bold opacity-70">{sub}</p>
+    <div className={`relative rounded-3xl p-5 overflow-hidden ${tone}`}>
+      <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
+      <div className="absolute left-0 top-0 bottom-0 w-1 bg-white/30" />
+      
+      <div className="relative flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-black opacity-80 tracking-wide uppercase">{label}</p>
+          <p className="mt-1.5 text-2xl font-black tracking-tight">{value}</p>
+          <p className="mt-1 text-[10px] font-medium opacity-70">{sub}</p>
+        </div>
+        {icon && (
+          <div className="flex-shrink-0 size-12 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center text-white/90">
+            {icon}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -701,11 +715,11 @@ function SalesTab({ token }: { token: string }) {
         <>
           {/* أرقام الفترة (حسب التصفية الحالية) */}
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <StatCard label="إجمالي المبيعات" value={money(totals.total)} sub={periodLabel} tone="bg-gradient-to-bl from-[#414D36] to-[#26301C] shadow-[#26301C]/25" />
-            <StatCard label="عدد الطلبات" value={num(totals.orders)} sub={'خلال ' + num(data.totals?.days) + ' يوم'} tone="bg-gradient-to-bl from-[#5C6B3C] to-[#414D36] shadow-[#26301C]/25" />
-            <StatCard label="طلبات التطبيق" value={num(totals.app)} sub="طلب من التطبيق" tone="bg-gradient-to-bl from-[#3B82F6] to-[#1E40AF] shadow-[#1E40AF]/25" />
-            <StatCard label="طلبات المحل" value={num(totals.store)} sub="طلب من المحل" tone="bg-gradient-to-bl from-[#C9A96A] to-[#A08448] shadow-[#26301C]/25" />
-            <StatCard label="هدايا" value={num(totals.gifts)} sub="طلب مكافأة" tone="bg-gradient-to-bl from-[#7C3AED] to-[#5B21B6] shadow-[#5B21B6]/25" />
+            <StatCard label="إجمالي المبيعات" value={money(totals.total)} sub={periodLabel} tone="bg-gradient-to-br from-[#414D36] via-[#35412E] to-[#23291B]" icon={<Icon name="chart" size={20} />} />
+            <StatCard label="عدد الطلبات" value={num(totals.orders)} sub={'خلال ' + num(data.totals?.days) + ' يوم'} tone="bg-gradient-to-br from-[#5C6B3C] via-[#4A5A36] to-[#3A4828]" icon={<Icon name="receipt" size={20} />} />
+            <StatCard label="طلبات التطبيق" value={num(totals.app)} sub="طلب من التطبيق" tone="bg-gradient-to-br from-[#3B82F6] via-[#2563EB] to-[#1E40AF]" icon={<Icon name="phone" size={20} />} />
+            <StatCard label="طلبات المحل" value={num(totals.store)} sub="طلب من المحل" tone="bg-gradient-to-br from-[#C9A96A] via-[#B8965A] to-[#A08448]" icon={<Icon name="store" size={20} />} />
+            <StatCard label="هدايا" value={num(totals.gifts)} sub="طلب مكافأة" tone="bg-gradient-to-br from-[#7C3AED] via-[#6D28D9] to-[#5B21B6]" icon={<Icon name="gift" size={20} />} />
           </div>
 
           {activeFilterCount > 0 && (
