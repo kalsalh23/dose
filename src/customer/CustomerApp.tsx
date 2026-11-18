@@ -391,7 +391,8 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
   const promoCode = catalog?.settings?.promo_code;
   const promoDisc = catalog?.settings?.promo_discount;
   const mostOrdered = catalog?.most_ordered ?? [];
-  const menuLists = (catalog?.menus ?? []).filter((m) => (m.items ?? []).length > 0);
+  const catNames = new Set((catalog?.categories ?? []).map((c) => (c.name_ar ?? '').trim()));
+  const menuLists = (catalog?.menus ?? []).filter((m) => (m.items ?? []).length > 0 && !catNames.has((m.title ?? '').trim()));
   const productMenuMap = new Map<number, string>();
   for (const m of (catalog?.menus ?? [])) for (const it of (m.items ?? [])) productMenuMap.set(it.id, m.title);
   const items = (catalog?.categories ?? []);
