@@ -566,14 +566,15 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
          <div className="pb-4">
           {menuCats.map((c) => {
             const catProducts = menuProducts.filter((p) => p.category === c.slug);
+            const horizontal = !cat && selMenu === null;
             const expanded = expandedCatSlugs.has(c.slug);
-            const showProducts = expanded ? catProducts : catProducts.slice(0, 6);
+            const showProducts = horizontal ? catProducts : expanded ? catProducts : catProducts.slice(0, 6);
             return (
               <div key={c.slug} id={'cat-' + c.slug} className="mb-6 scroll-mt-24">
                 <div className="mb-2 mt-4 flex items-center gap-2 px-2">
                   <Icon name={CAT_ICONS[c.slug] ?? 'star'} size={14} className="text-[#5C6B3C]" />
                   <h3 className="text-[14px] font-black text-[#26301C]">{c.name_ar}</h3>
-                  {catProducts.length > 6 && (
+                  {!horizontal && catProducts.length > 6 && (
                     <button onClick={() => {
                       if (expanded) {
                         setExpandedCatSlugs((s) => { const n = new Set(s); n.delete(c.slug); return n; });
@@ -588,10 +589,10 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
                   )}
                 </div>
                 {showProducts.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className={horizontal ? 'no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1' : 'grid grid-cols-2 gap-3'}>
                     {showProducts.map((p, i) => (
                       <button key={p.id} onClick={() => openProduct(p)}
-                        className='w-full rounded-[1.4rem] bg-white p-2.5 text-right shadow-sm ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 anim-rise'
+                        className={`${horizontal ? 'w-40 flex-none' : 'w-full'} rounded-[1.4rem] bg-white p-2.5 text-right shadow-sm ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 anim-rise`}
                         style={{ animationDelay: `${i * 20}ms` }}>
                         <div className="relative">
                           <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-24 w-full rounded-[1rem] object-cover" />
