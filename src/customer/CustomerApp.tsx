@@ -548,8 +548,12 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
             return (
               <div key={c.slug} id={'cat-' + c.slug} className="mb-6 scroll-mt-24">
                 <div className="mb-2 mt-4 flex items-center gap-2 px-2">
-                  <Icon name={CAT_ICONS[c.slug] ?? 'star'} size={14} className="text-[#5C6B3C]" />
-                  <h3 className="text-[14px] font-black text-[#26301C]">{c.name_ar}</h3>
+                  <span className="grid size-7 flex-none place-items-center rounded-full bg-[#26301C] text-[#C9D3A8] shadow-sm">
+                    <Icon name={CAT_ICONS[c.slug] ?? 'star'} size={13} />
+                  </span>
+                  <h3 className="font-display rounded-full bg-[#26301C] px-3.5 py-1 text-[15px] font-extrabold leading-6 text-[#F3DEBA] shadow-sm ring-1 ring-[#C9D3A8]/30">
+                    {c.name_ar}
+                  </h3>
                   {!horizontal && catProducts.length > 6 && (
                     <button onClick={() => {
                       if (expanded) {
