@@ -396,6 +396,8 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
   const productMenuMap = new Map<number, string>();
   for (const m of (catalog?.menus ?? [])) for (const it of (m.items ?? [])) productMenuMap.set(it.id, m.title);
   const items = (catalog?.categories ?? []);
+  /* عند اختيار فئة تُعرض هذه الفئة وحدها داخل المنيو */
+  const menuCats = cat ? items.filter((c) => c.slug === cat) : items;
   const searching = q.trim() !== '';
   const selMenuTitle = selMenu !== null ? (catalog?.menus ?? []).find((m) => m.id === selMenu)?.title : null;
   /* عند اختيار فئة أو قائمة محددة تُعرض كل منتجاتها فورًا، ويظهر «عرض الكل» فقط مع فئة الكل */
@@ -500,7 +502,7 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
           {items.map((c) => {
             const active = cat === c.slug;
             return (
-              <button key={c.slug} onClick={() => { setSelMenu(null); setCat(c.slug); jumpToCat(c.slug); }} className="flex flex-none flex-col items-center gap-1.5 transition active:scale-95">
+              <button key={c.slug} onClick={() => { setSelMenu(null); setCat(active ? null : c.slug); jumpToCat(c.slug); }} className="flex flex-none flex-col items-center gap-1.5 transition active:scale-95">
                 <span className={`grid size-[62px] place-items-center overflow-hidden rounded-full shadow-md shadow-[#8a6a48]/15 transition-all ${active ? 'ring-2 ring-[#5C6B3C] ring-offset-2 ring-offset-[#F6E7C9]' : 'ring-1 ring-[#EAD3A0]'}`}>
                   <img src={CAT_IMAGES[c.slug] ?? '/img/latte.jpg'} alt={c.name_ar} className='size-full object-cover' loading='lazy' />
                 </span>
@@ -559,10 +561,10 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
       {/* استكشف المنيو — بطاقات مشابهة للأكثر طلباً مكدسة طولياً */}
       <section id='menu-section' className='mt-5'>
         <div className="mb-3 flex items-end justify-between px-1">
-          <h2 className="text-[17px] font-black text-[#26301C]">{selMenuTitle ? selMenuTitle : 'استكشف المنيو'}</h2>
+          <h2 className="text-[17px] font-black text-[#26301C]">{selMenuTitle ? selMenuTitle : cat ? catLabel(cat) : 'استكشف المنيو'}</h2>
         </div>
          <div className="pb-4">
-          {catalog?.categories?.map((c) => {
+          {menuCats.map((c) => {
             const catProducts = menuProducts.filter((p) => p.category === c.slug);
             const expanded = expandedCatSlugs.has(c.slug);
             const showProducts = expanded ? catProducts : catProducts.slice(0, 6);
