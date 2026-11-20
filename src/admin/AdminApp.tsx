@@ -850,7 +850,7 @@ function SalesTab({ token }: { token: string }) {
 }
 
 /* ============================ المنتجات ============================ */
-const EMPTY_PRODUCT = { id: 0, category_slug: 'hot_drinks', name_ar: '', name_en: '', description_ar: '', price_cents: 0, points: 0, image_url: '', options: '', is_active: true, is_available: true, sort_order: 0, eta_minutes: 0, menu_id: null };
+const EMPTY_PRODUCT = { id: 0, category_slug: 'hot_drinks', name_ar: '', name_en: '', description_ar: '', price_cents: 0, points: 0, image_url: '', options: '', is_active: true, is_available: true, sort_order: 0, eta_minutes: 0, menu_ids: [] as number[] };
 const EMPTY_ADD = { id: 0, name_ar: '', price_cents: '', price_mode: 'add', is_active: true, product_ids: [] };
 function ProductsTab({ token }: { token: string }) {
   const [products, setProducts] = useState<any[]>([]);
@@ -923,13 +923,18 @@ function ProductsTab({ token }: { token: string }) {
                 {' '}· ⭐ {p.points}
               </p>
               <p className="text-[10px] font-bold text-neutral-400">تصنيف: {catName(p.category_slug)}</p>
+              <p className="text-[10px] font-bold text-neutral-400">
+                القوائم: {(p.menu_ids ?? []).length === 0
+                  ? 'بدون قائمة'
+                  : (p.menu_ids ?? []).map((id: number) => menus.find((m: any) => m.id === id)?.title ?? ('#' + id)).join('، ')}
+              </p>
               {Number(p.eta_minutes) > 0 && (
                 <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-[#FFF9EC] px-2.5 py-1 text-[10px] font-extrabold text-[#7A5A22] ring-1 ring-[#EAD3A0]">
                   ⏱️ {p.eta_minutes} دقيقة
                 </span>
               )}
               <div className="mt-2 flex gap-2">
-                <button onClick={() => setEdit({ ...EMPTY_PRODUCT, ...p, category_slug: p.category_slug })} className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
+                <button onClick={() => setEdit({ ...EMPTY_PRODUCT, ...p, category_slug: p.category_slug, menu_ids: Array.isArray(p.menu_ids) ? p.menu_ids : [] })} className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
                 <button disabled={busy} onClick={() => wrap(async () => { await arpc('admin_set_product_availability', { p_token: token, p_product_id: p.id, p_available: p.is_available === false }); load(); })}
                   className={`rounded-lg px-3 py-1.5 text-[11px] font-extrabold ${p.is_available === false ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
                   {p.is_available === false ? 'غير متوفر' : 'متوفر'}
@@ -978,15 +983,23 @@ function ProductsTab({ token }: { token: string }) {
                 <Field label="النقاط"><input type="number" className={inputCls} value={edit.points} onChange={(e) => setEdit({ ...edit, points: +e.target.value })} /></Field>
               </div>
               <Field label="صورة المنتج"><ImageUploadField value={edit.image_url} onChange={(url) => setEdit({ ...edit, image_url: url })} folder="products" /></Field>
-              <Field label="القائمة (اختياري)">
-                <select className={inputCls} value={edit.menu_id || ''} onChange={(e) => {
-                  const mid = e.target.value ? Number(e.target.value) : null;
-                  const m = menus.find((mm: any) => mm.id === mid);
-                  setEdit((prev: any) => ({ ...prev, menu_id: mid, category_slug: m?.category_slug || prev.category_slug }));
-                }}>
-                  <option value="">— بدون قائمة —</option>
-                  {menus.map((m: any) => <option key={m.id} value={m.id}>{m.emoji ? m.emoji + ' ' : ''}{m.title}</option>)}
-                </select>
+              <Field label="القوائم (يمكن اختيار أكثر من قائمة)">
+                <div className="flex flex-wrap gap-1.5 rounded-xl border-2 border-beige p-2">
+                  {menus.length === 0 && <p className="px-1 text-[11px] font-bold text-neutral-400">لا توجد قوائم بعد</p>}
+                  {menus.map((m: any) => {
+                    const on = (edit.menu_ids ?? []).includes(m.id);
+                    return (
+                      <button key={m.id} type="button"
+                        onClick={() => setEdit((prev: any) => {
+                          const ids: number[] = prev.menu_ids ?? [];
+                          return { ...prev, menu_ids: on ? ids.filter((x) => x !== m.id) : [...ids, m.id] };
+                        })}
+                        className={`rounded-full px-3 py-1 text-[11px] font-extrabold ring-1 transition active:scale-95 ${on ? 'bg-[#414D36] text-[#C9D3A8] ring-[#414D36]' : 'bg-[#F6F0E2] text-neutral-600 ring-[#D5DEB4]'}`}>
+                        {m.emoji ? m.emoji + ' ' : ''}{m.title}
+                      </button>
+                    );
+                  })}
+                </div>
               </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="نشط">
