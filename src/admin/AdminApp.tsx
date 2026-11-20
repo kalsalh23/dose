@@ -1052,12 +1052,29 @@ const EMPTY_REWARD = { id: 0, name_ar: '', name_en: '', image_url: '/img/latte.j
 const EMPTY_CATEGORY = { id: 0, name_ar: '', emoji: '☕', image_url: '', sort_order: 0 };
 function CategoriesTab({ token }: { token: string }) {
   const [cats, setCats] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [edit, setEdit] = useState<any>(null);
   const [q, setQ] = useState('');
-  const load = useCallback(() => { arpc<any[]>('admin_list_categories', { p_token: token }).then(setCats).catch(() => {}); }, [token]);
+  const [picker, setPicker] = useState<any>(null);
+  const [picked, setPicked] = useState<number[]>([]);
+  const [pickQ, setPickQ] = useState('');
+  const load = useCallback(() => {
+    arpc<any[]>('admin_list_categories', { p_token: token }).then(setCats).catch(() => {});
+    arpc<any[]>('admin_list_products', { p_token: token }).then(setProducts).catch(() => {});
+  }, [token]);
   useEffect(() => { load(); }, [load]);
   const { busy, wrap } = useAdminAction();
   const needle = q.trim().toLowerCase();
+  const catName = (slug: string) => cats.find((c: any) => c.slug === slug)?.name_ar ?? slug;
+  const openPicker = (c: any) => {
+    setPicker(c);
+    setPickQ('');
+    setPicked(products.filter((p: any) => p.category_slug === c.slug).map((p: any) => p.id));
+  };
+  const togglePick = (pid: number) => setPicked((ids) => (ids.includes(pid) ? ids.filter((x) => x !== pid) : [...ids, pid]));
+  const pickNeedle = pickQ.trim().toLowerCase();
+  const pickable = products.filter((p: any) =>
+    !pickNeedle || (p.name_ar ?? '').toLowerCase().includes(pickNeedle) || (p.name_en ?? '').toLowerCase().includes(pickNeedle));
   const shown = needle
     ? cats.filter((c: any) => (c.name_ar ?? '').toLowerCase().includes(needle) || (c.slug ?? '').toLowerCase().includes(needle))
     : cats;
@@ -1085,6 +1102,7 @@ function CategoriesTab({ token }: { token: string }) {
               <p className="mt-0.5 text-[10.5px] font-bold text-neutral-400">{c.product_count ?? 0} منتج · {c.slug}</p>
               <div className="mt-2 flex gap-2">
                 <button onClick={() => setEdit({ ...EMPTY_CATEGORY, ...c })} className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
+                <button onClick={() => openPicker(c)} className="rounded-lg bg-[#414D36] px-3 py-1.5 text-[11px] font-extrabold text-[#C9D3A8]">المنتجات ({c.product_count ?? 0})</button>
                 <button disabled={busy} onClick={() => wrap(async () => {
                   if (!window.confirm('حذف الفئة «' + c.name_ar + '»؟ لا يمكن حذف فئة تحتوي منتجات.')) return;
                   await arpc('admin_delete_category', { p_token: token, p_id: c.id });
@@ -1115,6 +1133,40 @@ function CategoriesTab({ token }: { token: string }) {
                 setEdit(null); load();
               })} className="rounded-2xl bg-gradient-to-l from-gold to-gold-deep py-3 text-sm font-extrabold text-white disabled:opacity-50">حفظ</button>
               <button onClick={() => setEdit(null)} className="rounded-2xl bg-neutral-100 py-3 text-sm font-extrabold text-neutral-600">إلغاء</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {picker && (
+        <div className="fixed inset-0 z-[110] grid place-items-center bg-black/50 p-4 backdrop-blur-sm anim-fade">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl anim-pop">
+            <h3 className="text-base font-extrabold text-coffee-900">
+              منتجات فئة {picker.emoji} {picker.name_ar}
+              <span className="ms-2 text-[11px] font-bold text-neutral-400">({picked.length} محدد)</span>
+            </h3>
+            <p className="mt-1 text-[10.5px] font-bold leading-relaxed text-neutral-400">
+              حدد المنتجات التي تظهر ضمن هذه الفئة — المنتج غير المحدد يُنقل إلى فئة أخرى.
+            </p>
+            <div className="mt-3">
+              <input value={pickQ} onChange={(e) => setPickQ(e.target.value)} placeholder="ابحث عن منتج…" className={inputCls} />
+            </div>
+            <div className="mt-2 max-h-72 space-y-0.5 overflow-y-auto rounded-xl border-2 border-beige p-2">
+              {pickable.map((p: any) => (
+                <label key={p.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-bold text-neutral-700 hover:bg-[#F6F0E2]">
+                  <input type="checkbox" checked={picked.includes(p.id)} onChange={() => togglePick(p.id)} />
+                  <span className="truncate">{p.name_ar}</span>
+                  <span className="ms-auto flex-none text-[10px] font-bold text-neutral-400">{catName(p.category_slug)}</span>
+                </label>
+              ))}
+              {pickable.length === 0 && <p className="py-4 text-center text-[11px] font-bold text-neutral-400">لا نتائج</p>}
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <button disabled={busy} onClick={() => wrap(async () => {
+                await arpc('admin_set_category_products', { p_token: token, p_category_id: picker.id, p_product_ids: picked });
+                setPicker(null); load();
+              })} className="rounded-2xl bg-gradient-to-l from-gold to-gold-deep py-3 text-sm font-extrabold text-white disabled:opacity-50">حفظ</button>
+              <button onClick={() => setPicker(null)} className="rounded-2xl bg-neutral-100 py-3 text-sm font-extrabold text-neutral-600">إلغاء</button>
             </div>
           </div>
         </div>
