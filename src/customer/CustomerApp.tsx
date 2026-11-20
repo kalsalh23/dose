@@ -358,61 +358,25 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
   const cat = selectedCat;
   const setCat = onSelectCat;
   const [q, setQ] = useState('');
-  const [selMenu, setSelMenu] = useState<number | null>(null);
   const [expandedCatSlugs, setExpandedCatSlugs] = useState<Set<string>>(new Set());
   const products = catalog?.products ?? [];
   let shown = !cat ? products : products.filter((p) => p.category === cat);
-  /* القائمة المختارة: تُعرض منتجاتها فقط */
-  if (selMenu !== null) {
-    const list = (catalog?.menus ?? []).find((m) => m.id === selMenu);
-    if (list) {
-      const ids = new Set((list.items ?? []).map((p) => p.id));
-      shown = products.filter((p) => ids.has(p.id));
-    }
-  }
   if (q.trim()) {
     const needle = q.trim().toLowerCase();
     shown = shown.filter((p) => p.name_ar.includes(needle) || p.name_en.toLowerCase().includes(needle));
-  }
-  /* منتجات قسم المنيو: كل الفئات مع احترام البحث/القائمة المختارة دون تصفية الفئة */
-  let menuProducts = products;
-  if (selMenu !== null) {
-    const list = (catalog?.menus ?? []).find((m) => m.id === selMenu);
-    if (list) {
-      const ids = new Set((list.items ?? []).map((p) => p.id));
-      menuProducts = products.filter((p) => ids.has(p.id));
-    }
-  }
-  if (q.trim()) {
-    const needle = q.trim().toLowerCase();
-    menuProducts = menuProducts.filter((p) => p.name_ar.includes(needle) || p.name_en.toLowerCase().includes(needle));
   }
   const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
   const promoCode = catalog?.settings?.promo_code;
   const promoDisc = catalog?.settings?.promo_discount;
   const mostOrdered = catalog?.most_ordered ?? [];
-  const catNames = new Set((catalog?.categories ?? []).map((c) => (c.name_ar ?? '').trim()));
-  const menuLists = (catalog?.menus ?? []).filter((m) => (m.items ?? []).length > 0 && !catNames.has((m.title ?? '').trim()));
-  const productMenuMap = new Map<number, string>();
-  for (const m of (catalog?.menus ?? [])) for (const it of (m.items ?? [])) productMenuMap.set(it.id, m.title);
   const items = (catalog?.categories ?? []);
   /* عند اختيار فئة تُعرض هذه الفئة وحدها داخل المنيو */
   const menuCats = cat ? items.filter((c) => c.slug === cat) : items;
   const searching = q.trim() !== '';
-  const selMenuTitle = selMenu !== null ? (catalog?.menus ?? []).find((m) => m.id === selMenu)?.title : null;
-  /* عند اختيار فئة أو قائمة محددة تُعرض كل منتجاتها فورًا، ويظهر «عرض الكل» فقط مع فئة الكل */
-  const menuItems = shown;
-  const byCat = new Map<string, any[]>();
-  for (const p of menuItems) {
-    const key = p.category ?? 'all';
-    if (!byCat.has(key)) byCat.set(key, []);
-    byCat.get(key)!.push(p);
-  }
   const catLabel = (slug: string) => {
     const c = (catalog?.categories ?? []).find((x) => x.slug === slug);
     return c ? c.name_ar : slug;
   };
-  const jumpToMenu = () => setTimeout(() => document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   const jumpToCat = (slug: string) => setTimeout(() => document.getElementById('cat-' + slug)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
   const renderCard = (p: any, i: number, horizontal = false) => (
     <button key={p.id} onClick={() => openProduct(p)}
@@ -515,31 +479,18 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
         {q && <button onClick={() => setQ('')} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7C8665]" aria-label="مسح"><Icon name="x" size={15} /></button>}
       </div>
 
-      {/* الفئات + القوائم — دوائر (تبقى ظاهرة مع تمييز المختار) */}
+      {/* الفئات — دوائر (تبقى ظاهرة مع تمييز المختار) */}
       <section className="mt-5">
         <div className="no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-1">
           {items.map((c) => {
             const active = cat === c.slug;
+            const img = c.image_url || CAT_IMAGES[c.slug] || '/img/latte.jpg';
             return (
-              <button key={c.slug} onClick={() => { setSelMenu(null); setCat(active ? null : c.slug); jumpToCat(c.slug); }} className="flex flex-none flex-col items-center gap-1.5 transition active:scale-95">
+              <button key={c.slug} onClick={() => { setCat(active ? null : c.slug); jumpToCat(c.slug); }} className="flex flex-none flex-col items-center gap-1.5 transition active:scale-95">
                 <span className={`grid size-[62px] place-items-center overflow-hidden rounded-full shadow-md shadow-[#8a6a48]/15 transition-all ${active ? 'ring-2 ring-[#5C6B3C] ring-offset-2 ring-offset-[#F6E7C9] scale-105 shadow-lg' : 'ring-1 ring-[#EAD3A0]'}`}>
-                  <img src={CAT_IMAGES[c.slug] ?? '/img/latte.jpg'} alt={c.name_ar} className='size-full object-cover' loading='lazy' />
+                  <img src={img} alt={c.name_ar} className='size-full object-cover' loading='lazy' />
                 </span>
                 <span className={`text-[11px] font-extrabold ${active ? 'text-[#26301C]' : 'text-[#7C8665]'}`}>{c.name_ar}</span>
-              </button>
-            );
-          })}
-          {/* القوائم التي بناها صاحب المحل */}
-          {menuLists.map((m) => {
-            const active = selMenu === m.id;
-            return (
-              <button key={'menu-' + m.id} onClick={() => { setCat(null); setSelMenu(active ? null : m.id); jumpToMenu(); }} className="flex flex-none flex-col items-center gap-1.5 transition active:scale-95">
-                <span className={`grid size-[62px] place-items-center overflow-hidden rounded-full shadow-md shadow-[#8a6a48]/15 transition-all ${active ? 'ring-2 ring-[#B07C3A] ring-offset-2 ring-offset-[#F6E7C9] scale-105 shadow-lg' : 'ring-1 ring-[#EAD3A0]'}`}>
-                  {m.image_url
-                    ? <img src={m.image_url} alt={m.title} className='size-full object-cover' loading='lazy' />
-                    : <span className='grid size-full place-items-center bg-gradient-to-br from-[#7A5A22] to-[#5C4318] text-xl'>{m.emoji || '☕'}</span>}
-                </span>
-                <span className={`text-[11px] font-extrabold ${active ? 'text-[#7A5A22]' : 'text-[#7C8665]'}`}>{m.title}</span>
               </button>
             );
           })}
@@ -580,28 +531,18 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
       {/* استكشف المنيو — بطاقات مشابهة للأكثر طلباً مكدسة طولياً */}
       <section id='menu-section' className='mt-5'>
         <div className="mb-3 flex items-center justify-between gap-2 px-1">
-          <h2 className="text-[17px] font-black text-[#26301C]">{selMenuTitle ? selMenuTitle : cat ? catLabel(cat) : 'استكشف المنيو'}</h2>
-          {(cat || selMenu !== null) && (
-            <button onClick={() => { setCat(null); setSelMenu(null); }}
+          <h2 className="text-[17px] font-black text-[#26301C]">{cat ? catLabel(cat) : 'استكشف المنيو'}</h2>
+          {cat && (
+            <button onClick={() => setCat(null)}
               className="flex flex-none items-center gap-1 rounded-full bg-[#E3E9C8] px-3 py-1 text-[11px] font-extrabold text-[#414D36] shadow-sm ring-1 ring-[#C4CF9E] transition hover:bg-[#D5DEB4] active:scale-95">
-              <Icon name="x" size={11} strokeWidth={2.6} /> {cat ? 'كل الفئات' : 'كل القوائم'}
+              <Icon name="x" size={11} strokeWidth={2.6} /> كل الفئات
             </button>
           )}
         </div>
          <div className="pb-4">
-          {selMenu !== null ? (
-            menuProducts.length > 0 ? (
-              <div className="grid grid-cols-2 gap-3">
-                {menuProducts.map((p, i) => renderCard(p, i))}
-              </div>
-            ) : (
-              <p className="text-center text-[11px] text-[#94826A] py-4">لا توجد منتجات في هذه القائمة</p>
-            )
-          ) : (
-            <>
-              {menuCats.map((c) => {
-            const catProducts = menuProducts.filter((p) => p.category === c.slug);
-            const horizontal = !cat && selMenu === null;
+          {menuCats.map((c) => {
+            const catProducts = shown.filter((p) => p.category === c.slug);
+            const horizontal = !cat;
             const expanded = expandedCatSlugs.has(c.slug);
             const showProducts = horizontal ? catProducts : expanded ? catProducts : catProducts.slice(0, 6);
             return (
@@ -632,20 +573,7 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
                 )}
               </div>
             );
-              })}
-              {menuLists.map((m) => (
-                <div key={'menu-' + m.id} className="mb-6">
-                  <div className="mb-2 mt-4 flex items-center gap-2 px-2">
-                    <Icon name={CAT_ICONS[m.category_slug] ?? 'star'} size={14} className="text-[#B07C3A]" />
-                    <h3 className="text-[14px] font-black text-[#26301C]">{m.emoji ? m.emoji + ' ' : ''}{m.title}</h3>
-                  </div>
-                  <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
-                    {(m.items ?? []).map((p, i) => renderCard(p, i, true))}
-                  </div>
-                </div>
-              ))}
-            </>
-          )}
+          })}
          </div>
       </section>
     </div>

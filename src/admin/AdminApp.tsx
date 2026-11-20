@@ -37,7 +37,7 @@ const TABS: { id: TabId; label: string; icon: IconName; roles: AdminRole[] }[] =
   { id: 'sales', label: 'المبيعات', icon: 'store', roles: ['owner'] },
   { id: 'orders', label: 'الطلبات', icon: 'clipboard', roles: ['owner', 'worker'] },
   { id: 'products', label: 'المنتجات', icon: 'package', roles: ['owner'] },
-  { id: 'menus', label: 'القوائم', icon: 'receipt', roles: ['owner'] },
+  { id: 'categories', label: 'الفئات', icon: 'receipt', roles: ['owner'] },
   { id: 'extras', label: 'الإضافات', icon: 'plus', roles: ['owner'] },
   { id: 'customers', label: 'العملاء', icon: 'users', roles: ['owner'] },
   { id: 'rewards', label: 'المكافآت', icon: 'gift', roles: ['owner'] },
@@ -50,7 +50,7 @@ const TABS: { id: TabId; label: string; icon: IconName; roles: AdminRole[] }[] =
   { id: 'permissions', label: 'صلاحيات العميل', icon: 'settings', roles: ['owner'] },
   { id: 'settings', label: 'الإعدادات', icon: 'settings', roles: ['owner'] },
 ];
-type TabId = 'dashboard' | 'sales' | 'extras' | 'orders' | 'products' | 'menus' | 'customers' | 'rewards' | 'ads' | 'notify' | 'hours' | 'order_time' | 'settings' | 'promo' | 'hero' | 'permissions';
+type TabId = 'dashboard' | 'sales' | 'extras' | 'orders' | 'products' | 'categories' | 'customers' | 'rewards' | 'ads' | 'notify' | 'hours' | 'order_time' | 'settings' | 'promo' | 'hero' | 'permissions';
 
 export default function AdminApp() {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(ADMIN_KEY));
@@ -219,7 +219,7 @@ export default function AdminApp() {
         {tab === 'sales' && <SalesTab token={token} />}
         {tab === 'orders' && <OrdersTab token={token} />}
         {tab === 'products' && <ProductsTab token={token} />}
-        {tab === 'menus' && <MenusTab token={token} />}
+        {tab === 'categories' && <CategoriesTab token={token} />}
         {tab === 'extras' && <ExtrasTab token={token} />}
         {tab === 'customers' && <CustomersTab token={token} />}
         {tab === 'rewards' && <RewardsTab token={token} />}
@@ -850,29 +850,21 @@ function SalesTab({ token }: { token: string }) {
 }
 
 /* ============================ المنتجات ============================ */
-const EMPTY_PRODUCT = { id: 0, category_slug: 'hot_drinks', name_ar: '', name_en: '', description_ar: '', price_cents: 0, points: 0, image_url: '', options: '', is_active: true, is_available: true, sort_order: 0, eta_minutes: 0, menu_ids: [] as number[] };
+const EMPTY_PRODUCT = { id: 0, category_slug: '', name_ar: '', name_en: '', description_ar: '', price_cents: 0, points: 0, image_url: '', options: '', is_active: true, is_available: true, sort_order: 0, eta_minutes: 0 };
 const EMPTY_ADD = { id: 0, name_ar: '', price_cents: '', price_mode: 'add', is_active: true, product_ids: [] };
 function ProductsTab({ token }: { token: string }) {
   const [products, setProducts] = useState<any[]>([]);
   const [cats, setCats] = useState<any[]>([]);
-  const [menus, setMenus] = useState<any[]>([]);
   const [edit, setEdit] = useState<any>(null);
   const [offerId, setOfferId] = useState<number | null>(null);
   const [offerVal, setOfferVal] = useState('');
   const load = useCallback(() => { arpc<any[]>('admin_list_products', { p_token: token }).then(setProducts).catch(() => {}); }, [token]);
-  const loadMenus = useCallback(() => { arpc<any[]>('admin_list_menus', { p_token: token }).then(setMenus).catch(() => {}); }, [token]);
-  useEffect(() => { load(); loadMenus(); }, [load, loadMenus]);
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await sb.rpc('get_catalog');
-        setCats((data as any)?.categories ?? []);
-      } catch {}
-    })();
-  }, []);
+  const loadCats = useCallback(() => { arpc<any[]>('admin_list_categories', { p_token: token }).then(setCats).catch(() => {}); }, [token]);
+  useEffect(() => { load(); loadCats(); }, [load, loadCats]);
   const { busy, wrap } = useAdminAction();
 
   const save = () => wrap(async () => {
+    if (!edit.category_slug) return;
     await arpc('admin_save_product', { p_token: token, p_product: edit });
     setEdit(null); load();
   });
@@ -922,19 +914,14 @@ function ProductsTab({ token }: { token: string }) {
                 ) : eur(p.price_cents, 'ل.س')}
                 {' '}· ⭐ {p.points}
               </p>
-              <p className="text-[10px] font-bold text-neutral-400">تصنيف: {catName(p.category_slug)}</p>
-              <p className="text-[10px] font-bold text-neutral-400">
-                القوائم: {(p.menu_ids ?? []).length === 0
-                  ? 'بدون قائمة'
-                  : (p.menu_ids ?? []).map((id: number) => menus.find((m: any) => m.id === id)?.title ?? ('#' + id)).join('، ')}
-              </p>
+              <p className="text-[10px] font-bold text-neutral-400">الفئة: {catName(p.category_slug)}</p>
               {Number(p.eta_minutes) > 0 && (
                 <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-[#FFF9EC] px-2.5 py-1 text-[10px] font-extrabold text-[#7A5A22] ring-1 ring-[#EAD3A0]">
                   ⏱️ {p.eta_minutes} دقيقة
                 </span>
               )}
               <div className="mt-2 flex gap-2">
-                <button onClick={() => setEdit({ ...EMPTY_PRODUCT, ...p, category_slug: p.category_slug, menu_ids: Array.isArray(p.menu_ids) ? p.menu_ids : [] })} className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
+                <button onClick={() => setEdit({ ...EMPTY_PRODUCT, ...p, category_slug: p.category_slug })} className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
                 <button disabled={busy} onClick={() => wrap(async () => { await arpc('admin_set_product_availability', { p_token: token, p_product_id: p.id, p_available: p.is_available === false }); load(); })}
                   className={`rounded-lg px-3 py-1.5 text-[11px] font-extrabold ${p.is_available === false ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
                   {p.is_available === false ? 'غير متوفر' : 'متوفر'}
@@ -983,23 +970,11 @@ function ProductsTab({ token }: { token: string }) {
                 <Field label="النقاط"><input type="number" className={inputCls} value={edit.points} onChange={(e) => setEdit({ ...edit, points: +e.target.value })} /></Field>
               </div>
               <Field label="صورة المنتج"><ImageUploadField value={edit.image_url} onChange={(url) => setEdit({ ...edit, image_url: url })} folder="products" /></Field>
-              <Field label="القوائم (يمكن اختيار أكثر من قائمة)">
-                <div className="flex flex-wrap gap-1.5 rounded-xl border-2 border-beige p-2">
-                  {menus.length === 0 && <p className="px-1 text-[11px] font-bold text-neutral-400">لا توجد قوائم بعد</p>}
-                  {menus.map((m: any) => {
-                    const on = (edit.menu_ids ?? []).includes(m.id);
-                    return (
-                      <button key={m.id} type="button"
-                        onClick={() => setEdit((prev: any) => {
-                          const ids: number[] = prev.menu_ids ?? [];
-                          return { ...prev, menu_ids: on ? ids.filter((x) => x !== m.id) : [...ids, m.id] };
-                        })}
-                        className={`rounded-full px-3 py-1 text-[11px] font-extrabold ring-1 transition active:scale-95 ${on ? 'bg-[#414D36] text-[#C9D3A8] ring-[#414D36]' : 'bg-[#F6F0E2] text-neutral-600 ring-[#D5DEB4]'}`}>
-                        {m.emoji ? m.emoji + ' ' : ''}{m.title}
-                      </button>
-                    );
-                  })}
-                </div>
+              <Field label="الفئة (إلزامي)">
+                <select className={inputCls} value={edit.category_slug} onChange={(e) => setEdit({ ...edit, category_slug: e.target.value })}>
+                  <option value="">— اختر الفئة —</option>
+                  {cats.map((c: any) => <option key={c.id} value={c.slug}>{c.emoji ? c.emoji + ' ' : ''}{c.name_ar}</option>)}
+                </select>
               </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="نشط">
@@ -1016,7 +991,7 @@ function ProductsTab({ token }: { token: string }) {
               </div>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3">
-              <button onClick={save} disabled={busy} className="rounded-2xl bg-gradient-to-l from-gold to-gold-deep py-3 text-sm font-extrabold text-white shadow disabled:opacity-50">حفظ</button>
+              <button onClick={save} disabled={busy || !edit.category_slug || !edit.name_ar?.trim()} className="rounded-2xl bg-gradient-to-l from-gold to-gold-deep py-3 text-sm font-extrabold text-white shadow disabled:opacity-50">حفظ</button>
               <button onClick={() => setEdit(null)} className="rounded-2xl bg-neutral-100 py-3 text-sm font-extrabold text-neutral-600">إلغاء</button>
             </div>
           </div>
@@ -1073,142 +1048,72 @@ function CustomersTab({ token }: { token: string }) {
 
 /* ============================ المكافآت ============================ */
 const EMPTY_REWARD = { id: 0, name_ar: '', name_en: '', image_url: '/img/latte.jpg', points_cost: 50, is_active: true, sort_order: 0, expires_at: '', redemption_days: '' };
-/* ============================ القوائم ============================ */
-const EMPTY_MENU = { id: 0, title: '', subtitle: '', image_url: '', emoji: '☕', is_active: true, sort_order: 0, product_ids: [] as number[] };
-function MenusTab({ token }: { token: string }) {
-  const [menus, setMenus] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
+/* ============================ الفئات ============================ */
+const EMPTY_CATEGORY = { id: 0, name_ar: '', emoji: '☕', image_url: '', sort_order: 0 };
+function CategoriesTab({ token }: { token: string }) {
   const [cats, setCats] = useState<any[]>([]);
   const [edit, setEdit] = useState<any>(null);
-  const [pickQ, setPickQ] = useState('');
-  const [pickCat, setPickCat] = useState('');
-  const [listQ, setListQ] = useState('');
-  const load = useCallback(() => { arpc<any[]>('admin_list_menus', { p_token: token }).then(setMenus).catch(() => {}); }, [token]);
+  const [q, setQ] = useState('');
+  const load = useCallback(() => { arpc<any[]>('admin_list_categories', { p_token: token }).then(setCats).catch(() => {}); }, [token]);
   useEffect(() => { load(); }, [load]);
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await sb.rpc('get_catalog');
-        setProducts((data as any)?.products ?? []);
-        setCats((data as any)?.categories ?? []);
-      } catch {}
-    })();
-  }, []);
   const { busy, wrap } = useAdminAction();
-
-  const pName = (id: number) => products.find((p) => p.id === id)?.name_ar ?? ('#' + id);
-  const togglePick = (pid: number) => setEdit((e: any) => {
-    const ids: number[] = e.product_ids ?? [];
-    return { ...e, product_ids: ids.includes(pid) ? ids.filter((x) => x !== pid) : [...ids, pid] };
-  });
-
-  const catName = (slug: string) => cats.find((c: any) => c.slug === slug)?.name_ar ?? slug;
-  const needle = pickQ.trim().toLowerCase();
-  const pickable = products.filter((p) => {
-    if (pickCat && p.category !== pickCat) return false;
-    if (!needle) return true;
-    return (p.name_ar ?? '').toLowerCase().includes(needle) || (p.name_en ?? '').toLowerCase().includes(needle);
-  });
+  const needle = q.trim().toLowerCase();
+  const shown = needle
+    ? cats.filter((c: any) => (c.name_ar ?? '').toLowerCase().includes(needle) || (c.slug ?? '').toLowerCase().includes(needle))
+    : cats;
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-base font-extrabold text-coffee-900">القوائم ({menus.length})</h2>
+        <h2 className="text-base font-extrabold text-coffee-900">الفئات ({cats.length})</h2>
         <div className="flex items-center gap-2">
-          <input value={listQ} onChange={(e) => setListQ(e.target.value)} placeholder="بحث في القوائم…" className={`${inputCls} w-44`} />
-          <button onClick={() => { setEdit({ ...EMPTY_MENU }); setPickQ(''); setPickCat(''); }} className={btnCls}>+ قائمة جديدة</button>
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث في الفئات…" className={`${inputCls} w-44`} />
+          <button onClick={() => setEdit({ ...EMPTY_CATEGORY })} className={btnCls}>+ فئة جديدة</button>
         </div>
       </div>
-      <p className="text-[11px] font-bold text-neutral-500"> Manshaq List (مثل: قائمة الإفطار أو الأكثر رواجًا) واختر المنتجات التي تظهر فيها — تظهر للز/Page principal</p>
-
+      <p className="rounded-xl bg-[#EEF2DC] px-3 py-2 text-[10.5px] font-bold leading-relaxed text-[#77825E]">
+        الفئات هي أقسام المنيو — أنشئ فئة باسمها ورمزها وصورتها، وستظهر تلقائيًا في خيارات المنتج وفي واجهة الزبائن.
+      </p>
       <div className="grid gap-3 md:grid-cols-2">
-        {menus.filter((m) => !listQ.trim() || (m.title ?? '').toLowerCase().includes(listQ.trim().toLowerCase()) || (m.subtitle ?? '').toLowerCase().includes(listQ.trim().toLowerCase())).map((m) => (
-          <Card key={m.id} className={m.is_active ? '' : 'opacity-50'}>
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-sm font-extrabold text-coffee-900">{m.emoji} {m.title}
-                  <span className={`ms-2 rounded-full px-2 py-0.5 text-[9px] font-black ${m.is_active ? 'bg-[#D5DEB4] text-[#414D36]' : 'bg-neutral-100 text-neutral-500'}`}>
-                    {m.is_active ? 'معروضة' : 'مخفيّة'}
-                  </span>
-                </p>
-                {m.subtitle && <p className="mt-0.5 text-[11px] font-bold text-neutral-500">{m.subtitle}</p>}
+        {shown.map((c: any) => (
+          <Card key={c.id} className="flex gap-3">
+            <span className="grid size-16 flex-none place-items-center overflow-hidden rounded-2xl bg-[#F6F0E2] text-2xl">
+              {c.image_url ? <img src={c.image_url} alt="" className="size-full object-cover" /> : (c.emoji || '☕')}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-extrabold text-coffee-900">{c.emoji} {c.name_ar}</p>
+              <p className="mt-0.5 text-[10.5px] font-bold text-neutral-400">{c.product_count ?? 0} منتج · {c.slug}</p>
+              <div className="mt-2 flex gap-2">
+                <button onClick={() => setEdit({ ...EMPTY_CATEGORY, ...c })} className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
+                <button disabled={busy} onClick={() => wrap(async () => {
+                  if (!window.confirm('حذف الفئة «' + c.name_ar + '»؟ لا يمكن حذف فئة تحتوي منتجات.')) return;
+                  await arpc('admin_delete_category', { p_token: token, p_id: c.id });
+                  load();
+                })} className="rounded-lg bg-red-50 px-3 py-1.5 text-[11px] font-extrabold text-red-600">حذف</button>
               </div>
-            </div>
-            <p className="mt-1.5 text-[10.5px] font-bold text-neutral-400">
-              {(m.product_ids ?? []).length === 0
-                ? 'لا منتجات بعد'
-                : (m.product_ids ?? []).length + ' منتجات: ' + (m.product_ids ?? []).map(pName).slice(0, 4).join('، ') + ((m.product_ids ?? []).length > 4 ? '…' : '')}
-            </p>
-            <div className="mt-2 flex gap-2">
-              <button onClick={() => { setEdit({ ...m, product_ids: m.product_ids ?? [] }); setPickQ(''); setPickCat(''); }}
-                className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
-              <button disabled={busy} onClick={() => wrap(async () => {
-                if (!window.confirm('حذف القائمة «' + m.title + '» نهائيًا؟')) return;
-                await arpc('admin_delete_menu', { p_token: token, p_id: m.id });
-                load();
-              })} className="rounded-lg bg-red-50 px-3 py-1.5 text-[11px] font-extrabold text-red-600">حذف</button>
             </div>
           </Card>
         ))}
-        {menus.length === 0 && (
-          <p className="rounded-2xl bg-[#F6F0E2] p-6 text-center text-xs font-bold text-neutral-400">لا توجد قوائم بعد — ابدأ بقائمة جديدة</p>
+        {shown.length === 0 && (
+          <p className="rounded-2xl bg-[#F6F0E2] p-6 text-center text-xs font-bold text-neutral-400">لا توجد فئات بعد — ابدأ بفئة جديدة</p>
         )}
       </div>
 
       {edit && (
         <div className="fixed inset-0 z-[110] grid place-items-center bg-black/50 p-4 backdrop-blur-sm anim-fade">
           <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl anim-pop">
-            <h3 className="text-base font-extrabold text-coffee-900">{edit.id ? 'تعديل قائمة' : 'قائمة جديدة'}</h3>
+            <h3 className="text-base font-extrabold text-coffee-900">{edit.id ? 'تعديل فئة' : 'فئة جديدة'}</h3>
             <div className="mt-4 space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="اسم القائمة"><input className={inputCls} value={edit.title} onChange={(e) => setEdit({ ...edit, title: e.target.value })} placeholder="مثال: قائمة الإفطار" /></Field>
-                <Field label="رمز تعبيري"><input className={inputCls} value={edit.emoji} onChange={(e) => setEdit({ ...edit, emoji: e.target.value })} placeholder="☕" /></Field>
-              </div>
-              <Field label="صورة القائمة (اختياري)"><ImageUploadField value={edit.image_url} onChange={(url) => setEdit({ ...edit, image_url: url })} folder="menus" /></Field>
-              <Field label="معروضة للزبائن">
-                <select className={inputCls} value={String(edit.is_active)} onChange={(e) => setEdit({ ...edit, is_active: e.target.value === 'true' })}>
-                  <option value="true">نعم</option><option value="false">لا</option>
-                </select>
-              </Field>
-
-               <Field label={`منتجات القائمة (${(edit.product_ids ?? []).length})`}>
-                 <div className="space-y-2">
-                   <div className="flex flex-col gap-2 sm:flex-row">
-                     <input value={pickQ} onChange={(e) => setPickQ(e.target.value)} placeholder="ابحث عن منتج…" className={`${inputCls} w-full sm:flex-1`} />
-                     <select value={pickCat} onChange={(e) => setPickCat(e.target.value)} className={`${inputCls} w-full sm:w-36`}>
-                       <option value="">كل التصنيفات</option>
-                       {cats.map((c: any) => <option key={c.slug} value={c.slug}>{c.name_ar}</option>)}
-                     </select>
-                   </div>
-                  <div className="max-h-64 space-y-0.5 overflow-y-auto rounded-xl border-2 border-beige p-2">
-                    {pickable.map((p) => (
-                      <label key={p.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-bold text-neutral-700 hover:bg-[#F6F0E2]">
-                        <input type="checkbox" checked={(edit.product_ids ?? []).includes(p.id)} onChange={() => togglePick(p.id)} />
-                        <span className="truncate">{p.name_ar}</span>
-                        <span className="ms-auto flex-none text-[10px] font-bold text-neutral-400">{catName(p.category)}</span>
-                      </label>
-                    ))}
-                    {pickable.length === 0 && <p className="py-4 text-center text-[11px] font-bold text-neutral-400">لا نتائج</p>}
-                  </div>
-                  {(edit.product_ids ?? []).length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {(edit.product_ids as number[]).map((id) => (
-                        <span key={id} className="flex items-center gap-1 rounded-full bg-[#E3E9C8] px-2.5 py-1 text-[10px] font-bold text-neutral-700">
-                          {pName(id)}
-                          <button onClick={() => togglePick(id)} className="text-[#C4482E]" aria-label="إزالة">×</button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </Field>
+              <Field label="اسم الفئة"><input className={inputCls} value={edit.name_ar} onChange={(e) => setEdit({ ...edit, name_ar: e.target.value })} placeholder="مثال: مشروبات ساخنة" /></Field>
+              <Field label="الرمز المعبر"><input className={inputCls} value={edit.emoji} onChange={(e) => setEdit({ ...edit, emoji: e.target.value })} placeholder="☕" /></Field>
+              <Field label="صورة الفئة"><ImageUploadField value={edit.image_url} onChange={(url) => setEdit({ ...edit, image_url: url })} folder="categories" /></Field>
+              <Field label="الترتيب"><input type="number" className={inputCls} value={edit.sort_order} onChange={(e) => setEdit({ ...edit, sort_order: +e.target.value })} /></Field>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3">
-              <button disabled={busy || !edit.title?.trim()} onClick={() => wrap(async () => {
-                await arpc('admin_save_menu', { p_token: token, p_menu: { ...edit, product_ids: edit.product_ids ?? [] } });
+              <button disabled={busy || !edit.name_ar?.trim()} onClick={() => wrap(async () => {
+                await arpc('admin_save_category', { p_token: token, p_category: edit });
                 setEdit(null); load();
-              })}
-                className="rounded-2xl bg-gradient-to-l from-gold to-gold-deep py-3 text-sm font-extrabold text-white disabled:opacity-50">حفظ</button>
+              })} className="rounded-2xl bg-gradient-to-l from-gold to-gold-deep py-3 text-sm font-extrabold text-white disabled:opacity-50">حفظ</button>
               <button onClick={() => setEdit(null)} className="rounded-2xl bg-neutral-100 py-3 text-sm font-extrabold text-neutral-600">إلغاء</button>
             </div>
           </div>
@@ -1217,6 +1122,7 @@ function MenusTab({ token }: { token: string }) {
     </div>
   );
 }
+
 
 /* ============================ الإضافات المدفوعة ============================ */
 function ExtrasTab({ token }: { token: string }) {
