@@ -515,15 +515,14 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
         {q && <button onClick={() => setQ('')} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7C8665]" aria-label="مسح"><Icon name="x" size={15} /></button>}
       </div>
 
-      {/* الفئات + القوائم — دوائر (تُخفى عند اختيار فئة أو قائمة) */}
-      {!cat && selMenu === null && (
+      {/* الفئات + القوائم — دوائر (تبقى ظاهرة مع تمييز المختار) */}
       <section className="mt-5">
         <div className="no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-1">
           {items.map((c) => {
             const active = cat === c.slug;
             return (
               <button key={c.slug} onClick={() => { setSelMenu(null); setCat(active ? null : c.slug); jumpToCat(c.slug); }} className="flex flex-none flex-col items-center gap-1.5 transition active:scale-95">
-                <span className={`grid size-[62px] place-items-center overflow-hidden rounded-full shadow-md shadow-[#8a6a48]/15 transition-all ${active ? 'ring-2 ring-[#5C6B3C] ring-offset-2 ring-offset-[#F6E7C9]' : 'ring-1 ring-[#EAD3A0]'}`}>
+                <span className={`grid size-[62px] place-items-center overflow-hidden rounded-full shadow-md shadow-[#8a6a48]/15 transition-all ${active ? 'ring-2 ring-[#5C6B3C] ring-offset-2 ring-offset-[#F6E7C9] scale-105 shadow-lg' : 'ring-1 ring-[#EAD3A0]'}`}>
                   <img src={CAT_IMAGES[c.slug] ?? '/img/latte.jpg'} alt={c.name_ar} className='size-full object-cover' loading='lazy' />
                 </span>
                 <span className={`text-[11px] font-extrabold ${active ? 'text-[#26301C]' : 'text-[#7C8665]'}`}>{c.name_ar}</span>
@@ -534,8 +533,8 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
           {menuLists.map((m) => {
             const active = selMenu === m.id;
             return (
-              <button key={'menu-' + m.id} onClick={() => { setSelMenu(active ? null : m.id); jumpToMenu(); }} className="flex flex-none flex-col items-center gap-1.5 transition active:scale-95">
-                <span className={`grid size-[62px] place-items-center overflow-hidden rounded-full shadow-md shadow-[#8a6a48]/15 transition-all ${active ? 'ring-2 ring-[#B07C3A] ring-offset-2 ring-offset-[#F6E7C9]' : 'ring-1 ring-[#EAD3A0]'}`}>
+              <button key={'menu-' + m.id} onClick={() => { setCat(null); setSelMenu(active ? null : m.id); jumpToMenu(); }} className="flex flex-none flex-col items-center gap-1.5 transition active:scale-95">
+                <span className={`grid size-[62px] place-items-center overflow-hidden rounded-full shadow-md shadow-[#8a6a48]/15 transition-all ${active ? 'ring-2 ring-[#B07C3A] ring-offset-2 ring-offset-[#F6E7C9] scale-105 shadow-lg' : 'ring-1 ring-[#EAD3A0]'}`}>
                   {m.image_url
                     ? <img src={m.image_url} alt={m.title} className='size-full object-cover' loading='lazy' />
                     : <span className='grid size-full place-items-center bg-gradient-to-br from-[#7A5A22] to-[#5C4318] text-xl'>{m.emoji || '☕'}</span>}
@@ -546,7 +545,6 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
           })}
         </div>
       </section>
-      )}
 
 
       {/* الأكثر طلبًا — بطاقات أفقية */}
