@@ -527,12 +527,6 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
             : 'text-[17px] font-black text-[#26301C]'}>
             {cat ? catLabel(cat) : 'استكشف المنيو'}
           </h2>
-          {cat && (
-            <button onClick={() => setCat(null)}
-              className="flex flex-none items-center gap-1 rounded-full bg-[#E3E9C8] px-3 py-1 text-[11px] font-extrabold text-[#414D36] shadow-sm ring-1 ring-[#C4CF9E] transition hover:bg-[#D5DEB4] active:scale-95">
-              <Icon name="x" size={11} strokeWidth={2.6} /> كل الفئات
-            </button>
-          )}
         </div>
          <div className="pb-4">
           {menuCats.map((c) => {
