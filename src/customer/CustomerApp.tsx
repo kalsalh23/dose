@@ -414,6 +414,25 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
   };
   const jumpToMenu = () => setTimeout(() => document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   const jumpToCat = (slug: string) => setTimeout(() => document.getElementById('cat-' + slug)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  const renderCard = (p: any, i: number, horizontal = false) => (
+    <button key={p.id} onClick={() => openProduct(p)}
+      className={`${horizontal ? 'w-40 flex-none' : 'w-full'} rounded-[1.4rem] bg-white p-2.5 text-right shadow-sm ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 anim-rise`}
+      style={{ animationDelay: `${i * 20}ms` }}>
+      <div className="relative">
+        <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-24 w-full rounded-[1rem] object-cover" />
+        {p.is_available === false && <span className="absolute top-1.5 left-1.5 rounded-full bg-[#26301C] px-2 py-0.5 text-[8.5px] font-black text-[#C9D3A8] shadow">نفذت الكمية</span>}
+        {hasOffer(p) && <span className="absolute top-1.5 right-1.5 rounded-full bg-[#C4482E] px-2 py-0.5 text-[8.5px] font-black text-white shadow">عرض</span>}
+      </div>
+      <h3 className="mt-1.5 truncate text-[13px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
+      <p className="truncate text-[9.5px] font-semibold uppercase tracking-wide text-[#94826A]">{p.name_en}</p>
+      <div className="mt-1 flex items-center justify-between">
+        <span className="text-[13px] font-black text-[#26301C]">
+          {hasOffer(p) ? <><span className="text-neutral-400 line-through">{eur(p.price_cents, cur)}</span> {eur(effPrice(p), cur)}</> : eur(p.price_cents, cur)}
+        </span>
+        <span className="grid size-7 place-items-center rounded-full bg-[#C9D3A8] text-[#26301C]"><Icon name="plus" size={13} strokeWidth={3} /></span>
+      </div>
+    </button>
+  );
 
   // إعدادات الهيرو
 const heroTitle = (catalog?.settings?.hero_title ?? '').trim();
@@ -496,8 +515,8 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
         {q && <button onClick={() => setQ('')} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7C8665]" aria-label="مسح"><Icon name="x" size={15} /></button>}
       </div>
 
-      {/* الفئات + القوائم — دوائر (تُخفى عند اختيار فئة لإظهار منتجاتها وحدها) */}
-      {!cat && (
+      {/* الفئات + القوائم — دوائر (تُخفى عند اختيار فئة أو قائمة) */}
+      {!cat && selMenu === null && (
       <section className="mt-5">
         <div className="no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-1">
           {items.map((c) => {
@@ -563,16 +582,24 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
       {/* استكشف المنيو — بطاقات مشابهة للأكثر طلباً مكدسة طولياً */}
       <section id='menu-section' className='mt-5'>
         <div className="mb-3 flex items-center justify-between gap-2 px-1">
-          <h2 className="text-[17px] font-black text-[#26301C]">{selMenuTitle ? selMenuTitle : cat ? catLabel(cat) : 'استكشف المنيو'}</h2>
-          {cat && (
-            <button onClick={() => setCat(null)}
+          <h2 className="text-[17px] font-black text-[#26301C]">          {selMenuTitle ? selMenuTitle : cat ? catLabel(cat) : 'استكشف المنيو'}</h2>
+          {(cat || selMenu !== null) && (
+            <button onClick={() => { setCat(null); setSelMenu(null); }}
               className="flex flex-none items-center gap-1 rounded-full bg-[#E3E9C8] px-3 py-1 text-[11px] font-extrabold text-[#414D36] shadow-sm ring-1 ring-[#C4CF9E] transition hover:bg-[#D5DEB4] active:scale-95">
-              <Icon name="x" size={11} strokeWidth={2.6} /> كل الفئات
+              <Icon name="x" size={11} strokeWidth={2.6} /> {cat ? 'كل الفئات' : 'كل القوائم'}
             </button>
           )}
         </div>
          <div className="pb-4">
-          {menuCats.map((c) => {
+          {selMenu !== null ? (
+            menuProducts.length > 0 ? (
+              <div className="grid grid-cols-2 gap-3">
+                {menuProducts.map((p, i) => renderCard(p, i))}
+              </div>
+            ) : (
+              <p className="text-center text-[11px] text-[#94826A] py-4">لا توجد منتجات في هذه القائمة</p>
+            )
+          ) : menuCats.map((c) => {
             const catProducts = menuProducts.filter((p) => p.category === c.slug);
             const horizontal = !cat && selMenu === null;
             const expanded = expandedCatSlugs.has(c.slug);
@@ -598,25 +625,7 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
                 </div>
                 {showProducts.length > 0 ? (
                   <div className={horizontal ? 'no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1' : 'grid grid-cols-2 gap-3'}>
-                    {showProducts.map((p, i) => (
-                      <button key={p.id} onClick={() => openProduct(p)}
-                        className={`${horizontal ? 'w-40 flex-none' : 'w-full'} rounded-[1.4rem] bg-white p-2.5 text-right shadow-sm ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 anim-rise`}
-                        style={{ animationDelay: `${i * 20}ms` }}>
-                        <div className="relative">
-                          <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-24 w-full rounded-[1rem] object-cover" />
-                          {p.is_available === false && <span className="absolute top-1.5 left-1.5 rounded-full bg-[#26301C] px-2 py-0.5 text-[8.5px] font-black text-[#C9D3A8] shadow">نفذت الكمية</span>}
-                          {hasOffer(p) && <span className="absolute top-1.5 right-1.5 rounded-full bg-[#C4482E] px-2 py-0.5 text-[8.5px] font-black text-white shadow">عرض</span>}
-                        </div>
-                        <h3 className="mt-1.5 truncate text-[13px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
-                        <p className="truncate text-[9.5px] font-semibold uppercase tracking-wide text-[#94826A]">{p.name_en}</p>
-                        <div className="mt-1 flex items-center justify-between">
-                          <span className="text-[13px] font-black text-[#26301C]">
-                            {hasOffer(p) ? <><span className="text-neutral-400 line-through">{eur(p.price_cents, cur)}</span> {eur(effPrice(p), cur)}</> : eur(p.price_cents, cur)}
-                          </span>
-                          <span className="grid size-7 place-items-center rounded-full bg-[#C9D3A8] text-[#26301C]"><Icon name="plus" size={13} strokeWidth={3} /></span>
-                        </div>
-                      </button>
-                    ))}
+                    {showProducts.map((p, i) => renderCard(p, i, horizontal))}
                   </div>
                 ) : (
                   <p className="text-center text-[11px] text-[#94826A] py-4">لا توجد منتجات في هذا القسم</p>
