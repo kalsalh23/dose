@@ -580,7 +580,7 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
       {/* استكشف المنيو — بطاقات مشابهة للأكثر طلباً مكدسة طولياً */}
       <section id='menu-section' className='mt-5'>
         <div className="mb-3 flex items-center justify-between gap-2 px-1">
-          <h2 className="text-[17px] font-black text-[#26301C]">          {selMenuTitle ? selMenuTitle : cat ? catLabel(cat) : 'استكشف المنيو'}</h2>
+          <h2 className="text-[17px] font-black text-[#26301C]">{selMenuTitle ? selMenuTitle : cat ? catLabel(cat) : 'استكشف المنيو'}</h2>
           {(cat || selMenu !== null) && (
             <button onClick={() => { setCat(null); setSelMenu(null); }}
               className="flex flex-none items-center gap-1 rounded-full bg-[#E3E9C8] px-3 py-1 text-[11px] font-extrabold text-[#414D36] shadow-sm ring-1 ring-[#C4CF9E] transition hover:bg-[#D5DEB4] active:scale-95">
@@ -597,7 +597,9 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
             ) : (
               <p className="text-center text-[11px] text-[#94826A] py-4">لا توجد منتجات في هذه القائمة</p>
             )
-          ) : menuCats.map((c) => {
+          ) : (
+            <>
+              {menuCats.map((c) => {
             const catProducts = menuProducts.filter((p) => p.category === c.slug);
             const horizontal = !cat && selMenu === null;
             const expanded = expandedCatSlugs.has(c.slug);
@@ -630,7 +632,20 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
                 )}
               </div>
             );
-          })}
+              })}
+              {menuLists.map((m) => (
+                <div key={'menu-' + m.id} className="mb-6">
+                  <div className="mb-2 mt-4 flex items-center gap-2 px-2">
+                    <Icon name={CAT_ICONS[m.category_slug] ?? 'star'} size={14} className="text-[#B07C3A]" />
+                    <h3 className="text-[14px] font-black text-[#26301C]">{m.emoji ? m.emoji + ' ' : ''}{m.title}</h3>
+                  </div>
+                  <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
+                    {(m.items ?? []).map((p, i) => renderCard(p, i, true))}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
          </div>
       </section>
     </div>
