@@ -496,7 +496,8 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
         {q && <button onClick={() => setQ('')} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7C8665]" aria-label="مسح"><Icon name="x" size={15} /></button>}
       </div>
 
-      {/* الفئات + القوائم — دوائر */}
+      {/* الفئات + القوائم — دوائر (تُخفى عند اختيار فئة لإظهار منتجاتها وحدها) */}
+      {!cat && (
       <section className="mt-5">
         <div className="no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-1">
           {items.map((c) => {
@@ -526,6 +527,7 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
           })}
         </div>
       </section>
+      )}
 
 
       {/* الأكثر طلبًا — بطاقات أفقية */}
@@ -560,8 +562,14 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
 
       {/* استكشف المنيو — بطاقات مشابهة للأكثر طلباً مكدسة طولياً */}
       <section id='menu-section' className='mt-5'>
-        <div className="mb-3 flex items-end justify-between px-1">
+        <div className="mb-3 flex items-center justify-between gap-2 px-1">
           <h2 className="text-[17px] font-black text-[#26301C]">{selMenuTitle ? selMenuTitle : cat ? catLabel(cat) : 'استكشف المنيو'}</h2>
+          {cat && (
+            <button onClick={() => setCat(null)}
+              className="flex flex-none items-center gap-1 rounded-full bg-[#E3E9C8] px-3 py-1 text-[11px] font-extrabold text-[#414D36] shadow-sm ring-1 ring-[#C4CF9E] transition hover:bg-[#D5DEB4] active:scale-95">
+              <Icon name="x" size={11} strokeWidth={2.6} /> كل الفئات
+            </button>
+          )}
         </div>
          <div className="pb-4">
           {menuCats.map((c) => {
