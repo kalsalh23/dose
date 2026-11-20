@@ -529,7 +529,7 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
 
 
       {/* الأكثر طلبًا — بطاقات أفقية */}
-      {!searching && mostOrdered.length > 0 && (
+      {!searching && !cat && mostOrdered.length > 0 && (
         <section className="mt-5">
           <h2 className="mb-3 flex items-center gap-1.5 text-[17px] font-black text-[#26301C]">
             <Icon name='star' size={15} filled className='text-[#B07C3A]' /> الأكثر طلبًا
