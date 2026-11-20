@@ -522,7 +522,11 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
       {/* استكشف المنيو — بطاقات مشابهة للأكثر طلباً مكدسة طولياً */}
       <section id='menu-section' className='mt-5'>
         <div className="mb-3 flex items-center justify-between gap-2 px-1">
-          <h2 className="text-[17px] font-black text-[#26301C]">{cat ? catLabel(cat) : 'استكشف المنيو'}</h2>
+          <h2 className={cat
+            ? 'font-display rounded-full bg-[#26301C] px-3.5 py-1 text-[15px] font-extrabold leading-6 text-[#F3DEBA] shadow-sm ring-1 ring-[#C9D3A8]/30'
+            : 'text-[17px] font-black text-[#26301C]'}>
+            {cat ? catLabel(cat) : 'استكشف المنيو'}
+          </h2>
           {cat && (
             <button onClick={() => setCat(null)}
               className="flex flex-none items-center gap-1 rounded-full bg-[#E3E9C8] px-3 py-1 text-[11px] font-extrabold text-[#414D36] shadow-sm ring-1 ring-[#C4CF9E] transition hover:bg-[#D5DEB4] active:scale-95">
@@ -539,9 +543,11 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
             return (
               <div key={c.slug} id={'cat-' + c.slug} className="mb-6 scroll-mt-24">
                 <div className="mb-2 mt-4 flex items-center gap-2 px-2">
+                {!cat && (
                   <h3 className="font-display rounded-full bg-[#26301C] px-3.5 py-1 text-[15px] font-extrabold leading-6 text-[#F3DEBA] shadow-sm ring-1 ring-[#C9D3A8]/30">
                     {c.name_ar}
                   </h3>
+                )}
                   {!horizontal && catProducts.length > 6 && (
                     <button onClick={() => {
                       if (expanded) {
