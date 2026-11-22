@@ -528,7 +528,7 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
       <section id='menu-section' className='mt-5'>
         <div className="mb-3 flex items-center justify-between gap-2 px-1">
           <h2 className={cat
-            ? 'font-display rounded-full bg-[#26301C] px-3.5 py-1 text-[15px] font-extrabold leading-6 text-[#F3DEBA] shadow-sm ring-1 ring-[#C9D3A8]/30'
+            ? 'font-display rounded-full border border-white/70 bg-white/55 px-4 py-1.5 text-[16px] font-extrabold leading-6 text-[#26301C] shadow-[0_6px_18px_-8px_rgba(38,48,28,0.45)] ring-1 ring-[#5C6B3C]/10 backdrop-blur-md'
             : 'text-[17px] font-black text-[#26301C]'}>
             {cat ? catLabel(cat) : 'استكشف المنيو'}
           </h2>
@@ -543,7 +543,7 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
               <div key={c.slug} id={'cat-' + c.slug} className="mb-6 scroll-mt-24">
                 <div className="mb-2 mt-4 flex items-center gap-2 px-2">
                 {!cat && (
-                  <h3 className="font-display rounded-full bg-[#26301C] px-3.5 py-1 text-[15px] font-extrabold leading-6 text-[#F3DEBA] shadow-sm ring-1 ring-[#C9D3A8]/30">
+                  <h3 className="font-display rounded-full border border-white/70 bg-white/55 px-4 py-1.5 text-[15px] font-extrabold leading-6 text-[#26301C] shadow-[0_6px_18px_-8px_rgba(38,48,28,0.45)] ring-1 ring-[#5C6B3C]/10 backdrop-blur-md">
                     {c.name_ar}
                   </h3>
                 )}
