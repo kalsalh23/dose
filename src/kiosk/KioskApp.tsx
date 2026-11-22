@@ -382,6 +382,15 @@ const where = scope === 'product'
           <img src="/logo.jpg" alt="" className="size-6 rounded-lg object-cover shadow-sm" style={{ border: '1.5px solid white' }} />
           <span className="font-serif text-[13px] font-black" style={{ color: '#26301C' }}>Dose <i className="not-italic font-sans text-[8.5px] font-bold tracking-[.2em] uppercase" style={{ color: '#7C8665' }}>Cafe</i></span>
         </div>
+        <div className="flex items-center gap-3 text-[10px] font-bold" style={{ color: '#7C8665' }}>
+          <span className="flex items-center gap-1">
+            <Icon name="user" size={11} /> تطوير: <b style={{ color: '#414D36' }}>قصي مهند الصالح</b>
+          </span>
+          <span className="h-3 w-px" style={{ background: '#D5DEB4' }} />
+          <span className="flex items-center gap-1">
+            <Icon name="headset" size={11} /> الدعم: <b style={{ color: '#414D36' }}>براء دهبية</b>
+          </span>
+        </div>
         <div className="flex items-center gap-1">
           <a href={`tel:${catalog?.settings?.store_phone ?? '0936107119'}`} className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition hover:brightness-90" style={{ color: '#6B7357' }} dir="ltr">
             <Icon name="phone" size={12} /> {catalog?.settings?.store_phone ?? '0936107119'}
