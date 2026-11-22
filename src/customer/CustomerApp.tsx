@@ -361,9 +361,14 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
   const promoDisc = catalog?.settings?.promo_discount;
   const mostOrdered = catalog?.most_ordered ?? [];
   const items = (catalog?.categories ?? []);
-  /* عند اختيار فئة تُعرض هذه الفئة وحدها داخل المنيو */
-  const menuCats = cat ? items.filter((c) => c.slug === cat) : items;
   const searching = q.trim() !== '';
+  /* عند اختيار فئة تُعرض هذه الفئة وحدها، وأثناء البحث تظهر فقط الفئات التي تحوي نتائج */
+  const menuCats = cat
+    ? items.filter((c) => c.slug === cat)
+    : searching
+      ? items.filter((c) => shown.some((p) => p.category === c.slug))
+      : items;
+  const circleCats = searching && !cat ? menuCats : items;
   const catLabel = (slug: string) => {
     const c = (catalog?.categories ?? []).find((x) => x.slug === slug);
     return c ? c.name_ar : slug;
@@ -473,7 +478,7 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
       {/* الفئات — دوائر (تبقى ظاهرة مع تمييز المختار) */}
       <section className="mt-5">
         <div className="no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-1">
-          {items.map((c) => {
+          {circleCats.map((c) => {
             const active = cat === c.slug;
             const img = c.image_url || CAT_IMAGES[c.slug] || '/img/latte.jpg';
             return (
@@ -566,6 +571,9 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
               </div>
             );
           })}
+          {searching && menuCats.length === 0 && (
+            <p className="py-8 text-center text-[12px] font-bold text-[#94826A]">لا توجد نتائج مطابقة لبحثك</p>
+          )}
          </div>
       </section>
     </div>
