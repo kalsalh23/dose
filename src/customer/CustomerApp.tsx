@@ -1518,7 +1518,11 @@ export default function CustomerApp() {
         p_confirm_phone: session.customer.phone,
         p_fulfillment_type: flow.rewardCode ? 'pickup' : (flow.fulfillment ?? 'pickup'),
         p_items: flow.lines.map((l) => ({
-          product_id: l.product.id, qty: l.qty, options: (l.options || []).join('، '),
+          product_id: l.product.id, qty: l.qty,
+          options: [
+            ...(l.options || []),
+            ...(l.additions ?? []).map((a) => a.name_ar + (addSign(a) < 0 ? ' −' : ' +') + Math.abs(a.price_cents)),
+          ].join('، '),
           additions: (l.additions ?? []).map((a) => a.id),
         })),
         p_latitude: flow.loc?.lat ?? null, p_longitude: flow.loc?.lng ?? null, p_map_url: flow.loc?.mapUrl ?? null,

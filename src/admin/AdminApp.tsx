@@ -496,11 +496,14 @@ const { busy, wrap } = useAdminAction();
           <button onClick={load} className={btnCls}>تحديث</button>
         </div>
       </div>
-      {filteredOrders.map((o) => (
-        <Card key={o.id} className={o.status === 'pending' ? '!ring-2 !ring-amber-400 !bg-amber-50/60 animate-pulse-slow' : ''}>
+      {filteredOrders.map((o) => {
+        const rewardOrder = o.is_reward === true || o.reward_code != null || Number(o.total_cents) === 0;
+        return (
+        <Card key={o.id} className={rewardOrder ? '!ring-2 !ring-[#7C3AED] !bg-[#F7F2FF]' : o.status === 'pending' ? '!ring-2 !ring-amber-400 !bg-amber-50/60 animate-pulse-slow' : ''}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <span className="text-sm font-black text-coffee-900">#{o.order_number}</span>
+              {rewardOrder && <span className="ms-2 rounded-full bg-[#EDE7FF] px-2.5 py-1 text-[10px] font-black text-[#6D28D9]">🎁 مكافأة</span>}
               {o.status === 'pending' && <span className="ms-2 rounded-full bg-amber-400 px-2.5 py-1 text-[10px] font-black text-amber-950">جديد — بانتظار المعالجة</span>}
               <span className={`ms-2 rounded-full px-2.5 py-1 text-[11px] font-extrabold ${statusChip(o.status)}`}>{statusLabel(o.status)}</span>
               {o.points_awarded && <span className="ms-1 rounded-full bg-green-50 px-2 py-1 text-[10px] font-extrabold text-green-700">⭐ منحت</span>}
@@ -520,7 +523,7 @@ const { busy, wrap } = useAdminAction();
             <div><p className="font-bold text-neutral-400">العميل</p><p className="mt-0.5 font-extrabold text-coffee-900">{o.customer_name}</p><p dir="ltr" className="text-neutral-500">{o.customer_phone}</p></div>
             <div><p className="font-bold text-neutral-400">نوع الطلب</p><p className="mt-0.5 font-extrabold text-coffee-900">{o.fulfillment_type === 'delivery' ? '🚚 توصيل' : '🏪 استلام'}</p></div>
               <div className="flex flex-col gap-1">
-              <span className="text-sm font-extrabold text-gold-deep">{eur(o.total_cents, 'ل.س')} · ⭐{o.total_points}</span>
+              <span className="text-sm font-extrabold text-gold-deep">{rewardOrder ? 'مجاني 🎁' : eur(o.total_cents, 'ل.س')} · ⭐{o.total_points}</span>
             </div>
             <div className="flex flex-col gap-1.5">
               {o.delivery_map_url && (
@@ -534,21 +537,26 @@ const { busy, wrap } = useAdminAction();
               </div>
             </div>
           </div>
-          <div className="mt-2 flex flex-wrap gap-1.5 border-t border-dashed border-beige pt-2.5">
-            {o.items.map((it: any, i: number) => (
-              <span key={i} className="rounded-full bg-[#E3E9C8] px-3 py-1 text-[11px] font-bold text-neutral-600">
-                {it.name_ar} × {it.qty}
-                {Array.isArray(it.additions) && it.additions.length > 0 && (
-                  <span className="ms-1 text-[10px] font-extrabold text-[#7A5A22]">
-                    + {it.additions.map((a: any) => a.name_ar).join('، ')}
-                  </span>
-                )}
-                {Number(it.eta_minutes) > 0 ? ' ⏱️ ' + it.eta_minutes + ' دقيقة' : ''}
-              </span>
-            ))}
+          <div className="mt-2 space-y-1.5 border-t border-dashed border-beige pt-2.5">
+            {o.items.map((it: any, i: number) => {
+              const opts: string = it.options ?? '';
+              const adds: any[] = Array.isArray(it.additions) ? it.additions : [];
+              const extraAdds = adds.map((a: any) => a.name_ar).filter((n: string) => n && !opts.includes(n));
+              const details = [opts, extraAdds.join('، ')].filter(Boolean).join(' · ');
+              return (
+                <div key={i} className="rounded-xl bg-[#E3E9C8]/70 px-3 py-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11.5px] font-extrabold text-neutral-700">{it.name_ar} × {it.qty}</span>
+                    {Number(it.eta_minutes) > 0 && <span className="flex-none text-[9.5px] font-bold text-[#7A5A22]">⏱️ {it.eta_minutes} دقيقة</span>}
+                  </div>
+                  {details && <p className="mt-0.5 text-[10.5px] font-bold leading-relaxed text-[#7A5A22]">{details}</p>}
+                </div>
+              );
+            })}
           </div>
         </Card>
-      ))}
+        );
+      })}
     </div>
   );
 }
