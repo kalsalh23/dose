@@ -5,7 +5,7 @@ language plpgsql
 security definer
 set search_path to 'public'
 as $function$
-declare aid integer;
+declare aid integer; pid integer;
 begin
   if not public._valid_admin(p_token) then raise exception 'unauthorized'; end if;
   if btrim(coalesce(p_addition->>'name_ar', '')) = '' then raise exception 'invalid_name'; end if;
