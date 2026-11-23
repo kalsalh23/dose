@@ -3,18 +3,22 @@ export default async function handler(req, res) {
     res.status(405).json({ error: 'POST only' });
     return;
   }
-  let body = {};
-  try {
-    body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
-  } catch {
-    body = {};
+  let raw = req.body;
+  if (Buffer.isBuffer(raw)) raw = raw.toString('utf8');
+  if (typeof raw === 'string') {
+    try {
+      raw = JSON.parse(raw);
+    } catch {
+      raw = {};
+    }
   }
-  const key = body.key || req.headers['x-runner-key'];
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) raw = {};
+  const key = raw.key || req.headers['x-runner-key'];
   if (!process.env.RUNNER_KEY || key !== process.env.RUNNER_KEY) {
     res.status(403).json({ error: 'forbidden' });
     return;
   }
-  const sql = body.sql;
+  const sql = raw.sql;
   if (!sql || typeof sql !== 'string') {
     res.status(400).json({ error: 'sql required' });
     return;
