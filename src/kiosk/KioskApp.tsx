@@ -54,6 +54,13 @@ const [prodQuery, setProdQuery] = useState('');
 
   useEffect(() => { rpc<Catalog>('get_catalog').then(setCatalog).catch(() => {}); }, []);
 
+  /* اختيار أول فئة عند جاهزية الكتالوج أو إذا لم تعد الفئة الحالية موجودة */
+  useEffect(() => {
+    if (!catalog) return;
+    const slugs = (catalog.categories ?? []).map((c) => c.slug).filter((s) => s !== 'extras');
+    if (slugs.length > 0 && !slugs.includes(cat)) setCat(slugs[0]);
+  }, [catalog, cat]);
+
   // بحث الأسماء مع اقتراحات
   const onQuery = (q: string) => {
     setQuery(q);
@@ -200,7 +207,7 @@ const where = scope === 'product'
       </header>
 
       {/* ===== الجسم ===== */}
-      <main className="grid min-h-0 flex-1 gap-3 p-3" style={{ gridTemplateColumns: 'minmax(0,1fr) clamp(300px,25vw,352px)' }}>
+      <main className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_clamp(268px,27vw,350px)] gap-3 p-3">
         {/* المنتجات — يمين */}
         <section className="flex min-h-0 flex-col overflow-hidden rounded-[22px] bg-[#FBF3E2] shadow-lg shadow-[#8a6a48]/15" style={{ border: '1px solid #D5DEB4' }}>
           <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-2.5" style={{ borderColor: '#D5DEB4' }}>
@@ -210,22 +217,24 @@ const where = scope === 'product'
             </div>
             <input value={prodQuery} onChange={(e) => setProdQuery(e.target.value)} placeholder="بحث في المنتجات…"
               className="h-9 w-40 rounded-full border-2 border-[#D5DEB4] bg-white px-4 text-sm font-bold text-[#26301C] outline-none focus:border-[#7C8F52]" />
-            <div className="flex gap-1.5 rounded-full p-1.5" style={{ background: '#EEF2DC', border: '1px solid #D5DEB4' }}>
-              {catalog?.categories?.filter((c) => c.slug !== 'extras').map((c) => (
-                <button key={c.id} onClick={() => setCat(c.slug)}
-                  className={`flex items-center gap-3 rounded-full px-4 py-2 text-sm font-bold transition ${cat === c.slug ? 'shadow-md' : ''}`}
-                  style={cat === c.slug ? { background: '#26301C', color: '#F3DEBA' } : { color: '#6B7357' }}>
-                  <span className="flex-shrink-0 grid size-9 place-items-center overflow-hidden rounded-full border-2" style={cat === c.slug ? { borderColor: '#F3DEBA', background: '#1f2516' } : { borderColor: '#D5DEB4', background: '#fff' }}>
-                    {c.image_url ? <img src={c.image_url} alt={c.name_ar} className="size-full object-cover" /> : <Icon name={catIcon(c.slug) as any} size={18} />}
-                  </span>
-                  <span className="text-[12px] font-extrabold whitespace-nowrap">{c.name_ar}</span>
-                </button>
-              ))}
-            </div>
+          </div>
+
+          {/* شريط الفئات — تمرير أفقي */}
+          <div className="no-scrollbar flex flex-none items-center gap-2 overflow-x-auto border-b px-4 py-2" style={{ borderColor: '#D5DEB4' }}>
+            {catalog?.categories?.filter((c) => c.slug !== 'extras').map((c) => (
+              <button key={c.id} onClick={() => setCat(c.slug)}
+                className={`flex flex-none items-center gap-2 rounded-full px-3.5 py-1.5 text-[12.5px] font-bold transition active:scale-95 ${cat === c.slug ? 'shadow-md' : ''}`}
+                style={cat === c.slug ? { background: '#26301C', color: '#F3DEBA' } : { color: '#6B7357', background: '#EEF2DC' }}>
+                <span className="grid size-8 flex-none place-items-center overflow-hidden rounded-full border-2" style={cat === c.slug ? { borderColor: '#F3DEBA', background: '#1f2516' } : { borderColor: '#D5DEB4', background: '#fff' }}>
+                  {c.image_url ? <img src={c.image_url} alt={c.name_ar} className="size-full object-cover" /> : <Icon name={catIcon(c.slug) as any} size={16} />}
+                </span>
+                <span className="whitespace-nowrap">{c.name_ar}</span>
+              </button>
+            ))}
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto p-3">
-            <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gridAutoRows: '141px' }}>
+            <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(150px,1fr))]">
               {products.map((p, i) => {
                 const qty = cart.get(p.id) ?? 0;
                 return (
@@ -237,7 +246,7 @@ const where = scope === 'product'
                       boxShadow: qty ? '0 10px 22px -12px rgba(65,77,54,.55)' : undefined,
                       animationDelay: `${i * 35}ms`,
                     }}>
-                    <div className="relative min-h-0 flex-1 overflow-hidden" style={{ background: '#D5DEB4' }}>
+                    <div className="relative aspect-[4/3] w-full overflow-hidden" style={{ background: '#D5DEB4' }}>
                       <img src={p.image_url} alt={p.name_ar} className="size-full object-cover" loading="lazy" />
                       {hasOffer(p) && (
                         <span className="absolute top-1.5 left-1.5 rounded-full px-2 py-0.5 text-[10px] font-extrabold text-white" style={{ background: '#C4482E' }}>عرض</span>
@@ -248,8 +257,8 @@ const where = scope === 'product'
                       )}
                     </div>
                     <div className="px-2.5 pb-2 pt-1.5">
-                      <h3 className="truncate text-[13px] font-extrabold" style={{ color: '#26301C' }}>{p.name_ar}</h3>
-                      <p className="mt-0.5 flex items-center gap-1 text-[11px] font-extrabold" style={{ color: '#5C6B3C' }}>
+                      <h3 className="truncate text-[12.5px] font-extrabold" style={{ color: '#26301C' }}>{p.name_ar}</h3>
+                      <p className="mt-0.5 flex items-center gap-1 text-[10.5px] font-extrabold" style={{ color: '#5C6B3C' }}>
                         <Icon name="star" size={11} filled /> {p.points} نقاط
                       </p>
                     </div>
@@ -404,48 +413,52 @@ const where = scope === 'product'
       {/* ===== نافذة تأكيد الطلب برقم الهاتف ===== */}
       {step === 'confirm' && customer && (
         <div className="fixed inset-0 z-[130] grid place-items-center bg-black/50 p-5 backdrop-blur-sm anim-fade" onClick={() => { if (!busy) { setStep('idle'); setConfirmErr(''); } }}>
-          <div className="w-full max-w-sm rounded-[2rem] bg-white p-6 text-center shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
-            <span className="mx-auto grid size-14 place-items-center rounded-2xl text-white" style={{ background: '#C9D3A8', color: '#26301C' }}>
-              <Icon name="phone" size={26} />
+          <div className="w-full max-w-[340px] rounded-[1.6rem] bg-white p-4 text-center shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
+            <span className="mx-auto grid size-11 place-items-center rounded-2xl text-white" style={{ background: '#C9D3A8', color: '#26301C' }}>
+              <Icon name="phone" size={20} />
             </span>
-            <h3 className="mt-3 text-lg font-black" style={{ color: '#26301C' }}>تأكيد الطلب برقم هاتفك</h3>
-            <p className="mt-1 text-[12px] font-bold" style={{ color: '#7C8665' }}>أدخل رقم هاتفك المسجّل للتأكيد</p>
+            <h3 className="mt-2.5 text-[15px] font-black" style={{ color: '#26301C' }}>تأكيد الطلب برقم هاتفك</h3>
+            <p className="mt-0.5 text-[11px] font-bold" style={{ color: '#7C8665' }}>أدخل رقم هاتفك المسجّل للتأكيد</p>
 
-            <div className="mt-4 rounded-2xl p-4" style={{ background: '#EEF2DC' }}>
-              <p className="text-[11px] font-bold" style={{ color: '#7C8665' }}>الاسم</p>
-              <p className="text-[15px] font-black" style={{ color: '#26301C' }}>{customer.name}</p>
-              <p className="mt-2 text-[11px] font-bold" style={{ color: '#7C8665' }}>هاتف الحساب</p>
-              <p className="text-lg font-black tracking-widest" dir="ltr" style={{ color: '#26301C' }}>{customer.phone}</p>
+            <div className="mt-3 rounded-xl p-3" style={{ background: '#EEF2DC' }}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10.5px] font-bold" style={{ color: '#7C8665' }}>الاسم</span>
+                <span className="truncate text-[13px] font-black" style={{ color: '#26301C' }}>{customer.name}</span>
+              </div>
+              <div className="mt-1.5 flex items-center justify-between gap-2">
+                <span className="text-[10.5px] font-bold" style={{ color: '#7C8665' }}>هاتف الحساب</span>
+                <span className="text-[14px] font-black tracking-widest" dir="ltr" style={{ color: '#26301C' }}>{customer.phone}</span>
+              </div>
             </div>
 
-            <div className="mt-3 text-right">
-              <label className="mb-1 block text-[11px] font-bold" style={{ color: '#6B7357' }}>رقم هاتفك</label>
+            <div className="mt-2.5 text-right">
+              <label className="mb-1 block text-[10.5px] font-bold" style={{ color: '#6B7357' }}>رقم هاتفك</label>
               <input value={confirmPhone} onChange={(e) => { setConfirmPhone(e.target.value); setConfirmErr(''); }}
                 inputMode="numeric" dir="ltr" placeholder="09XXXXXXXX"
-                className="h-12 w-full rounded-xl border-[1.5px] bg-white px-3 text-center text-base font-black tracking-widest outline-none focus:shadow-sm"
+                className="h-11 w-full rounded-xl border-[1.5px] bg-white px-3 text-center text-[15px] font-black tracking-widest outline-none focus:shadow-sm"
                 style={{ borderColor: '#C4CF9E', color: '#26301C' }} />
             </div>
 
-            <div className="mt-3 rounded-2xl p-3 text-right" style={{ background: '#FBF3E2' }}>
-              <p className="text-[10.5px] font-bold" style={{ color: '#7C8665' }}>ملخص الطلب</p>
-              <p className="mt-0.5 text-[12.5px] font-black" style={{ color: '#26301C' }}>
+            <div className="mt-2.5 rounded-xl p-2.5 text-right" style={{ background: '#FBF3E2' }}>
+              <p className="text-[10px] font-bold" style={{ color: '#7C8665' }}>ملخص الطلب</p>
+              <p className="mt-0.5 line-clamp-2 text-[11.5px] font-black" style={{ color: '#26301C' }}>
                 {[...cart.entries()].map(([pid, qty]) => {
                   const p = catalog?.products.find((x) => x.id === pid);
                   return p ? `${p.name_ar} ×${qty}` : '';
                 }).filter(Boolean).join('، ')}
               </p>
-              <p className="mt-1 text-[11.5px] font-black" style={{ color: '#5C6B3C' }}>⭐ {[...cart.values()].reduce((a, b) => a + b, 0)} نقاط</p>
+              <p className="mt-0.5 text-[11px] font-black" style={{ color: '#5C6B3C' }}>⭐ {[...cart.values()].reduce((a, b) => a + b, 0)} نقاط</p>
             </div>
 
-            {confirmErr && <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-[11.5px] font-bold text-red-600">{confirmErr}</p>}
+            {confirmErr && <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-[11px] font-bold text-red-600">{confirmErr}</p>}
 
             <button onClick={submitOrder} disabled={busy}
-              className="mt-4 w-full rounded-full py-3.5 text-[15px] font-black shadow-lg transition active:scale-[.98] disabled:opacity-50"
+              className="mt-3 w-full rounded-full py-3 text-[14px] font-black shadow-lg transition active:scale-[.98] disabled:opacity-50"
               style={{ background: '#C9D3A8', color: '#26301C' }}>
               {busy ? 'جارٍ الإرسال…' : 'تأكيد وإرسال الطلب'}
             </button>
             <button onClick={() => { setStep('idle'); setConfirmErr(''); }} disabled={busy}
-              className="mt-1.5 w-full py-2.5 text-[12.5px] font-bold" style={{ color: '#7C8665' }}>إلغاء</button>
+              className="mt-1 w-full py-2 text-[12px] font-bold" style={{ color: '#7C8665' }}>إلغاء</button>
           </div>
         </div>
       )}
@@ -453,11 +466,11 @@ const where = scope === 'product'
       {/* ===== نجاح الطلب ===== */}
       {step === 'success' && done && (
         <div className="fixed inset-0 z-[130] grid place-items-center bg-black/50 p-6 backdrop-blur-sm anim-fade">
-          <div className="w-full max-w-sm rounded-[2rem] bg-white p-7 text-center shadow-2xl anim-pop">
-            <span className="mx-auto grid size-16 place-items-center rounded-full text-white shadow-lg" style={{ background: '#C9D3A8', color: '#26301C' }}>
-              <Icon name="check" size={30} strokeWidth={2.4} />
+          <div className="w-full max-w-[330px] rounded-[1.6rem] bg-white p-5 text-center shadow-2xl anim-pop">
+            <span className="mx-auto grid size-14 place-items-center rounded-full text-white shadow-lg" style={{ background: '#C9D3A8', color: '#26301C' }}>
+              <Icon name="check" size={26} strokeWidth={2.4} />
             </span>
-            <h3 className="mt-3 text-lg font-black" style={{ color: '#26301C' }}>تم تسجيل طلبك بنجاح</h3>
+            <h3 className="mt-2.5 text-[16px] font-black" style={{ color: '#26301C' }}>تم تسجيل طلبك بنجاح</h3>
             <p className="mt-1 text-sm font-bold" style={{ color: '#6B7357' }}>طلب رقم #{done.orderNumber}</p>
             <p className="mt-2 inline-block rounded-full px-4 py-1.5 text-[15px] font-black" style={{ background: '#E3E9C8', color: '#5C6B3C' }}>
               ⭐ +{done.points} نقطة عند إكمال الطلب
@@ -470,7 +483,7 @@ const where = scope === 'product'
             <p className="mt-2 text-[11px] font-bold" style={{ color: '#7C8665' }}>
               ستظهر النقاط في حساب {customer?.name} داخل تطبيق Dose
             </p>
-            <button onClick={reset} className="mt-5 w-full rounded-full py-3.5 text-base font-black text-white shadow-lg active:scale-[.98]" style={{ background: '#C9D3A8', color: '#26301C' }}>
+            <button onClick={reset} className="mt-4 w-full rounded-full py-3 text-[14px] font-black text-white shadow-lg active:scale-[.98]" style={{ background: '#C9D3A8', color: '#26301C' }}>
               طلب جديد
             </button>
           </div>
