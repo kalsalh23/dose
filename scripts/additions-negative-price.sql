@@ -1,4 +1,6 @@
 -- دعم الإضافات المخفّضة للسعر: تخزين القيمة بإشارتها (سالب = استنقاص)
+alter table public.additions drop constraint if exists additions_price_cents_check;
+
 create or replace function public.admin_save_addition(p_token uuid, p_addition jsonb)
 returns jsonb
 language plpgsql

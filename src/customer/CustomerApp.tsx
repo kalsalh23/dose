@@ -966,7 +966,10 @@ function OrderCard({ o, cur, orderTimeMin }: { o: MyOrder; cur: string; orderTim
   const eta = etaLabel(o, orderTimeMin);
   const clock = etaClock(o, orderTimeMin);
   const addNames = (it: OrderItem) =>
-    (it.additions ?? []).map((a: any) => `${a.name_ar ?? 'إضافة'} +${eur(a.price_cents ?? 0, cur)}`).join('، ');
+    (it.additions ?? [])
+      .filter((a: any) => a.name_ar && !String(it.options ?? '').includes(a.name_ar))
+      .map((a: any) => `${a.name_ar} ${Number(a.price_cents) < 0 ? '−' : '+'}${eur(Math.abs(Number(a.price_cents)), cur)}`)
+      .join('، ');
   return (
     <div className="overflow-hidden rounded-[1.75rem] bg-[#E3E9C8] shadow-sm">
       {/* رأس البطاقة */}
