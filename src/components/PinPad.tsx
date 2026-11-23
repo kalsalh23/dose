@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-/** لوحة إدخال PIN (4 أرقام) — مشتركة بين الكشك وتطبيق العميل */
+/** لوحة إدخال PIN (4 أرقام) — تطبيق العميل */
 export default function PinPad({
   title, subtitle, loading, error, attemptKey, onFill, onClose,
 }: {

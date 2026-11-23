@@ -513,8 +513,7 @@ const { busy, wrap } = useAdminAction();
               )}
             </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-bold text-neutral-400">{fmtDateTimeNum(o.created_at)} · {o.source === 'kiosk' ? 'كشك المحل' : o.source === 'customer' ? 'تطبيق العميل' : 'إداري'}</span>
-                  {o.source === 'kiosk' && (o.is_reward || o.total_cents === 0 || o.reward_code) && <span className="rounded-full bg-[#EDE7FF] px-2 py-0.5 text-[9px] font-extrabold text-[#6D28D9]">مكافأة</span>}
+                  <span className="text-[11px] font-bold text-neutral-400">{fmtDateTimeNum(o.created_at)} · {o.source === 'customer' ? 'تطبيق العميل' : 'إداري'}</span>
                 </div>
           </div>
           <div className="mt-3 grid gap-3 text-xs md:grid-cols-4">
@@ -522,7 +521,6 @@ const { busy, wrap } = useAdminAction();
             <div><p className="font-bold text-neutral-400">نوع الطلب</p><p className="mt-0.5 font-extrabold text-coffee-900">{o.fulfillment_type === 'delivery' ? '🚚 توصيل' : '🏪 استلام'}</p></div>
               <div className="flex flex-col gap-1">
               <span className="text-sm font-extrabold text-gold-deep">{eur(o.total_cents, 'ل.س')} · ⭐{o.total_points}</span>
-              {o.source === 'kiosk' && (o.is_reward || o.total_cents === 0 || o.reward_code) && <span className="inline-flex w-fit items-center rounded-full bg-[#EDE7FF] px-2 py-0.5 text-[9px] font-extrabold text-[#6D28D9]">طلب مكافأة من الكشك</span>}
             </div>
             <div className="flex flex-col gap-1.5">
               {o.delivery_map_url && (
@@ -552,7 +550,7 @@ const statusChip = (s: string) => ({ pending: 'bg-amber-100 text-amber-800', con
 
 /* ============================ المبيعات ============================ */
 type SalesRange = 'today' | 'week' | 'month' | 'custom';
-type SalesFilter = 'all' | 'app' | 'store' | 'gifts';
+type SalesFilter = 'all' | 'app' | 'gifts';
 
 /** شريط اختيار لأزرار الفترة/التصنيف — زر واحد محدد في كل مرة */
 function FilterPills<T extends string>({ value, options, onChange }: { value: T; options: { id: T; label: string; badge?: number }[]; onChange: (v: T) => void }) {
@@ -630,13 +628,11 @@ function SalesTab({ token }: { token: string }) {
   const filterOpts: { id: SalesFilter; label: string }[] = [
     { id: 'all', label: 'الكل' },
     { id: 'app', label: 'طلبات التطبيق' },
-    { id: 'store', label: 'طلبات المحل' },
     { id: 'gifts', label: 'هدايا' },
   ];
   // عدد الطلبات لكل تصنيف (من كل الطلبات، قبل بحث العميل/الحالة)
   const filterCount = (id: SalesFilter) => ordersAll.filter((o) => {
     if (id === 'app') return !isReward(o) && o.source === 'customer';
-    if (id === 'store') return !isReward(o) && o.source === 'kiosk';
     if (id === 'gifts') return isReward(o);
     return true;
   }).length;
@@ -644,7 +640,6 @@ function SalesTab({ token }: { token: string }) {
   const filteredOrders = ordersAll.filter((o) => {
     // 1) تصنيف المبيعات
     if (salesFilter === 'app' && (isReward(o) || o.source !== 'customer')) return false;
-    if (salesFilter === 'store' && (isReward(o) || o.source !== 'kiosk')) return false;
     if (salesFilter === 'gifts' && !isReward(o)) return false;
     return true;
   });
@@ -653,7 +648,6 @@ function SalesTab({ token }: { token: string }) {
     total: filteredOrders.reduce((s, o) => s + Number(o.total_cents ?? 0), 0),
     orders: filteredOrders.length,
     app: filteredOrders.filter((o) => o.source === 'customer' && !isReward(o)).length,
-    store: filteredOrders.filter((o) => o.source === 'kiosk' && !isReward(o)).length,
     gifts: filteredOrders.filter(isReward).length,
   };
 
@@ -718,7 +712,6 @@ function SalesTab({ token }: { token: string }) {
             <StatCard label="إجمالي المبيعات" value={money(totals.total)} sub={periodLabel} tone="bg-gradient-to-br from-[#414D36] via-[#35412E] to-[#23291B]" icon={<Icon name="chart" size={20} />} />
             <StatCard label="عدد الطلبات" value={num(totals.orders)} sub={'خلال ' + num(data.totals?.days) + ' يوم'} tone="bg-gradient-to-br from-[#5C6B3C] via-[#4A5A36] to-[#3A4828]" icon={<Icon name="receipt" size={20} />} />
             <StatCard label="طلبات التطبيق" value={num(totals.app)} sub="طلب من التطبيق" tone="bg-gradient-to-br from-[#3B82F6] via-[#2563EB] to-[#1E40AF]" icon={<Icon name="phone" size={20} />} />
-            <StatCard label="طلبات المحل" value={num(totals.store)} sub="طلب من المحل" tone="bg-gradient-to-br from-[#C9A96A] via-[#B8965A] to-[#A08448]" icon={<Icon name="store" size={20} />} />
             <StatCard label="هدايا" value={num(totals.gifts)} sub="طلب مكافأة" tone="bg-gradient-to-br from-[#7C3AED] via-[#6D28D9] to-[#5B21B6]" icon={<Icon name="gift" size={20} />} />
           </div>
 
@@ -825,7 +818,7 @@ function SalesTab({ token }: { token: string }) {
                           </td>
                           <td className="py-2">
                             <span className="rounded-full px-2 py-0.5 text-[9px] font-bold bg-[#FAF5EA] text-neutral-500 ring-1 ring-beige">
-                              {o.source === 'kiosk' ? 'طلبات المحل' : o.source === 'customer' ? 'طلبات التطبيق' : 'إداري'}
+                              {o.source === 'customer' ? 'طلبات التطبيق' : 'إداري'}
                             </span>
                           </td>
                           <td className="py-2 text-[10px] font-bold text-neutral-400">{fmtDateTimeNum(o.created_at)}</td>
@@ -1556,7 +1549,7 @@ function PromoTab({ token }: { token: string }) {
   return (
     <div className="mx-auto max-w-md">
       <h2 className="mb-1 text-base font-extrabold text-coffee-900">كود الخصم</h2>
-      <p className="mb-3 text-[11px] font-bold text-neutral-500">انشر كود خصم يظهر في الشاشة الرئيسية، ويستخدمه الزبون في الكشك للحصول على الخصم</p>
+      <p className="mb-3 text-[11px] font-bold text-neutral-500">انشر كود خصم يظهر في الشاشة الرئيسية، ويستخدمه الزبون في التطبيق للحصول على الخصم</p>
       <Card className="space-y-3">
         {settings.promo_code && settings.promo_discount && (
           <div className="rounded-2xl bg-[#EEF2DC] p-3.5 text-center">
@@ -1639,7 +1632,7 @@ function HoursTab({ token }: { token: string }) {
   return (
     <div className="mx-auto max-w-md">
       <h2 className="mb-1 text-base font-extrabold text-coffee-900">توقيت دوامي</h2>
-      <p className="mb-3 text-[11px] font-bold text-neutral-500">حدّد وقت فتح المحل وغلقه — يُمنع الطلب خارج الدوام في التطبيق والكشك تلقائيًا</p>
+      <p className="mb-3 text-[11px] font-bold text-neutral-500">حدّد وقت فتح المحل وغلقه — يُمنع الطلب خارج الدوام في التطبيق تلقائيًا</p>
       <Card className="space-y-4">
         {/* الحالة الحية */}
         <div className={`rounded-2xl p-4 text-center ${st.closed ? 'bg-[#FBEDE9]' : 'bg-[#EEF2DC]'}`}>
@@ -1663,7 +1656,7 @@ function HoursTab({ token }: { token: string }) {
         {msg && <p className="rounded-xl bg-green-50 px-3 py-2 text-center text-xs font-extrabold text-green-700">{msg}</p>}
         <button disabled={busy} onClick={() => wrap(async () => {
           await arpc('admin_save_settings', { p_token: token, p_settings: { work_open: norm(workOpen), work_close: norm(workClose), closed_message: closedMessage } });
-          setMsg('حُفظ التوقيت والرسالة — سارٍ فورًا في التطبيق والكشك ✓');
+          setMsg('حُفظ التوقيت والرسالة — سارٍ فورًا في التطبيق ✓');
           setTimeout(() => setMsg(''), 5000);
         })} className={`${btnCls} w-full`} style={{ borderRadius: 16, height: 46 }}>
           {busy ? 'جارٍ الحفظ…' : 'حفظ التوقيت'}

@@ -337,7 +337,7 @@ function PromoBanner({ settings }: { settings: Record<string, string> }) {
       <div>
         <p className="text-[10px] font-black text-[#7C8665]">🎁 كود خصم حصري</p>
         <p className='font-mono text-xl font-black tracking-[.2em] text-[#26301C]' dir='ltr'>{code}</p>
-        <p className="text-[10.5px] font-bold text-[#7C8665]">استخدمه في الكشك واحصل على خصم {disc}%</p>
+        <p className="text-[10.5px] font-bold text-[#7C8665]">استخدمه في التطبيق واحصل على خصم {disc}%</p>
       </div>
       <span className="rounded-full bg-[#26301C] px-3 py-1.5 text-[10px] font-black text-[#C9D3A8]">خصم {disc}%</span>
     </div>
