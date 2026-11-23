@@ -116,7 +116,7 @@ const lineUnit = (l: CartLine) => effPrice(l.product) + (l.additions ?? []).redu
     ? 'subtract' : 'add';
   return mode === 'subtract' ? a - Math.abs(x.price_cents) : a + x.price_cents;
 }, 0);
-interface OrderFlow { step: 'contact' | 'fulfillment' | 'location' | 'promo' | 'review' | null; lines: CartLine[]; fulfillment?: Fulfillment; loc?: { lat: number; lng: number; mapUrl: string }; usePromo?: boolean; name?: string; phone?: string }
+interface OrderFlow { step: 'contact' | 'fulfillment' | 'location' | 'promo' | 'review' | null; lines: CartLine[]; fulfillment?: Fulfillment; loc?: { lat: number; lng: number; mapUrl: string }; usePromo?: boolean; name?: string; phone?: string; rewardCode?: string }
 
 /* ============================ الإشعارات الفورية ============================ */
 async function enablePushNotifications(session: Session): Promise<string> {
@@ -1085,17 +1085,24 @@ const AccountRow = ({ icon, label, onClick, badge, danger }: { icon: IconName; l
   </button>
 );
 
-function CodesPage({ myData, session }: { myData: MyData | null; session: Session | null }) {
+function CodesPage({ myData, session, catalog, onOrderReward }: { myData: MyData | null; session: Session | null; catalog: Catalog | null; onOrderReward: (r: Redemption) => void }) {
   if (!session) return <NeedLogin />;
   return (
     <div className="anim-rise">
-      <MyCodes redemptions={myData?.redemptions ?? []} />
+      <MyCodes redemptions={myData?.redemptions ?? []} products={catalog?.products ?? []} onOrder={onOrderReward} />
     </div>
   );
 }
 
-function MyCodes({ redemptions }: { redemptions: Redemption[] }) {
+function MyCodes({ redemptions, products, onOrder }: { redemptions: Redemption[]; products: Product[]; onOrder: (r: Redemption) => void }) {
   const now = Date.now();
+  const norm = (s: any) => String(s ?? '').trim().toLowerCase();
+  const productFor = (r: Redemption) => {
+    const rn = norm(r.reward_name);
+    return (r.product_id != null ? products.find((p) => String(p.id) === String(r.product_id)) : undefined)
+      ?? products.find((p) => norm(p.name_ar) === rn)
+      ?? (rn ? products.find((p) => norm(p.name_ar).includes(rn) || rn.includes(norm(p.name_ar))) : undefined);
+  };
   const visible = redemptions.filter((r) => {
     if (r.status === 'expired') return false;
     const exp = r.expires_at || (r as any).reward_expires_at;
@@ -1107,26 +1114,35 @@ function MyCodes({ redemptions }: { redemptions: Redemption[] }) {
       <h3 className="mb-3 text-base font-black text-[#26301C]">أكواد مكافآتك</h3>
       {visible.length === 0 && <p className="rounded-[1.5rem] bg-[#E3E9C8] p-6 text-center text-xs font-bold text-[#7C8665]">لا توجد استبدالات بعد — اجمع النقاط واستبدلها من «استبدل نقاطك»</p>}
       <div className="space-y-2.5">
-        {visible.map((r) => (
-          <div key={r.code} className="flex items-center justify-between rounded-[1.5rem] bg-[#E3E9C8] p-4">
-            <div>
+        {visible.map((r) => {
+          const prod = productFor(r);
+          return (
+          <div key={r.code} className="flex items-center justify-between gap-3 rounded-[1.5rem] bg-[#E3E9C8] p-4">
+            <div className="min-w-0">
               <p className="text-sm font-extrabold text-[#26301C]">{r.reward_name}</p>
               <p className="mt-0.5 text-[11px] text-[#7C8665]">{fmtDateTime(r.created_at)}</p>
             </div>
-            <div className="text-center">
+            <div className="flex-none text-center">
               <p className="rounded-2xl bg-[#26301C] px-3.5 py-2 font-mono text-base font-black tracking-widest text-[#C9D3A8]" dir="ltr">{r.code}</p>
               <p className={`mt-1 text-[10px] font-extrabold ${r.status === 'unused' ? 'text-[#6B7A45]' : 'text-[#7C8665]'}`}>
                 {r.status === 'unused' ? 'غير مستعمل' : r.status === 'used' ? 'مستعمل' : 'منتهي'}
               </p>
               {r.status === 'unused' && (r.expires_at || (r as any).reward_expires_at) && <p className="mt-0.5 text-[9.5px] font-bold text-[#A05B47]">صالحة حتى {fmtDateNum(r.expires_at || (r as any).reward_expires_at)}</p>}
+              {r.status === 'unused' && prod && (
+                <button onClick={() => onOrder(r)}
+                  className="mt-1.5 flex w-full items-center justify-center gap-1 rounded-full bg-[#414D36] px-3 py-1.5 text-[10px] font-extrabold text-[#E9EDD6] shadow-sm transition active:scale-95">
+                  <Icon name="store" size={11} /> اطلب المنتج
+                </button>
+              )}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
       {visible.length > 0 && (
         <p className="mt-4 flex items-center justify-center gap-2 rounded-[1.4rem] border-2 border-dashed border-[#C9A96A] bg-[#F6E7C9]/70 px-4 py-3.5 text-center text-[11.5px] font-black leading-relaxed text-[#8A6A48]">
           <Icon name="store" size={15} className="flex-none" />
-          هذا الكود يُستخدم ضمن المحل حصرًا
+          هذا الكود يُستخدم داخل المحل حصرًا — استلم طلبك من الكاشير
         </p>
       )}
     </div>
@@ -1478,14 +1494,14 @@ export default function CustomerApp() {
         p_customer_id: session.customer.id,
         p_pin: null,
         p_confirm_phone: session.customer.phone,
-        p_fulfillment_type: flow.fulfillment ?? 'pickup',
+        p_fulfillment_type: flow.rewardCode ? 'pickup' : (flow.fulfillment ?? 'pickup'),
         p_items: flow.lines.map((l) => ({
           product_id: l.product.id, qty: l.qty, options: (l.options || []).join('، '),
           additions: (l.additions ?? []).map((a) => a.id),
         })),
         p_latitude: flow.loc?.lat ?? null, p_longitude: flow.loc?.lng ?? null, p_map_url: flow.loc?.mapUrl ?? null,
         p_source: 'customer',
-        p_reward_code: flow.usePromo && promoCode ? promoCode : null,
+        p_reward_code: flow.rewardCode ?? (flow.usePromo && promoCode ? promoCode : null),
         p_customer_name: flow.name ?? null, p_customer_phone: flow.phone ?? null,
       });
       const msg = buildOrderMessage({
@@ -1522,6 +1538,21 @@ export default function CustomerApp() {
       show(`تم الاستبدال — كودك: ${res.code}`, 'ok');
       refresh();
     } catch (e: any) { show(e.message, 'err'); }
+  };
+
+  /* طلب منتج المكافأة المستبدلة — الاستلام من داخل المحل حصرًا */
+  const orderReward = (r: Redemption) => {
+    if (!session) { nav('/login'); show('سجّل دخولك أولًا لإتمام الطلب'); return; }
+    if (shopStatus(catalog?.settings).closed) { setClosedOpen(true); return; }
+    const products = catalog?.products ?? [];
+    const norm = (s: any) => String(s ?? '').trim().toLowerCase();
+    const rn = norm(r.reward_name);
+    const prod = (r.product_id != null ? products.find((p) => String(p.id) === String(r.product_id)) : undefined)
+      ?? products.find((p) => norm(p.name_ar) === rn)
+      ?? (rn ? products.find((p) => norm(p.name_ar).includes(rn) || rn.includes(norm(p.name_ar))) : undefined);
+    if (!prod) { show('لم يُعثر على منتج هذه المكافأة في المنيو — راجع المحل', 'err'); return; }
+    if (prod.is_available === false) { show('نفذت كمية منتج المكافأة — راجع المحل', 'err'); return; }
+    setFlow({ step: 'contact', lines: [{ product: prod, qty: 1 }], fulfillment: 'pickup', rewardCode: r.code });
   };
 
   const deleteNotif = async (id: number) => {
@@ -1598,7 +1629,7 @@ export default function CustomerApp() {
           <Route path="/favorites" element={
             <FavoritesPage myData={myData} session={session} openProduct={setProduct} onToggleFav={toggleFav} />} />
           <Route path="/rewards" element={<RewardsPage catalog={catalog} myData={myData} session={session} onRedeem={redeem} />} />
-          <Route path="/codes" element={<CodesPage myData={myData} session={session} />} />
+            <Route path="/codes" element={<CodesPage myData={myData} session={session} catalog={catalog} onOrderReward={orderReward} />} />
           <Route path="/orders" element={<OrdersPage myData={myData} session={session} catalog={catalog} />} />
           <Route path="/notifications" element={
             <NotificationsPage myData={myData} session={session} onDeleteNotif={deleteNotif}
@@ -1643,7 +1674,7 @@ export default function CustomerApp() {
         <ContactModal
           initial={{ name: flow.name ?? session?.customer?.full_name ?? '', phone: flow.phone ?? session?.customer?.phone ?? '' }}
           onClose={() => setFlow({ step: null, lines: [] })}
-          onDone={(name, phone) => setFlow((st) => ({ ...st, step: 'fulfillment', name, phone }))} />
+          onDone={(name, phone) => setFlow((st) => ({ ...st, step: st.rewardCode ? 'review' : 'fulfillment', name, phone }))} />
       )}
       {flow.step === 'fulfillment' && (
         <FulfillmentModal
@@ -1672,12 +1703,12 @@ export default function CustomerApp() {
         <ConfirmOrderModal
           phase={doneOrder ? 'done' : 'review'}
           lines={flow.lines}
-          total={flow.lines.reduce((a, l) => a + lineUnit(l) * l.qty, 0)
+          total={flow.rewardCode ? 0 : flow.lines.reduce((a, l) => a + lineUnit(l) * l.qty, 0)
             - (flow.usePromo && promoCode && promoDisc
               ? Math.round(promoEligibleSubtotal(flow.lines) * Number(promoDisc) / 100)
               : 0)}
-          points={flow.lines.reduce((a, l) => a + l.product.points * l.qty, 0)}
-          free={false}
+          points={flow.rewardCode ? 0 : flow.lines.reduce((a, l) => a + l.product.points * l.qty, 0)}
+          free={!!flow.rewardCode}
           busy={pinBusyConfirm || pinBusy}
           done={doneOrder}
           onConfirm={confirmWhatsApp}
