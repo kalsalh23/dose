@@ -111,10 +111,10 @@ const effPrice = (p: { price_cents: number; sale_price_cents?: number | null }) 
   p.sale_price_cents != null && p.sale_price_cents < p.price_cents ? p.sale_price_cents : p.price_cents;
 const hasOffer = (p: { price_cents: number; sale_price_cents?: number | null }) =>
   p.sale_price_cents != null && p.sale_price_cents < p.price_cents;
+const addSign = (x: { price_cents: number; price_mode?: string }) =>
+  x.price_mode === 'subtract' || (x.price_mode === undefined && Number(x.price_cents) < 0) ? -1 : 1;
 const lineUnit = (l: CartLine) => effPrice(l.product) + (l.additions ?? []).reduce((a, x) => {
-  const mode = x.price_mode === 'subtract' || (x.price_mode === undefined && /(كوب\s*صغير|small\s*cup)/i.test(x.name_ar ?? ''))
-    ? 'subtract' : 'add';
-  return mode === 'subtract' ? a - Math.abs(x.price_cents) : a + x.price_cents;
+  return a + addSign(x) * Math.abs(Number(x.price_cents) || 0);
 }, 0);
 interface OrderFlow { step: 'contact' | 'fulfillment' | 'location' | 'promo' | 'review' | null; lines: CartLine[]; fulfillment?: Fulfillment; loc?: { lat: number; lng: number; mapUrl: string }; usePromo?: boolean; name?: string; phone?: string; rewardCode?: string }
 
@@ -373,6 +373,29 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
     const c = (catalog?.categories ?? []).find((x) => x.slug === slug);
     return c ? c.name_ar : slug;
   };
+  /* شريط الأكثر طلبًا: حركة تلقائية بطيئة للأمام والعودة */
+  const marqueeRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const track = marqueeRef.current;
+    const box = track?.parentElement;
+    if (!track || !box) return;
+    let raf = 0, last = 0, x = 0, dir = 1;
+    const step = (t: number) => {
+      if (!last) last = t;
+      const dt = Math.min(64, t - last); last = t;
+      const max = Math.max(0, track.scrollWidth - box.clientWidth);
+      if (max > 0) {
+        x += dir * dt * 0.03;
+        if (x >= max) { x = max; dir = -1; }
+        else if (x <= 0) { x = 0; dir = 1; }
+        track.style.transform = `translateX(${x}px)`;
+      }
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [mostOrdered.length]);
+
   const jumpToCat = (slug: string) => setTimeout(() => document.getElementById('cat-' + slug)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
   const renderCard = (p: any, i: number, horizontal = false) => (
     <button key={p.id} onClick={() => openProduct(p)}
@@ -500,26 +523,28 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
           <h2 className="mb-3 flex items-center gap-1.5 text-[17px] font-black text-[#26301C]">
             <Icon name='star' size={15} filled className='text-[#B07C3A]' /> الأكثر طلبًا
           </h2>
-          <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
-            {mostOrdered.map((p, i) => (
-              <button key={p.id} onClick={() => openProduct(p as unknown as Product)}
-                className='w-40 flex-none rounded-[1.4rem] bg-white p-2.5 text-right shadow-sm ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 anim-rise'
-                style={{ animationDelay: `${i * 35}ms` }}>
-                <div className="relative">
-                  <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-24 w-full rounded-[1rem] object-cover" />
-                  <span className="absolute top-1.5 left-1.5 rounded-full bg-[#26301C] px-2 py-0.5 text-[8.5px] font-black text-[#C9D3A8] shadow">الأكثر طلبًا</span>
-                  {hasOffer(p) && <span className="absolute top-1.5 right-1.5 rounded-full bg-[#C4482E] px-2 py-0.5 text-[8.5px] font-black text-white shadow">عرض</span>}
-                </div>
-                <h3 className="mt-1.5 truncate text-[13px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
-                <p className="truncate text-[9.5px] font-semibold uppercase tracking-wide text-[#94826A]">{p.name_en}</p>
-                <div className="mt-1 flex items-center justify-between">
-                  <span className="text-[13px] font-black text-[#26301C]">
-                    {hasOffer(p) ? <><span className="text-neutral-400 line-through">{eur(p.price_cents, cur)}</span> {eur(effPrice(p), cur)}</> : eur(p.price_cents, cur)}
-                  </span>
-                  <span className="grid size-7 place-items-center rounded-full bg-[#C9D3A8] text-[#26301C]"><Icon name="plus" size={13} strokeWidth={3} /></span>
-                </div>
-              </button>
-            ))}
+          <div className="no-scrollbar -mx-4 overflow-hidden px-4 pb-1">
+            <div ref={marqueeRef} className="flex w-max gap-3 will-change-transform">
+              {mostOrdered.map((p, i) => (
+                <button key={p.id} onClick={() => openProduct(p as unknown as Product)}
+                  className='w-40 flex-none rounded-[1.4rem] bg-white p-2.5 text-right shadow-sm ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 anim-rise'
+                  style={{ animationDelay: `${i * 35}ms` }}>
+                  <div className="relative">
+                    <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-24 w-full rounded-[1rem] object-cover" />
+                    <span className="absolute top-1.5 left-1.5 rounded-full bg-[#26301C] px-2 py-0.5 text-[8.5px] font-black text-[#C9D3A8] shadow">الأكثر طلبًا</span>
+                    {hasOffer(p) && <span className="absolute top-1.5 right-1.5 rounded-full bg-[#C4482E] px-2 py-0.5 text-[8.5px] font-black text-white shadow">عرض</span>}
+                  </div>
+                  <h3 className="mt-1.5 truncate text-[13px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
+                  <p className="truncate text-[9.5px] font-semibold uppercase tracking-wide text-[#94826A]">{p.name_en}</p>
+                  <div className="mt-1 flex items-center justify-between">
+                    <span className="text-[13px] font-black text-[#26301C]">
+                      {hasOffer(p) ? <><span className="text-neutral-400 line-through">{eur(p.price_cents, cur)}</span> {eur(effPrice(p), cur)}</> : eur(p.price_cents, cur)}
+                    </span>
+                    <span className="grid size-7 place-items-center rounded-full bg-[#C9D3A8] text-[#26301C]"><Icon name="plus" size={13} strokeWidth={3} /></span>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         </section>
       )}
@@ -591,11 +616,7 @@ function ProductSheet({ product, catalog, onClose, onAdd, onOrderNow, isFav, onT
   const prodAdds = (catalog?.additions ?? []).filter((a) => (a.product_ids ?? []).includes(product.id));
   const [addIds, setAddIds] = useState<number[]>([]);
   const pickedAdds = prodAdds.filter((a) => addIds.includes(a.id));
-  const addUnit = (x: any) => {
-    const mode = x.price_mode === 'subtract' || (x.price_mode === undefined && /(كوب\s*صغير|small\s*cup)/i.test(x.name_ar ?? ''))
-      ? 'subtract' : 'add';
-    return mode === 'subtract' ? -Math.abs(x.price_cents) : x.price_cents;
-  };
+  const addUnit = (x: any) => addSign(x) * Math.abs(Number(x.price_cents) || 0);
   const lineTotal = effPrice(product) + pickedAdds.reduce((a, x) => a + addUnit(x), 0);
   const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
   const options = ((product as any).options || '').split(',').map((o: string) => o.trim()).filter(Boolean);
@@ -662,7 +683,7 @@ function ProductSheet({ product, catalog, onClose, onAdd, onOrderNow, isFav, onT
                       on ? 'border-[#5C6B3C] bg-[#C9D3A8]/40 text-[#26301C]' : 'border-[#D5DEB4] bg-[#EEF2DC] text-[#6B7357]'
                     }`}>
                     {on && <Icon name="check" size={13} strokeWidth={2.6} />}
-                    {a.name_ar} <span className="text-[11px] font-black text-[#7A5A22]">+{eur(a.price_cents, cur)}</span>
+                    {a.name_ar} <span className={`text-[11px] font-black ${addSign(a) < 0 ? 'text-[#2F6B4F]' : 'text-[#7A5A22]'}`}>{addSign(a) < 0 ? '−' : '+'}{eur(Math.abs(a.price_cents), cur)}</span>
                   </button>
                 );
               })}
@@ -1510,7 +1531,7 @@ export default function CustomerApp() {
         fulfillmentType: flow.fulfillment ?? 'pickup',
         items: flow.lines.map((l) => ({
           name: l.product.name_ar, qty: l.qty, unitPriceCents: lineUnit(l),
-          options: (l.options || []).concat((l.additions ?? []).map((a) => a.name_ar + ' +' + a.price_cents)).join('، '),
+          options: (l.options || []).concat((l.additions ?? []).map((a) => a.name_ar + (addSign(a) < 0 ? ' −' : ' +') + Math.abs(a.price_cents))).join('، '),
         })),
 
         totalCents: res.total_cents, totalPoints: res.total_points,

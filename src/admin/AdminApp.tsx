@@ -1219,13 +1219,13 @@ function ExtrasTab({ token }: { token: string }) {
           <Card key={a.id} className={a.is_active ? '' : 'opacity-50'}>
             <div className="flex items-center justify-between">
               <p className="text-sm font-extrabold text-coffee-900">{a.name_ar}</p>
-              <p className="text-xs font-extrabold text-gold-deep">{a.price_mode === 'subtract' ? '−' : '+'} {eur(a.price_cents, 'ل.س')}</p>
+              <p className="text-xs font-extrabold text-gold-deep">{(Number(a.price_cents) < 0 || a.price_mode === 'subtract') ? '−' : '+'} {eur(Math.abs(Number(a.price_cents)), 'ل.س')}</p>
             </div>
             <p className="mt-1 text-[10.5px] font-bold text-neutral-400">
               {(a.product_ids ?? []).length === 0 ? 'غير مرتبطة بمنتجات بعد' : 'ترتبط بـ ' + a.product_ids.length + ' منتج: ' + (a.product_ids ?? []).map(pName).slice(0, 4).join('، ') + ((a.product_ids ?? []).length > 4 ? '…' : '')}
             </p>
             <div className="mt-2 flex gap-2">
-              <button onClick={() => { setEdit({ ...a, price_mode: a.price_mode ?? 'add' }); setPickQ(''); }} className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
+              <button onClick={() => { setEdit({ ...a, price_mode: a.price_mode ?? (Number(a.price_cents) < 0 ? 'subtract' : 'add'), price_cents: Math.abs(Number(a.price_cents)) }); setPickQ(''); }} className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
               <button disabled={busy} onClick={() => wrap(async () => {
                 if (!window.confirm('حذف الإضافة «' + a.name_ar + '» نهائيًا؟')) return;
                 await arpc('admin_delete_addition', { p_token: token, p_addition_id: a.id });
@@ -1244,6 +1244,7 @@ function ExtrasTab({ token }: { token: string }) {
             <div className="mt-4 space-y-3">
               <Field label="اسم الإضافة"><input className={inputCls} value={edit.name_ar} onChange={(e) => setEdit({ ...edit, name_ar: e.target.value })} placeholder="مثال: شوت إسبرسو زيادة أو كوب صغير" /></Field>
               <Field label="سعر الإضافة (ل.س)"><input type="number" className={inputCls} value={edit.price_cents} onChange={(e) => setEdit({ ...edit, price_cents: e.target.value })} placeholder="3000" /></Field>
+               <p className="text-[10px] font-bold text-neutral-400">{edit.price_mode === 'subtract' ? 'تُخصم القيمة من سعر المنتج عند اختيارها' : 'تُضاف القيمة إلى سعر المنتج عند اختيارها'}</p>
                <Field label="نوع التأثير على السعر">
                  <select className={inputCls} value={edit.price_mode ?? 'add'} onChange={(e) => setEdit({ ...edit, price_mode: e.target.value })}>
                    <option value="add">زيادة (+) — تُضاف للسعر</option>
@@ -1270,7 +1271,8 @@ function ExtrasTab({ token }: { token: string }) {
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3">
               <button disabled={busy || !edit.name_ar?.trim()} onClick={() => wrap(async () => {
-                await arpc('admin_save_addition', { p_token: token, p_addition: { ...edit, price_cents: Number(edit.price_cents) || 0 } });
+                const abs = Math.abs(Number(edit.price_cents) || 0);
+                await arpc('admin_save_addition', { p_token: token, p_addition: { ...edit, price_mode: edit.price_mode ?? 'add', price_cents: edit.price_mode === 'subtract' ? -abs : abs } });
                 setEdit(null); load();
               })} className="rounded-2xl bg-gradient-to-l from-gold to-gold-deep py-3 text-sm font-extrabold text-white disabled:opacity-50">حفظ</button>
               <button onClick={() => setEdit(null)} className="rounded-2xl bg-neutral-100 py-3 text-sm font-extrabold text-neutral-600">إلغاء</button>
