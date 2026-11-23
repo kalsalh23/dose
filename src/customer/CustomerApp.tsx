@@ -199,6 +199,49 @@ function MidAd({ ad, cur, onClose, onBrowse }: { ad: Ad; cur: string; onClose: (
   );
 }
 
+/* ============================ تأكيد استبدال المكافأة ============================ */
+function RewardRedeemConfirm({ reward, points, onConfirm, onClose, busy }: {
+  reward: any; points: number; onConfirm: () => void; onClose: () => void; busy?: boolean;
+}) {
+  const enough = points >= (reward?.points_cost ?? 0);
+  return (
+    <div className="fixed inset-0 z-[210] grid place-items-center bg-black/60 p-5 backdrop-blur-sm anim-fade" onClick={onClose}>
+      <div className="relative w-full max-w-sm overflow-hidden rounded-[2rem] bg-white shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
+        <div className="relative">
+          <img src={reward?.image_url || '/img/latte.jpg'} alt={reward?.name_ar ?? ''} className="h-56 w-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/25" />
+          <span className="absolute right-4 top-4 rounded-full bg-[#C9D3A8] px-3.5 py-1.5 text-[11px] font-black text-[#26301C] shadow-lg">🎁 مكافأة</span>
+          <button onClick={onClose} className="absolute left-4 top-4 grid size-9 place-items-center rounded-full bg-black/45 text-white transition active:scale-90" aria-label="إغلاق">
+            <Icon name="x" size={16} />
+          </button>
+        </div>
+        <div className="p-5 text-center">
+          <h2 className="text-xl font-black text-[#26301C]">{reward?.name_ar ?? 'مكافأتك'}</h2>
+          <p className="mt-1 text-xs font-bold text-[#7C8665]">استبدل نقاطك واحصل على كود لاستخدامه داخل المحل</p>
+          <div className="mt-4 rounded-2xl bg-[#F6F0E2] p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-[#7C8665]">تكلفة الاستبدال</span>
+              <span className="text-sm font-black text-[#26301C]">⭐ {reward?.points_cost ?? 0} نقطة</span>
+            </div>
+            <div className="mt-1.5 flex items-center justify-between">
+              <span className="text-[11px] font-bold text-[#7C8665]">رصيدك الحالي</span>
+              <span className={`text-sm font-black ${enough ? 'text-[#26301C]' : 'text-[#C4482E]'}`}>⭐ {points} نقطة</span>
+            </div>
+          </div>
+          {!enough && <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-[11px] font-bold text-red-600">نقاطك غير كافية لهذا الاستبدال</p>}
+          <div className="mt-4 grid grid-cols-2 gap-2.5">
+            <button onClick={onClose} className="rounded-full border-2 border-[#C9D3A8] py-3 text-sm font-black text-[#26301C] transition active:scale-[.98]">إلغاء</button>
+            <button onClick={onConfirm} disabled={!enough || busy}
+              className="rounded-full bg-gradient-to-l from-[#C9D3A8] to-[#A9B87F] py-3 text-sm font-black text-[#26301C] shadow-lg shadow-[#8a6a48]/30 transition active:scale-[.98] disabled:opacity-50">
+              {busy ? 'جارٍ الاستبدال…' : 'تأكيد الاستبدال'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ============================ بطاقة المكافأة بعد الاستبدال ============================ */
 function RewardRedeemedModal({ reward, code, expiresAt, onClose, onOrder }: {
   reward: any; code: string; expiresAt?: string | null; onClose: () => void; onOrder?: () => void;
@@ -1440,6 +1483,8 @@ export default function CustomerApp() {
   const [pinBusyConfirm, setPinBusyConfirm] = useState(false);
   const [adOpen, setAdOpen] = useState<Ad | null>(null);
   const [redeemed, setRedeemed] = useState<{ reward: any; code: string; expiresAt?: string | null } | null>(null);
+  const [redeemTarget, setRedeemTarget] = useState<any>(null);
+  const [redeemBusy, setRedeemBusy] = useState(false);
   const [closedOpen, setClosedOpen] = useState(false);
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
   const [homeKey, setHomeKey] = useState(0);
@@ -1609,11 +1654,13 @@ export default function CustomerApp() {
 
   const redeem = async (reward: any) => {
     if (!session) return;
+    setRedeemBusy(true);
     try {
       const res = await rpc<any>('redeem_reward', { p_token: session.token, p_reward_id: reward.id });
       setRedeemed({ reward, code: res.code, expiresAt: res.expires_at ?? null });
       refresh();
     } catch (e: any) { show(e.message, 'err'); }
+    finally { setRedeemBusy(false); }
   };
 
   /* طلب منتج المكافأة المستبدلة — الاستلام من داخل المحل حصرًا */
@@ -1704,7 +1751,7 @@ export default function CustomerApp() {
               onBrowse={() => nav('/')} />} />
           <Route path="/favorites" element={
             <FavoritesPage myData={myData} session={session} openProduct={setProduct} onToggleFav={toggleFav} />} />
-          <Route path="/rewards" element={<RewardsPage catalog={catalog} myData={myData} session={session} onRedeem={redeem} />} />
+          <Route path="/rewards" element={<RewardsPage catalog={catalog} myData={myData} session={session} onRedeem={(r) => setRedeemTarget(r)} />} />
             <Route path="/codes" element={<CodesPage myData={myData} session={session} catalog={catalog} onOrderReward={orderReward} />} />
           <Route path="/orders" element={<OrdersPage myData={myData} session={session} catalog={catalog} />} />
           <Route path="/notifications" element={
@@ -1798,6 +1845,18 @@ export default function CustomerApp() {
           onCancel={cancelOrder}
           onClose={() => { setDoneOrder(null); setFlow({ step: null, lines: [] }); }}
         />
+      )}
+      {redeemTarget && (
+        <RewardRedeemConfirm
+          reward={redeemTarget}
+          points={myData?.customer?.points ?? session?.customer?.points ?? 0}
+          busy={redeemBusy}
+          onClose={() => { if (!redeemBusy) setRedeemTarget(null); }}
+          onConfirm={async () => {
+            if (redeemBusy) return;
+            await redeem(redeemTarget);
+            setRedeemTarget(null);
+          }} />
       )}
       {redeemed && (
         <RewardRedeemedModal
