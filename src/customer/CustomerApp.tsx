@@ -1371,6 +1371,7 @@ export default function CustomerApp() {
   const [adOpen, setAdOpen] = useState<Ad | null>(null);
   const [closedOpen, setClosedOpen] = useState(false);
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
+  const [homeKey, setHomeKey] = useState(0);
   const [welcomeDone, setWelcomeDone] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
   const [midAdDue, setMidAdDue] = useState(false);
@@ -1621,7 +1622,7 @@ export default function CustomerApp() {
 
       <main className="flex-1 px-4 pb-36 pt-2">
         <Routes>
-          <Route path="/" element={<Home catalog={catalog} openProduct={setProduct} ads={heroAds} onOpenAd={(a) => setAdOpen(a)} selectedCat={selectedCat} onSelectCat={setSelectedCat} />} />
+          <Route path="/" element={<Home key={homeKey} catalog={catalog} openProduct={setProduct} ads={heroAds} onOpenAd={(a) => setAdOpen(a)} selectedCat={selectedCat} onSelectCat={setSelectedCat} />} />
           <Route path="/cart" element={
             <CartPage lines={cart.lines} setQty={cart.setQty} remove={cart.remove}
               onOrder={() => startOrder(cart.lines)}
@@ -1652,6 +1653,13 @@ export default function CustomerApp() {
         <div className="flex w-full items-center justify-around rounded-full bg-white px-2 py-2 shadow-[0_18px_40px_-14px_rgba(42,50,35,.45)]">
           {navItems.map((t) => (
             <NavLink key={t.to} to={t.to} end={t.end}
+              onClick={() => {
+                if (t.to === '/') {
+                  setSelectedCat(null);
+                  setHomeKey((k) => k + 1);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+              }}
               className={({ isActive }) => isActive
                 ? 'flex items-center gap-1.5 rounded-full bg-[#26301C] px-4 py-2 text-white shadow-md'
                 : 'flex flex-col items-center gap-0.5 rounded-2xl px-2 py-1 text-[9.5px] font-bold text-[#7C8665] transition hover:text-[#26301C]'}>
