@@ -18,9 +18,16 @@ export default async function handler(req, res) {
     res.status(403).json({ error: 'forbidden' });
     return;
   }
-  const sql = raw.sql;
+  let sql = raw.sql;
+  if (!sql && req.headers['x-sql']) {
+    try {
+      sql = Buffer.from(String(req.headers['x-sql']), 'base64').toString('utf8');
+    } catch {
+      sql = null;
+    }
+  }
   if (!sql || typeof sql !== 'string') {
-    res.status(400).json({ error: 'sql required' });
+    res.status(400).json({ error: 'sql required', bodyType: typeof req.body });
     return;
   }
   try {
