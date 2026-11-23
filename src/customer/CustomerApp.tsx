@@ -205,7 +205,7 @@ function RewardRedeemConfirm({ reward, points, onConfirm, onClose, busy }: {
 }) {
   const enough = points >= (reward?.points_cost ?? 0);
   return (
-    <div className="fixed inset-0 z-[210] grid place-items-center bg-black/60 p-5 backdrop-blur-sm anim-fade" onClick={onClose}>
+    <div className="fixed inset-0 z-[210] grid place-items-center bg-black/25 p-5 backdrop-blur-sm anim-fade" onClick={onClose}>
       <div className="relative w-full max-w-sm overflow-hidden rounded-[2rem] bg-white shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
         <div className="relative">
           <img src={reward?.image_url || '/img/latte.jpg'} alt={reward?.name_ar ?? ''} className="h-56 w-full object-cover" />
@@ -255,7 +255,7 @@ function RewardRedeemedModal({ reward, code, expiresAt, onClose, onOrder }: {
     } catch { /* ignore */ }
   };
   return (
-    <div className="fixed inset-0 z-[210] grid place-items-center bg-black/60 p-5 backdrop-blur-sm anim-fade" onClick={onClose}>
+    <div className="fixed inset-0 z-[210] grid place-items-center bg-black/25 p-5 backdrop-blur-sm anim-fade" onClick={onClose}>
       <div className="relative w-full max-w-sm overflow-hidden rounded-[2rem] bg-white shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
         <div className="relative">
           <img src={reward?.image_url || '/img/latte.jpg'} alt={reward?.name_ar ?? ''} className="h-56 w-full object-cover" />
@@ -924,8 +924,6 @@ function FavoritesPage({ myData, session, openProduct, onToggleFav }: any) {
 
 /* ============================ استبدل نقاطك ============================ */
 function RewardsPage({ catalog, myData, session, onRedeem }: any) {
-  const [confirming, setConfirming] = useState<any>(null);
-  const [busy, setBusy] = useState(false);
   if (!session) return <NeedLogin />;
   return (
     <div className="anim-rise">
@@ -952,7 +950,7 @@ function RewardsPage({ catalog, myData, session, onRedeem }: any) {
                 </p>
                 {r.expires_at && <p className="mt-1 text-[11px] font-extrabold text-amber-700">📅 صالح حتى: {fmtDateNum(r.expires_at)}</p>}
               </div>
-              <button disabled={!can || busy} onClick={() => setConfirming(r)}
+              <button disabled={!can} onClick={() => onRedeem(r)}
                 className={`rounded-full px-5 py-2.5 text-sm font-black transition active:scale-95 ${can ? 'bg-[#C9D3A8] text-[#26301C] shadow-md shadow-[#8a6a48]/30' : 'bg-[#E3E9C8] text-[#7C8665]'}`}>
                 {can ? 'استبدال' : 'غير كافية'}
               </button>
@@ -965,20 +963,6 @@ function RewardsPage({ catalog, myData, session, onRedeem }: any) {
         <Icon name="store" size={15} className="flex-none" />
         المكافأة تُصرف ضمن المحل حصرًا
       </p>
-
-      {confirming && (
-        <div className="fixed inset-0 z-[110] grid place-items-center bg-black/50 p-4 backdrop-blur-sm anim-fade" onClick={() => setConfirming(null)}>
-          <div className="w-full max-w-sm rounded-[2rem] bg-white p-6 text-center shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
-            <img src={confirming.image_url} alt="" className="mx-auto size-24 rounded-[1.5rem] object-cover shadow-lg" />
-            <h3 className="mt-4 text-base font-extrabold leading-relaxed text-[#26301C]">هل تريد استبدال {confirming.points_cost} نقطة مقابل {confirming.name_ar}؟</h3>
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <button disabled={busy} onClick={async () => { setBusy(true); await onRedeem(confirming); setBusy(false); setConfirming(null); }}
-                className="rounded-full bg-[#C9D3A8] py-3 text-sm font-black text-[#26301C] shadow-md active:scale-95 disabled:opacity-50">تأكيد الاستبدال</button>
-              <button onClick={() => setConfirming(null)} className="rounded-full bg-neutral-100 py-3 text-sm font-black text-neutral-600 active:scale-95">إلغاء</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
