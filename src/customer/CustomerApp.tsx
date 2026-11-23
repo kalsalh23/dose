@@ -199,6 +199,52 @@ function MidAd({ ad, cur, onClose, onBrowse }: { ad: Ad; cur: string; onClose: (
   );
 }
 
+/* ============================ بطاقة المكافأة بعد الاستبدال ============================ */
+function RewardRedeemedModal({ reward, code, expiresAt, onClose, onOrder }: {
+  reward: any; code: string; expiresAt?: string | null; onClose: () => void; onOrder?: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch { /* ignore */ }
+  };
+  return (
+    <div className="fixed inset-0 z-[210] grid place-items-center bg-black/60 p-5 backdrop-blur-sm anim-fade" onClick={onClose}>
+      <div className="relative w-full max-w-sm overflow-hidden rounded-[2rem] bg-white shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
+        <div className="relative">
+          <img src={reward?.image_url || '/img/latte.jpg'} alt={reward?.name_ar ?? ''} className="h-56 w-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/25" />
+          <span className="absolute right-4 top-4 rounded-full bg-[#C9D3A8] px-3.5 py-1.5 text-[11px] font-black text-[#26301C] shadow-lg">🎁 تم الاستبدال</span>
+          <button onClick={onClose} className="absolute left-4 top-4 grid size-9 place-items-center rounded-full bg-black/45 text-white transition active:scale-90" aria-label="إغلاق">
+            <Icon name="x" size={16} />
+          </button>
+        </div>
+        <div className="p-5 text-center">
+          <h2 className="text-xl font-black text-[#26301C]">{reward?.name_ar ?? 'مكافأتك'}</h2>
+          <p className="mt-1 text-xs font-bold text-[#7C8665]">استبدلت {reward?.points_cost ?? 0} نقطة — هذا كودك</p>
+          <div className="mt-4 rounded-2xl border-2 border-dashed border-[#C4CF9E] bg-[#F6F0E2] px-4 py-3">
+            <p className="text-[10px] font-black tracking-widest text-[#7C8665]">كود الاستبدال</p>
+            <p className="mt-1 font-mono text-2xl font-black tracking-[.3em] text-[#26301C]" dir="ltr">{code}</p>
+            {expiresAt && <p className="mt-1 text-[10px] font-bold text-[#A05B47]">صالح حتى {fmtDateNum(expiresAt)}</p>}
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2.5">
+            <button onClick={copy} className="rounded-full border-2 border-[#C9D3A8] py-3 text-sm font-black text-[#26301C] transition active:scale-[.98]">
+              {copied ? '✓ تم النسخ' : 'نسخ الكود'}
+            </button>
+            <button onClick={onOrder} className="rounded-full bg-gradient-to-l from-[#C9D3A8] to-[#A9B87F] py-3 text-sm font-black text-[#26301C] shadow-lg shadow-[#8a6a48]/30 transition active:scale-[.98]">
+              اطلب المنتج
+            </button>
+          </div>
+          <button onClick={onClose} className="mt-2 w-full py-2 text-[11px] font-bold text-[#7C8665]">إغلاق</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ============================ الشاشة الترحيبية — 3 ثوانٍ ============================ */
 function WelcomeScreen({ onClose }: { onClose: () => void }) {
   useEffect(() => {
@@ -1393,6 +1439,7 @@ export default function CustomerApp() {
   const [doneOrder, setDoneOrder] = useState<{ orderNumber: number; points: number; free: boolean } | null>(null);
   const [pinBusyConfirm, setPinBusyConfirm] = useState(false);
   const [adOpen, setAdOpen] = useState<Ad | null>(null);
+  const [redeemed, setRedeemed] = useState<{ reward: any; code: string; expiresAt?: string | null } | null>(null);
   const [closedOpen, setClosedOpen] = useState(false);
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
   const [homeKey, setHomeKey] = useState(0);
@@ -1564,7 +1611,7 @@ export default function CustomerApp() {
     if (!session) return;
     try {
       const res = await rpc<any>('redeem_reward', { p_token: session.token, p_reward_id: reward.id });
-      show(`تم الاستبدال — كودك: ${res.code}`, 'ok');
+      setRedeemed({ reward, code: res.code, expiresAt: res.expires_at ?? null });
       refresh();
     } catch (e: any) { show(e.message, 'err'); }
   };
@@ -1751,6 +1798,25 @@ export default function CustomerApp() {
           onCancel={cancelOrder}
           onClose={() => { setDoneOrder(null); setFlow({ step: null, lines: [] }); }}
         />
+      )}
+      {redeemed && (
+        <RewardRedeemedModal
+          reward={redeemed.reward}
+          code={redeemed.code}
+          expiresAt={redeemed.expiresAt}
+          onClose={() => setRedeemed(null)}
+          onOrder={() => {
+            const r: Redemption = {
+              code: redeemed.code,
+              reward_name: redeemed.reward?.name_ar ?? '',
+              points_cost: redeemed.reward?.points_cost ?? 0,
+              status: 'unused',
+              created_at: new Date().toISOString(),
+              product_id: redeemed.reward?.product_id ?? null,
+            };
+            setRedeemed(null);
+            orderReward(r);
+          }} />
       )}
       {adOpen && (
         <div className="fixed inset-0 z-[120] grid place-items-center bg-black/60 p-4 backdrop-blur-sm anim-fade" onClick={() => setAdOpen(null)}>
