@@ -536,7 +536,15 @@ const { busy, wrap } = useAdminAction();
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5 border-t border-dashed border-beige pt-2.5">
             {o.items.map((it: any, i: number) => (
-              <span key={i} className="rounded-full bg-[#E3E9C8] px-3 py-1 text-[11px] font-bold text-neutral-600">{it.name_ar} × {it.qty}{Number(it.eta_minutes) > 0 ? ' ⏱️ ' + it.eta_minutes + ' دقيقة' : ''}</span>
+              <span key={i} className="rounded-full bg-[#E3E9C8] px-3 py-1 text-[11px] font-bold text-neutral-600">
+                {it.name_ar} × {it.qty}
+                {Array.isArray(it.additions) && it.additions.length > 0 && (
+                  <span className="ms-1 text-[10px] font-extrabold text-[#7A5A22]">
+                    + {it.additions.map((a: any) => a.name_ar).join('، ')}
+                  </span>
+                )}
+                {Number(it.eta_minutes) > 0 ? ' ⏱️ ' + it.eta_minutes + ' دقيقة' : ''}
+              </span>
             ))}
           </div>
         </Card>
