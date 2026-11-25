@@ -1223,35 +1223,37 @@ function MyCodes({ redemptions, products, onOrder }: { redemptions: Redemption[]
           const prod = productFor(r);
           const used = r.status === 'used';
           return (
-          <div key={r.code} className={`flex items-center justify-between gap-3 rounded-[1.5rem] p-4 ${used ? 'bg-[#E7F3EA] ring-1 ring-[#BFDCC8]' : 'bg-[#E3E9C8]'}`}>
-            <div className="min-w-0">
-              <p className="text-sm font-extrabold text-[#26301C]">{r.reward_name}</p>
-              <p className="mt-0.5 text-[11px] text-[#7C8665]">{fmtDateTime(r.created_at)}</p>
+          <div key={r.code} className={`rounded-[1.5rem] p-4 ${used ? 'bg-[#E7F3EA] ring-1 ring-[#BFDCC8]' : 'bg-[#E3E9C8]'}`}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-extrabold text-[#26301C]">{r.reward_name}</p>
+                <p className="mt-0.5 text-[11px] text-[#7C8665]">{fmtDateTime(r.created_at)}</p>
+              </div>
+              <div className="flex-none text-center">
+                <p className={`rounded-2xl px-3.5 py-2 font-mono text-base font-black tracking-widest ${used ? 'bg-[#2F6B4F] text-[#DFF3E4]' : 'bg-[#26301C] text-[#C9D3A8]'}`} dir="ltr">{r.code}</p>
+                <p className={`mt-1 text-[10px] font-extrabold ${used ? 'text-[#2F6B4F]' : r.status === 'unused' ? 'text-[#6B7A45]' : 'text-[#7C8665]'}`}>
+                  {used ? '✓ تم استخدامه' : r.status === 'unused' ? 'غير مستعمل' : 'منتهي'}
+                </p>
+                {r.status === 'unused' && (
+                  <p className="mt-0.5 text-[9.5px] font-bold leading-relaxed text-[#A05B47]">
+                    {(r.expires_at || (r as any).reward_expires_at)
+                      ? `الاستبدال صالحة حتى ${fmtDateNum(r.expires_at || (r as any).reward_expires_at)}`
+                      : 'الاستبدال صالحة حتى يتم تحديدها'}
+                  </p>
+                )}
+                {r.status === 'unused' && prod && (
+                  <button onClick={() => onOrder(r)}
+                    className="mt-1.5 flex w-full items-center justify-center gap-1 rounded-full bg-[#414D36] px-3 py-1.5 text-[10px] font-extrabold text-[#E9EDD6] shadow-sm transition active:scale-95">
+                    <Icon name="store" size={11} /> اطلب المنتج
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="flex-none text-center">
-              <p className={`rounded-2xl px-3.5 py-2 font-mono text-base font-black tracking-widest ${used ? 'bg-[#2F6B4F] text-[#DFF3E4]' : 'bg-[#26301C] text-[#C9D3A8]'}`} dir="ltr">{r.code}</p>
-              <p className={`mt-1 text-[10px] font-extrabold ${used ? 'text-[#2F6B4F]' : r.status === 'unused' ? 'text-[#6B7A45]' : 'text-[#7C8665]'}`}>
-                {used ? '✓ تم استخدامه' : r.status === 'unused' ? 'غير مستعمل' : 'منتهي'}
+            {used && (
+              <p className="mt-2 flex items-center justify-center gap-1.5 rounded-xl bg-[#DFF3E4] px-3 py-2 text-center text-[10.5px] font-extrabold leading-relaxed text-[#2F6B4F]">
+                <Icon name="coffee" size={12} /> تفضل بزيارتنا — طلبك جاهز
               </p>
-              {r.status === 'unused' && (
-                <p className="mt-0.5 text-[9.5px] font-bold leading-relaxed text-[#A05B47]">
-                  {(r.expires_at || (r as any).reward_expires_at)
-                    ? `الاستبدال صالحة حتى ${fmtDateNum(r.expires_at || (r as any).reward_expires_at)}`
-                    : 'الاستبدال صالحة حتى يتم تحديدها'}
-                </p>
-              )}
-              {used && (
-                <p className="mt-1.5 flex items-center justify-center gap-1 rounded-xl bg-[#DFF3E4] px-2.5 py-1.5 text-[10px] font-extrabold leading-relaxed text-[#2F6B4F]">
-                  <Icon name="coffee" size={11} /> تفضل بزيارتنا — طلبك جاهز
-                </p>
-              )}
-              {r.status === 'unused' && prod && (
-                <button onClick={() => onOrder(r)}
-                  className="mt-1.5 flex w-full items-center justify-center gap-1 rounded-full bg-[#414D36] px-3 py-1.5 text-[10px] font-extrabold text-[#E9EDD6] shadow-sm transition active:scale-95">
-                  <Icon name="store" size={11} /> اطلب المنتج
-                </button>
-              )}
-            </div>
+            )}
           </div>
           );
         })}
