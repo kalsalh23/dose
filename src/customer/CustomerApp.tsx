@@ -438,7 +438,6 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
   const cat = selectedCat;
   const setCat = onSelectCat;
   const [q, setQ] = useState('');
-  const [expandedCatSlugs, setExpandedCatSlugs] = useState<Set<string>>(new Set());
   const products = catalog?.products ?? [];
   let shown = !cat ? products : products.filter((p) => p.category === cat);
   if (q.trim()) {
@@ -651,8 +650,6 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
           {menuCats.map((c) => {
             const catProducts = shown.filter((p) => p.category === c.slug);
             const horizontal = !cat;
-            const expanded = expandedCatSlugs.has(c.slug);
-            const showProducts = horizontal ? catProducts : expanded ? catProducts : catProducts.slice(0, 6);
             return (
               <div key={c.slug} id={'cat-' + c.slug} className="mb-6 scroll-mt-24">
                 <div className="mb-2 mt-4 flex items-center gap-2 px-2">
@@ -661,23 +658,10 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
                     {c.name_ar}
                   </h3>
                 )}
-                  {!horizontal && catProducts.length > 6 && (
-                    <button onClick={() => {
-                      if (expanded) {
-                        setExpandedCatSlugs((s) => { const n = new Set(s); n.delete(c.slug); return n; });
-                      } else {
-                        setExpandedCatSlugs((s) => { const n = new Set(s); n.add(c.slug); return n; });
-                      }
-                    }}
-                      className="ms-auto flex items-center gap-1 rounded-full bg-[#E3E9C8] px-3 py-1 text-[11px] font-extrabold text-[#414D36] shadow-sm ring-1 ring-[#C4CF9E] transition hover:bg-[#D5DEB4] active:scale-95">
-                      <Icon name="chevron" size={11} strokeWidth={2.6} className={expanded ? 'rotate-90' : '-rotate-90'} />
-                      {expanded ? 'إظهار أقل' : `عرض الكل (${catProducts.length})`}
-                    </button>
-                  )}
                 </div>
-                {showProducts.length > 0 ? (
+                {catProducts.length > 0 ? (
                   <div className={horizontal ? 'no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1' : 'grid grid-cols-2 gap-3'}>
-                    {showProducts.map((p, i) => renderCard(p, i, horizontal))}
+                    {catProducts.map((p, i) => renderCard(p, i, horizontal))}
                   </div>
                 ) : (
                   <p className="text-center text-[11px] text-[#94826A] py-4">لا توجد منتجات في هذا القسم</p>
