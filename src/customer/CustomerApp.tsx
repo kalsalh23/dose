@@ -402,7 +402,16 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat, o
   const storePhone = catalog?.settings?.store_phone ?? '';
   const waDigits = String(catalog?.settings?.whatsapp_number ?? '').replace(/[^\d]/g, '') || String(storePhone).replace(/[^\d]/g, '');
   const telDigits = String(storePhone).replace(/[^\d+]/g, '');
-  const instagram = (catalog?.settings as any)?.instagram ?? '';
+  const instagramUrl = (() => {
+    const v = (catalog?.settings as any)?.instagram;
+    if (v) return String(v).startsWith('http') ? String(v) : `https://instagram.com/${String(v).replace(/^@/, '')}`;
+    return 'https://www.instagram.com/dose__cafe';
+  })();
+  const facebookUrl = (() => {
+    const v = (catalog?.settings as any)?.facebook;
+    if (v) return String(v).startsWith('http') ? String(v) : `https://facebook.com/${String(v).replace(/^@/, '')}`;
+    return 'https://www.facebook.com/share/1DhShCC3Fm/';
+  })();
   const promoCode = catalog?.settings?.promo_code;
   const promoDisc = catalog?.settings?.promo_discount;
   const mostOrdered = catalog?.most_ordered ?? [];
@@ -649,12 +658,14 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
               <Icon name="headset" size={17} />
             </a>
           )}
-          {instagram && (
-            <a href={String(instagram).startsWith('http') ? String(instagram) : `https://instagram.com/${String(instagram).replace(/^@/, '')}`} target="_blank" rel="noreferrer" aria-label="إنستغرام المحل"
-              className="grid size-10 place-items-center rounded-full bg-white text-[#26301C] shadow-md ring-1 ring-[#D5DEB4] transition active:scale-90">
-              <Icon name="instagram" size={17} />
-            </a>
-          )}
+          <a href={instagramUrl} target="_blank" rel="noreferrer" aria-label="إنستغرام المحل"
+            className="grid size-10 place-items-center rounded-full bg-white text-[#26301C] shadow-md ring-1 ring-[#D5DEB4] transition active:scale-90">
+            <Icon name="instagram" size={17} />
+          </a>
+          <a href={facebookUrl} target="_blank" rel="noreferrer" aria-label="فيسبوك المحل"
+            className="grid size-10 place-items-center rounded-full bg-white text-[#26301C] shadow-md ring-1 ring-[#D5DEB4] transition active:scale-90">
+            <Icon name="facebook" size={17} />
+          </a>
           <button onClick={onOpenTeam} aria-label="فريق التطوير والدعم"
             className="grid size-10 place-items-center rounded-full bg-[#26301C] text-[#C9D3A8] shadow-md transition active:scale-90">
             <Icon name="users" size={17} />
