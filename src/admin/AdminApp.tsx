@@ -72,22 +72,26 @@ export default function AdminApp() {
     if (!tabs.some((t) => t.id === tab)) setTab(tabs[0]?.id ?? 'orders');
   }, [role, tab]);
 
+  /* الاشتراك في الإشعارات الخارجية (Push) لأجهزة الإدارة */
+  const subscribePush = useCallback(async () => {
+    try {
+      if (typeof Notification === 'undefined' || !('PushManager' in window)) return;
+      const perm = Notification.permission === 'default' ? await Notification.requestPermission() : Notification.permission;
+      setNotifPerm(perm);
+      if (perm !== 'granted') return;
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUB) });
+      }
+      await rpc('save_admin_push_subscription', { p_token: token, p_sub: JSON.stringify(sub) });
+    } catch {}
+  }, [token]);
+
   useEffect(() => {
     if (!token) return;
-    (async () => {
-      try {
-        if (typeof Notification === 'undefined' || !('PushManager' in window)) return;
-        const perm = Notification.permission === 'default' ? await Notification.requestPermission() : Notification.permission;
-        if (perm !== 'granted') return;
-        const reg = await navigator.serviceWorker.ready;
-        let sub = await reg.pushManager.getSubscription();
-        if (!sub) {
-          sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUB) });
-        }
-        await rpc('save_admin_push_subscription', { p_token: token, p_sub: JSON.stringify(sub) });
-      } catch {}
-    })();
-  }, [token]);
+    void subscribePush();
+  }, [token, subscribePush]);
 
   /* المراقبة المستمرة — تعمل على كل التبويبات ولا تتوقف */
   const seenRef = useRef<Set<number>>(new Set(JSON.parse(localStorage.getItem('dose_seen_orders') || '[]')));
@@ -96,6 +100,7 @@ export default function AdminApp() {
   /* عداد الطلبات الجديدة لأيقونة الإشعارات — يزيد عند وصول طلب ويقل عند إكماله */
   const [newOrdersCount, setNewOrdersCount] = useState(0);
   const [bellShake, setBellShake] = useState(0);
+  const [notifPerm, setNotifPerm] = useState<string>(typeof Notification !== 'undefined' ? Notification.permission : 'denied');
 
   /* نغمة تنبيه أعلى وأوضح لطلب جديد */
   const beep = () => {
@@ -148,6 +153,16 @@ export default function AdminApp() {
           const o = fresh[0];
           setAlertMsg('🔔 طلب جديد #' + o.order_number + ' — ' + o.customer_name + ' (' + eur(o.total_cents) + ')');
           setTimeout(() => setAlertMsg(null), 7000);
+          /* إشعار خارجي (Push) لكل أجهزة لوحة الإدارة */
+          fetch('https://mqstsxuscqbxnyejhixk.supabase.co/functions/v1/push', {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({
+              admin: true,
+              title: '🔔 طلب جديد #' + o.order_number,
+              body: o.customer_name + ' — ' + eur(o.total_cents) + ' (' + (o.fulfillment_type === 'delivery' ? 'توصيل' : 'استلام') + ')',
+            }),
+          }).catch(() => {});
           try {
             if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
               new Notification('🔔 طلب جديد #' + o.order_number, {
@@ -199,6 +214,14 @@ export default function AdminApp() {
           <button onClick={logout} className="rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold transition hover:bg-white/20">تسجيل الخروج</button>
         </div>
       </header>
+
+      {notifPerm !== 'granted' && (
+        <div className="mx-auto mt-3 flex w-fit max-w-[92vw] items-center gap-2.5 rounded-2xl bg-[#E3E9C8] px-4 py-2.5 text-[11px] font-bold text-[#414D36] shadow">
+          <Icon name="bell" size={14} className="flex-none" />
+          <span>فعّل الإشعارات الخارجية لتصلك الطلبات حتى واللوحة مغلقة</span>
+          <button onClick={() => { void subscribePush(); }} className="flex-none rounded-full bg-[#26301C] px-3 py-1.5 text-[10px] font-black text-[#C9D3A8]">تفعيل</button>
+        </div>
+      )}
 
       <nav className="no-scrollbar sticky top-[68px] z-30 flex gap-2 overflow-x-auto border-b border-beige bg-white/90 px-4 py-2.5 backdrop-blur">
         {tabs.map((t) => (
