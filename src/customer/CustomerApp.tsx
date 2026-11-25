@@ -659,9 +659,9 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
             className="grid size-10 place-items-center rounded-full bg-white text-[#26301C] shadow-md ring-1 ring-[#D5DEB4] transition active:scale-90">
             <Icon name="facebook" size={17} />
           </a>
-          <button onClick={onOpenTeam} aria-label="فريق التطوير والدعم"
+          <button onClick={onOpenTeam} aria-label="أسماء المطورين"
             className="grid size-10 place-items-center rounded-full bg-[#26301C] text-[#C9D3A8] shadow-md transition active:scale-90">
-            <Icon name="users" size={17} />
+            <Icon name="code" size={17} />
           </button>
         </div>
       </div>

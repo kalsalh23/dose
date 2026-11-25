@@ -6,7 +6,7 @@ export type IconName =
   | 'flame' | 'gift' | 'headset' | 'logout' | 'pin' | 'settings' | 'megaphone' | 'users'
   | 'package' | 'clipboard' | 'chart' | 'lock' | 'check' | 'x' | 'search' | 'phone'
   | 'instagram' | 'tiktok' | 'clock' | 'timer' | 'chevron' | 'eye' | 'trash' | 'edit' | 'info'
-  | 'store' | 'facebook' | 'globe' | 'cart' | 'heart' | 'image';
+  | 'store' | 'facebook' | 'globe' | 'cart' | 'heart' | 'image' | 'code';
 
 const PATHS: Record<IconName, ReactNode> = {
   home: <><path d="M3 10.5 12 3l9 7.5" /><path d="M5 10v10h14V10" /></>,
@@ -49,6 +49,7 @@ const PATHS: Record<IconName, ReactNode> = {
   cart: <><circle cx="9" cy="20" r="1.6" /><circle cx="17" cy="20" r="1.6" /><path d="M3 4h2l2.4 11.2a1.5 1.5 0 0 0 1.5 1.2h7.7a1.5 1.5 0 0 0 1.5-1.2L20 8H6" /></>,
   heart: <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z" />,
   image: <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.5-3.5-2.5 2.5L8 9l-5 5" /></>,
+  code: <><path d="m8 8-4 4 4 4" /><path d="m16 8 4 4-4 4" /><path d="m14 4-4 16" /></>,
 };
 
 export function Icon({ name, size = 20, className = '', filled = false, strokeWidth = 1.7, style }: {
