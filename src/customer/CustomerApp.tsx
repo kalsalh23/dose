@@ -242,52 +242,6 @@ function RewardRedeemConfirm({ reward, points, onConfirm, onClose, busy }: {
   );
 }
 
-/* ============================ بطاقة المكافأة بعد الاستبدال ============================ */
-function RewardRedeemedModal({ reward, code, expiresAt, onClose, onOrder }: {
-  reward: any; code: string; expiresAt?: string | null; onClose: () => void; onOrder?: () => void;
-}) {
-  const [copied, setCopied] = useState(false);
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch { /* ignore */ }
-  };
-  return (
-    <div className="fixed inset-0 z-[210] grid place-items-center bg-black/25 p-5 backdrop-blur-sm anim-fade" onClick={onClose}>
-      <div className="relative w-full max-w-sm overflow-hidden rounded-[2rem] bg-white shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
-        <div className="relative">
-          <img src={reward?.image_url || '/img/latte.jpg'} alt={reward?.name_ar ?? ''} className="h-56 w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/25" />
-          <span className="absolute right-4 top-4 rounded-full bg-[#C9D3A8] px-3.5 py-1.5 text-[11px] font-black text-[#26301C] shadow-lg">🎁 تم الاستبدال</span>
-          <button onClick={onClose} className="absolute left-4 top-4 grid size-9 place-items-center rounded-full bg-black/45 text-white transition active:scale-90" aria-label="إغلاق">
-            <Icon name="x" size={16} />
-          </button>
-        </div>
-        <div className="p-5 text-center">
-          <h2 className="text-xl font-black text-[#26301C]">{reward?.name_ar ?? 'مكافأتك'}</h2>
-          <p className="mt-1 text-xs font-bold text-[#7C8665]">استبدلت {reward?.points_cost ?? 0} نقطة — هذا كودك</p>
-          <div className="mt-4 rounded-2xl border-2 border-dashed border-[#C4CF9E] bg-[#F6F0E2] px-4 py-3">
-            <p className="text-[10px] font-black tracking-widest text-[#7C8665]">كود الاستبدال</p>
-            <p className="mt-1 font-mono text-2xl font-black tracking-[.3em] text-[#26301C]" dir="ltr">{code}</p>
-            {expiresAt && <p className="mt-1 text-[10px] font-bold text-[#A05B47]">صالح حتى {fmtDateNum(expiresAt)}</p>}
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-2.5">
-            <button onClick={copy} className="rounded-full border-2 border-[#C9D3A8] py-3 text-sm font-black text-[#26301C] transition active:scale-[.98]">
-              {copied ? '✓ تم النسخ' : 'نسخ الكود'}
-            </button>
-            <button onClick={onOrder} className="rounded-full bg-gradient-to-l from-[#C9D3A8] to-[#A9B87F] py-3 text-sm font-black text-[#26301C] shadow-lg shadow-[#8a6a48]/30 transition active:scale-[.98]">
-              اطلب المنتج
-            </button>
-          </div>
-          <button onClick={onClose} className="mt-2 w-full py-2 text-[11px] font-bold text-[#7C8665]">إغلاق</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ============================ الشاشة الترحيبية — 3 ثوانٍ ============================ */
 function WelcomeScreen({ onClose }: { onClose: () => void }) {
   useEffect(() => {
@@ -951,6 +905,39 @@ function RewardsPage({ catalog, myData, session, onRedeem }: any) {
   );
 }
 
+/* ============================ فريق التطوير والدعم ============================ */
+function TeamModal({ phone, onClose }: { phone: string; onClose: () => void }) {
+  const team = [
+    { name: 'قصي مهند الصالح', role: 'تطوير التطبيق', icon: 'user' as IconName },
+    { name: 'براء دهبية', role: 'الدعم الفني', icon: 'headset' as IconName },
+  ];
+  return (
+    <div className="fixed inset-0 z-[220] grid place-items-center bg-black/25 p-5 backdrop-blur-sm anim-fade" onClick={onClose}>
+      <div className="w-full max-w-xs rounded-[2rem] bg-white p-5 shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-black text-[#26301C]">فريق التطوير والدعم</h3>
+          <button onClick={onClose} className="grid size-8 place-items-center rounded-full bg-[#F1E7CF] text-[#7C8665] transition active:scale-90" aria-label="إغلاق">
+            <Icon name="x" size={14} />
+          </button>
+        </div>
+        <div className="mt-3 space-y-2">
+          {team.map((m) => (
+            <a key={m.name} href={`tel:${phone.replace(/[^\d+]/g, '')}`} className="flex items-center gap-3 rounded-2xl bg-[#F6F0E2] p-3 transition active:scale-[.98]">
+              <span className="grid size-10 flex-none place-items-center rounded-full bg-[#C9D3A8] text-[#26301C]"><Icon name={m.icon} size={18} /></span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-extrabold text-[#26301C]">{m.name}</p>
+                <p className="text-[10.5px] font-bold text-[#7C8665]">{m.role} · <span dir="ltr">{phone}</span></p>
+              </div>
+              <Icon name="phone" size={16} className="flex-none text-[#5C6B3C]" />
+            </a>
+          ))}
+        </div>
+        <p className="mt-3 text-center text-[10px] font-bold text-[#94826A]">اضغط على الاسم للتواصل المباشر</p>
+      </div>
+    </div>
+  );
+}
+
 const NeedLogin = () => (
   <div className="grid place-items-center py-20 text-center anim-rise">
     <span className="mx-auto grid size-16 place-items-center rounded-[1.4rem] bg-[#E3E9C8] text-[#5C6B3C]"><Icon name="lock" size={26} /></span>
@@ -1208,7 +1195,13 @@ function MyCodes({ redemptions, products, onOrder }: { redemptions: Redemption[]
               <p className={`mt-1 text-[10px] font-extrabold ${r.status === 'unused' ? 'text-[#6B7A45]' : 'text-[#7C8665]'}`}>
                 {r.status === 'unused' ? 'غير مستعمل' : r.status === 'used' ? 'مستعمل' : 'منتهي'}
               </p>
-              {r.status === 'unused' && (r.expires_at || (r as any).reward_expires_at) && <p className="mt-0.5 text-[9.5px] font-bold text-[#A05B47]">صالحة حتى {fmtDateNum(r.expires_at || (r as any).reward_expires_at)}</p>}
+              {r.status === 'unused' && (
+                <p className="mt-0.5 text-[9.5px] font-bold leading-relaxed text-[#A05B47]">
+                  {(r.expires_at || (r as any).reward_expires_at)
+                    ? `الاستبدال صالحة حتى ${fmtDateNum(r.expires_at || (r as any).reward_expires_at)}`
+                    : 'الاستبدال صالحة حتى يتم تحديدها'}
+                </p>
+              )}
               {r.status === 'unused' && prod && (
                 <button onClick={() => onOrder(r)}
                   className="mt-1.5 flex w-full items-center justify-center gap-1 rounded-full bg-[#414D36] px-3 py-1.5 text-[10px] font-extrabold text-[#E9EDD6] shadow-sm transition active:scale-95">
@@ -1450,7 +1443,7 @@ export default function CustomerApp() {
   const [doneOrder, setDoneOrder] = useState<{ orderNumber: number; points: number; free: boolean } | null>(null);
   const [pinBusyConfirm, setPinBusyConfirm] = useState(false);
   const [adOpen, setAdOpen] = useState<Ad | null>(null);
-  const [redeemed, setRedeemed] = useState<{ reward: any; code: string; expiresAt?: string | null } | null>(null);
+  const [teamOpen, setTeamOpen] = useState(false);
   const [redeemTarget, setRedeemTarget] = useState<any>(null);
   const [redeemBusy, setRedeemBusy] = useState(false);
   const [closedOpen, setClosedOpen] = useState(false);
@@ -1488,6 +1481,10 @@ export default function CustomerApp() {
   const promoTarget = catalog?.settings?.promo_target ?? '';
   const waNumber = catalog?.settings?.whatsapp_number ?? '963936107119';
   const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
+  const storePhone = catalog?.settings?.store_phone ?? '';
+  const waDigits = String(waNumber).replace(/[^\d]/g, '');
+  const telDigits = String(storePhone).replace(/[^\d+]/g, '');
+  const instagram = (catalog?.settings as any)?.instagram ?? '';
 
   /* نطاق كود الخصم: مجموع الأصناف المشمولة بالخصم داخل السلة
      (سعر المنتج الأساسي فقط — مطابق لما يحسبه الخادم، الإضافات لا تدخل في الخصم) */
@@ -1625,7 +1622,7 @@ export default function CustomerApp() {
     setRedeemBusy(true);
     try {
       const res = await rpc<any>('redeem_reward', { p_token: session.token, p_reward_id: reward.id });
-      setRedeemed({ reward, code: res.code, expiresAt: res.expires_at ?? null });
+      show(`تم الاستبدال — كودك: ${res.code}`, 'ok');
       refresh();
     } catch (e: any) { show(e.message, 'err'); }
     finally { setRedeemBusy(false); }
@@ -1737,6 +1734,33 @@ export default function CustomerApp() {
         </Routes>
       </main>
 
+      {/* روابط التواصل — أعلى الشريط السفلي */}
+      <div className="fixed inset-x-0 z-40 mx-auto flex max-w-md items-center justify-center gap-2 px-4"
+        style={{ bottom: 'calc(4.6rem + env(safe-area-inset-bottom))' }}>
+        {waDigits && (
+          <a href={`https://wa.me/${waDigits}`} target="_blank" rel="noreferrer" aria-label="واتساب المحل"
+            className="grid size-9 place-items-center rounded-full bg-white text-[#26301C] shadow-md ring-1 ring-[#D5DEB4] transition active:scale-90">
+            <Icon name="phone" size={16} />
+          </a>
+        )}
+        {telDigits && (
+          <a href={`tel:${telDigits}`} aria-label="اتصل بالمحل"
+            className="grid size-9 place-items-center rounded-full bg-white text-[#26301C] shadow-md ring-1 ring-[#D5DEB4] transition active:scale-90">
+            <Icon name="headset" size={16} />
+          </a>
+        )}
+        {instagram && (
+          <a href={String(instagram).startsWith('http') ? String(instagram) : `https://instagram.com/${String(instagram).replace(/^@/, '')}`} target="_blank" rel="noreferrer" aria-label="إنستغرام المحل"
+            className="grid size-9 place-items-center rounded-full bg-white text-[#26301C] shadow-md ring-1 ring-[#D5DEB4] transition active:scale-90">
+            <Icon name="instagram" size={16} />
+          </a>
+        )}
+        <button onClick={() => setTeamOpen(true)} aria-label="فريق التطوير والدعم"
+          className="grid size-9 place-items-center rounded-full bg-[#26301C] text-[#C9D3A8] shadow-md transition active:scale-90">
+          <Icon name="users" size={16} />
+        </button>
+      </div>
+
       {/* شريط تنقل عائم + زر السلة */}
       <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-md items-center justify-around px-4"
         style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
@@ -1826,25 +1850,6 @@ export default function CustomerApp() {
             setRedeemTarget(null);
           }} />
       )}
-      {redeemed && (
-        <RewardRedeemedModal
-          reward={redeemed.reward}
-          code={redeemed.code}
-          expiresAt={redeemed.expiresAt}
-          onClose={() => setRedeemed(null)}
-          onOrder={() => {
-            const r: Redemption = {
-              code: redeemed.code,
-              reward_name: redeemed.reward?.name_ar ?? '',
-              points_cost: redeemed.reward?.points_cost ?? 0,
-              status: 'unused',
-              created_at: new Date().toISOString(),
-              product_id: redeemed.reward?.product_id ?? null,
-            };
-            setRedeemed(null);
-            orderReward(r);
-          }} />
-      )}
       {adOpen && (
         <div className="fixed inset-0 z-[120] grid place-items-center bg-black/60 p-4 backdrop-blur-sm anim-fade" onClick={() => setAdOpen(null)}>
           <div className="relative w-full max-w-sm overflow-hidden rounded-[2rem] bg-white shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
@@ -1869,6 +1874,7 @@ export default function CustomerApp() {
         <MidAd ad={popupAd} cur={cur} onClose={() => setSplashDone(true)}
           onBrowse={(slug) => { setSplashDone(true); setSelectedCat(slug); nav('/'); setTimeout(() => document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 400); }} />
       )}
+      {teamOpen && <TeamModal phone={storePhone || waNumber} onClose={() => setTeamOpen(false)} />}
       {closedOpen && <ClosedModal open={catalog?.settings?.work_open ?? ''} note={catalog?.settings?.closed_message ?? ''} onClose={() => setClosedOpen(false)} />}
       {toastNode}
     </div>
