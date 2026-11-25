@@ -401,7 +401,6 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat, o
   const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
   const storePhone = catalog?.settings?.store_phone ?? '';
   const waDigits = String(catalog?.settings?.whatsapp_number ?? '').replace(/[^\d]/g, '') || String(storePhone).replace(/[^\d]/g, '');
-  const telDigits = String(storePhone).replace(/[^\d+]/g, '');
   const instagramUrl = (() => {
     const v = (catalog?.settings as any)?.instagram;
     if (v) return String(v).startsWith('http') ? String(v) : `https://instagram.com/${String(v).replace(/^@/, '')}`;
@@ -650,12 +649,6 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
             <a href={`https://wa.me/${waDigits}`} target="_blank" rel="noreferrer" aria-label="واتساب المحل"
               className="grid size-10 place-items-center rounded-full bg-white text-[#26301C] shadow-md ring-1 ring-[#D5DEB4] transition active:scale-90">
               <Icon name="phone" size={17} />
-            </a>
-          )}
-          {telDigits && (
-            <a href={`tel:${telDigits}`} aria-label="اتصل بالمحل"
-              className="grid size-10 place-items-center rounded-full bg-white text-[#26301C] shadow-md ring-1 ring-[#D5DEB4] transition active:scale-90">
-              <Icon name="headset" size={17} />
             </a>
           )}
           <a href={instagramUrl} target="_blank" rel="noreferrer" aria-label="إنستغرام المحل"
