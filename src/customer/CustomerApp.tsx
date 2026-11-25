@@ -478,9 +478,9 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
   const heroImage = (catalog?.settings?.hero_image_url ?? '').trim();
   const heroActive = catalog?.settings?.hero_active !== 'false';
 
-  /* شرائح الهيرو: الهيرو المخصص (إن مفعّل) + الإعلانات — تتبدّل كل 10 ثوانٍ، والهيرو لا يُخفى أبدًا */
+  /* شرائح الهيرو: بطاقات متنقلة — الهيرو المخصص + الإعلانات + بطاقة المكافآت */
   const heroSlides = useMemo(() => {
-    const list: { key: string; image: string; badge: string; title: string; desc: string }[] = [];
+    const list: { key: string; image: string; badge: string; title: string; desc: string; cta: 'menu' | 'rewards' }[] = [];
     if (heroActive && (heroTitle || heroSubtitle || heroImage || heroBadge)) {
       list.push({
         key: 'custom',
@@ -488,10 +488,11 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
         badge: heroBadge || 'قهوة مختصة في كل رشفة',
         title: heroTitle || 'قهوتك على ذوقك،\nوحلويات تُدللها',
         desc: heroSubtitle || 'اطلب من القهوة والحلويات من المنيو واستمتع بجمع النقاط',
+        cta: 'menu',
       });
     }
     for (const a of ads) {
-      list.push({ key: 'ad-' + a.id, image: a.image_url, badge: 'عرض حصري', title: a.title, desc: a.description_ar ?? '' });
+      list.push({ key: 'ad-' + a.id, image: a.image_url, badge: 'عرض حصري', title: a.title, desc: a.description_ar ?? '', cta: 'menu' });
     }
     if (list.length === 0) {
       list.push({
@@ -500,48 +501,86 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
         badge: 'قهوة مختصة في كل رشفة',
         title: 'قهوتك على ذوقك،\nوحلويات تُدللها',
         desc: 'اطلب من القهوة والحلويات من المنيو واستمتع بجمع النقاط',
+        cta: 'menu',
       });
     }
+    list.push({
+      key: 'rewards',
+      image: '/img/matcha.jpg',
+      badge: 'نقاطك تستاهل',
+      title: 'استبدل نقاطك\nبمكافأة مجانية',
+      desc: 'اجمع النقاط من طلباتك واستبدلها من «استبدل نقاطك»',
+      cta: 'rewards',
+    });
     return list;
   }, [heroActive, heroTitle, heroSubtitle, heroBadge, heroImage, ads]);
 
+  const heroRef = useRef<HTMLDivElement>(null);
   const [heroIdx, setHeroIdx] = useState(0);
   useEffect(() => {
     setHeroIdx(0);
     if (heroSlides.length <= 1) return;
-    const t = setInterval(() => setHeroIdx((i) => (i + 1) % heroSlides.length), 10000);
+    const t = setInterval(() => setHeroIdx((i) => (i + 1) % heroSlides.length), 6000);
     return () => clearInterval(t);
   }, [heroSlides.length]);
-  const heroSlide = heroSlides[heroIdx % heroSlides.length];
+  useEffect(() => {
+    const el = heroRef.current;
+    if (!el) return;
+    const child = el.children[heroIdx] as HTMLElement | undefined;
+    child?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }, [heroIdx]);
+  const onHeroScroll = () => {
+    const el = heroRef.current;
+    if (!el) return;
+    const w = (el.children[0] as HTMLElement)?.offsetWidth ?? el.clientWidth;
+    const i = Math.max(0, Math.round(Math.abs(el.scrollLeft) / (w + 12)));
+    setHeroIdx((prev) => (prev === i ? prev : i));
+  };
   const scrollToMenu = () => document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth' });
 
   return (
     <div className="anim-rise">
-      {/* الهيرو */}
-      <div className='relative overflow-hidden rounded-[1.8rem] p-5 text-white shadow-xl shadow-[#26301C]/40'>
-        {heroSlides.map((s, i) => (
-          <img key={s.key} src={s.image} alt='' className={`absolute inset-0 size-full object-cover transition-opacity duration-1000 ${heroIdx % heroSlides.length === i ? 'opacity-100' : 'opacity-0'}`} />
-        ))}
-        <div className='absolute inset-0 bg-gradient-to-bl from-[#26301C]/80 via-[#3A4531]/60 to-[#414D36]/75' />
-        <div className='pointer-events-none absolute -bottom-16 -left-10 size-44 rounded-full bg-white/5 blur-2xl' />
-        <div className='relative'>
-          <span className='rounded-full bg-white/10 px-3 py-1 text-[10px] font-black text-[#C9D3A8]'>{heroSlide.badge}</span>
-          <h2 className='mt-2.5 whitespace-pre-line text-[22px] font-black leading-snug'>{heroSlide.title}</h2>
-          <p className='mt-1.5 text-[11px] font-medium text-white/80'>{heroSlide.desc}</p>
-          <div className='mt-4 flex items-end justify-between gap-2'>
-            {promoCode && promoDisc ? (
-              <div className='rounded-xl border-2 border-dashed border-[#C9D3A8]/80 bg-[#26301C]/70 px-2.5 py-1.5 text-center backdrop-blur-sm'>
-              <p className='text-[8.5px] font-bold text-[#C9D3A8]'>كود خصم {promoDisc}%</p>
-              <p className='font-mono text-[13px] font-black tracking-widest' dir='ltr'>{promoCode}</p>
+      {/* الهيرو — بطاقات متنقلة */}
+      <div ref={heroRef} onScroll={onHeroScroll}
+        className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1">
+        {heroSlides.map((s) => (
+          <div key={s.key} className="relative h-56 w-full flex-none snap-center overflow-hidden rounded-[1.8rem] text-white shadow-xl shadow-[#26301C]/40">
+            <img src={s.image} alt="" className="absolute inset-0 size-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-bl from-[#26301C]/85 via-[#3A4531]/60 to-[#414D36]/75" />
+            <div className="pointer-events-none absolute -bottom-16 -left-10 size-44 rounded-full bg-white/5 blur-2xl" />
+            <div className="relative flex h-full flex-col p-5">
+              <span className="w-fit rounded-full bg-white/10 px-3 py-1 text-[10px] font-black text-[#C9D3A8]">{s.badge}</span>
+              <h2 className="mt-2.5 whitespace-pre-line text-[21px] font-black leading-snug">{s.title}</h2>
+              <p className="mt-1.5 line-clamp-2 text-[11px] font-medium text-white/80">{s.desc}</p>
+              <div className="mt-auto flex items-end justify-between gap-2">
+                {s.cta === 'menu' && promoCode && promoDisc ? (
+                  <div className="rounded-xl border-2 border-dashed border-[#C9D3A8]/80 bg-[#26301C]/70 px-2.5 py-1.5 text-center backdrop-blur-sm">
+                    <p className="text-[8.5px] font-bold text-[#C9D3A8]">كود خصم {promoDisc}%</p>
+                    <p className="font-mono text-[13px] font-black tracking-widest" dir="ltr">{promoCode}</p>
+                  </div>
+                ) : <span />}
+                {s.cta === 'rewards' ? (
+                  <Link to="/rewards" className="flex items-center gap-1.5 rounded-full bg-[#C9D3A8] px-4 py-2.5 text-[13px] font-black text-[#26301C] shadow-lg transition active:scale-95">
+                    استبدل الآن <Icon name="gift" size={14} />
+                  </Link>
+                ) : (
+                  <button onClick={scrollToMenu} className="flex items-center gap-1.5 rounded-full bg-[#C9D3A8] px-4 py-2.5 text-[13px] font-black text-[#26301C] shadow-lg transition active:scale-95">
+                    اطلب الآن <Icon name="plus" size={14} strokeWidth={3} />
+                  </button>
+                )}
               </div>
-            ) : <span />}
-            <button onClick={scrollToMenu}
-            className='flex items-center gap-1.5 rounded-full bg-[#C9D3A8] px-4 py-2.5 text-[13px] font-black text-[#26301C] shadow-lg transition active:scale-95'>
-            اطلب الآن <Icon name="plus" size={14} strokeWidth={3} />
-          </button>
+            </div>
           </div>
-        </div>
+        ))}
       </div>
+      {heroSlides.length > 1 && (
+        <div className="mt-2 flex items-center justify-center gap-1.5">
+          {heroSlides.map((s, i) => (
+            <button key={s.key} onClick={() => setHeroIdx(i)} aria-label={'شريحة ' + (i + 1)}
+              className={`h-1.5 rounded-full transition-all ${heroIdx === i ? 'w-5 bg-[#5C6B3C]' : 'w-1.5 bg-[#C4CF9E]'}`} />
+          ))}
+        </div>
+      )}
 
       {/* البحث */}
       {/* البحث */}
