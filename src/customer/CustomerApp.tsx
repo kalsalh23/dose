@@ -1240,6 +1240,11 @@ function MyCodes({ redemptions, products, onOrder }: { redemptions: Redemption[]
                     : 'الاستبدال صالحة حتى يتم تحديدها'}
                 </p>
               )}
+              {used && (
+                <p className="mt-1.5 flex items-center justify-center gap-1 rounded-xl bg-[#DFF3E4] px-2.5 py-1.5 text-[10px] font-extrabold leading-relaxed text-[#2F6B4F]">
+                  <Icon name="coffee" size={11} /> تفضل بزيارتنا — طلبك جاهز
+                </p>
+              )}
               {r.status === 'unused' && prod && (
                 <button onClick={() => onOrder(r)}
                   className="mt-1.5 flex w-full items-center justify-center gap-1 rounded-full bg-[#414D36] px-3 py-1.5 text-[10px] font-extrabold text-[#E9EDD6] shadow-sm transition active:scale-95">
