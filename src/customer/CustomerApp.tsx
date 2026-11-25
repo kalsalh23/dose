@@ -1146,12 +1146,22 @@ function OrdersPage({ myData, session, catalog }: { myData: MyData | null; sessi
 }
 
 /* ============================ الإشعارات ============================ */
+/* الإشعارات الأقدم من 10 أيام تُحذف من ملف الزبون */
+const NOTIF_TTL_DAYS = 10;
+const visibleNotifs = (list: any[] | undefined) => {
+  const now = Date.now();
+  return (list ?? []).filter((n) => {
+    const t = new Date(n.created_at).getTime();
+    return !t || now - t <= NOTIF_TTL_DAYS * 24 * 60 * 60 * 1000;
+  });
+};
+
 function NotificationsPage({ myData, session, onSeen, onDeleteNotif }: {
   myData: MyData | null; session: Session | null; onSeen: () => void; onDeleteNotif: (id: number) => void;
 }) {
   useEffect(() => { onSeen(); }, []);
   if (!session) return <NeedLogin />;
-  const items = myData?.notifications ?? [];
+  const items = visibleNotifs(myData?.notifications);
   return (
     <div className="space-y-2.5 pb-4 anim-rise">
       {items.length === 0 && (
@@ -1279,7 +1289,7 @@ function AccountPage({ session, myData, waNumber, pushEnabled, onTogglePush, onL
   const [confirmLogout, setConfirmLogout] = useState(false);
   const c = myData?.customer ?? session.customer;
   const redemptions = myData?.redemptions ?? [];
-  const unread = (myData?.notifications ?? []).filter((n) => !n.is_read).length;
+  const unread = visibleNotifs(myData?.notifications).filter((n) => !n.is_read).length;
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(c.full_name);
   const [nameBusy, setNameBusy] = useState(false);
@@ -1513,7 +1523,7 @@ export default function CustomerApp() {
     return list.find((a) => a.popup_after_2min) ?? list.find((a) => a.full_screen) ?? null;
   }, [catalog]);
   const favorites = useMemo(() => new Set<number>((myData?.favorites ?? []).map((p) => p.id)), [myData]);
-  const unreadCount = (myData?.notifications ?? []).filter((n) => !n.is_read).length;
+  const unreadCount = visibleNotifs(myData?.notifications).filter((n) => !n.is_read).length;
   const [pushEnabled, setPushEnabled] = useState(false);
   const toggleFav = async (id: number) => {
     if (!session) { nav('/login'); show('سجّل دخولك لاستخدام المفضلة'); return; }
