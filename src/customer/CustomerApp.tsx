@@ -942,10 +942,10 @@ function RewardsPage({ catalog, myData, session, onRedeem }: any) {
 }
 
 /* ============================ فريق التطوير والدعم ============================ */
-function TeamModal({ phone, onClose }: { phone: string; onClose: () => void }) {
+function TeamModal({ onClose }: { onClose: () => void }) {
   const team = [
-    { name: 'قصي مهند الصالح', role: 'تطوير التطبيق', icon: 'user' as IconName },
-    { name: 'براء دهبية', role: 'الدعم الفني', icon: 'headset' as IconName },
+    { name: 'قصي مهند الصالح', role: 'تطوير التطبيق', phone: '0952639157', icon: 'user' as IconName },
+    { name: 'براء دهبية', role: 'مطور برمجيات', phone: '0966333006', icon: 'code' as IconName },
   ];
   return (
     <div className="fixed inset-0 z-[220] grid place-items-center bg-black/25 p-5 backdrop-blur-sm anim-fade" onClick={onClose}>
@@ -958,11 +958,11 @@ function TeamModal({ phone, onClose }: { phone: string; onClose: () => void }) {
         </div>
         <div className="mt-3 space-y-2">
           {team.map((m) => (
-            <a key={m.name} href={`tel:${phone.replace(/[^\d+]/g, '')}`} className="flex items-center gap-3 rounded-2xl bg-[#F6F0E2] p-3 transition active:scale-[.98]">
+            <a key={m.name} href={`tel:${m.phone}`} className="flex items-center gap-3 rounded-2xl bg-[#F6F0E2] p-3 transition active:scale-[.98]">
               <span className="grid size-10 flex-none place-items-center rounded-full bg-[#C9D3A8] text-[#26301C]"><Icon name={m.icon} size={18} /></span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-extrabold text-[#26301C]">{m.name}</p>
-                <p className="text-[10.5px] font-bold text-[#7C8665]">{m.role} · <span dir="ltr">{phone}</span></p>
+                <p className="text-[10.5px] font-bold text-[#7C8665]">{m.role} · <span dir="ltr">{m.phone}</span></p>
               </div>
               <Icon name="phone" size={16} className="flex-none text-[#5C6B3C]" />
             </a>
@@ -1529,7 +1529,6 @@ export default function CustomerApp() {
   const promoTarget = catalog?.settings?.promo_target ?? '';
   const waNumber = catalog?.settings?.whatsapp_number ?? '963936107119';
   const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
-  const storePhone = catalog?.settings?.store_phone ?? '';
 
   /* نطاق كود الخصم: مجموع الأصناف المشمولة بالخصم داخل السلة
      (سعر المنتج الأساسي فقط — مطابق لما يحسبه الخادم، الإضافات لا تدخل في الخصم) */
@@ -1892,7 +1891,7 @@ export default function CustomerApp() {
         <MidAd ad={popupAd} cur={cur} onClose={() => setSplashDone(true)}
           onBrowse={(slug) => { setSplashDone(true); setSelectedCat(slug); nav('/'); setTimeout(() => document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 400); }} />
       )}
-      {teamOpen && <TeamModal phone={storePhone || waNumber} onClose={() => setTeamOpen(false)} />}
+      {teamOpen && <TeamModal onClose={() => setTeamOpen(false)} />}
       {closedOpen && <ClosedModal open={catalog?.settings?.work_open ?? ''} note={catalog?.settings?.closed_message ?? ''} onClose={() => setClosedOpen(false)} />}
       {toastNode}
     </div>
