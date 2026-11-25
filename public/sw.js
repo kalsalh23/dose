@@ -1,4 +1,4 @@
-const CACHE = 'dose-v5';
+const CACHE = 'dose-v6';
 const CORE = ['/', '/logo.jpg', '/manifest.webmanifest'];
 
 self.addEventListener('install', (e) => {
@@ -15,23 +15,31 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('push', (e) => {
   let d = { title: 'Dose Cafe', body: '' };
   try { d = e.data.json(); } catch { try { d = { title: 'Dose Cafe', body: e.data.text() }; } catch {} }
-  e.waitUntil(self.registration.showNotification(d.title || 'Dose Cafe', {
+  const title = d.title || 'Dose Cafe';
+  const url = d.url || (title.includes('طلب جديد') ? '/admin?tab=orders' : '/orders');
+  e.waitUntil(self.registration.showNotification(title, {
     body: d.body || '',
     icon: '/logo.jpg',
     badge: '/logo.jpg',
     dir: 'rtl',
     lang: 'ar',
     vibrate: [100, 50, 100],
-    data: { url: '/orders' },
+    data: { url },
   }));
 });
 
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || '/';
   e.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
-      for (const c of list) if (c.url.includes(self.location.origin)) return c.focus();
-      return self.clients.openWindow('/orders');
+      for (const c of list) {
+        if (c.url.includes(self.location.origin)) {
+          try { c.navigate(url); } catch {}
+          return c.focus();
+        }
+      }
+      return self.clients.openWindow(url);
     })
   );
 });

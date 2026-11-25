@@ -72,6 +72,13 @@ export default function AdminApp() {
     if (!tabs.some((t) => t.id === tab)) setTab(tabs[0]?.id ?? 'orders');
   }, [role, tab]);
 
+  /* فتح تبويب محدد عند القدوم من إشعار خارجي */
+  useEffect(() => {
+    if (!token) return;
+    const p = new URLSearchParams(window.location.search).get('tab');
+    if (p && TABS.some((t) => t.id === p)) setTab(p as any);
+  }, [token]);
+
   /* الاشتراك في الإشعارات الخارجية (Push) لأجهزة الإدارة */
   const subscribePush = useCallback(async () => {
     try {
