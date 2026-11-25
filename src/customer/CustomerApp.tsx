@@ -388,7 +388,7 @@ function PromoBanner({ settings }: { settings: Record<string, string> }) {
 }
 
 /* ============================ الرئيسية ============================ */
-function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }: { catalog: Catalog | null; openProduct: (p: Product) => void; ads: Ad[]; onOpenAd: (a: Ad) => void; selectedCat: string | null; onSelectCat: (s: string | null) => void }) {
+function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat, onOpenTeam }: { catalog: Catalog | null; openProduct: (p: Product) => void; ads: Ad[]; onOpenAd: (a: Ad) => void; selectedCat: string | null; onSelectCat: (s: string | null) => void; onOpenTeam: () => void }) {
   const cat = selectedCat;
   const setCat = onSelectCat;
   const [q, setQ] = useState('');
@@ -399,6 +399,10 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat }:
     shown = shown.filter((p) => p.name_ar.includes(needle) || p.name_en.toLowerCase().includes(needle));
   }
   const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
+  const storePhone = catalog?.settings?.store_phone ?? '';
+  const waDigits = String(catalog?.settings?.whatsapp_number ?? '').replace(/[^\d]/g, '') || String(storePhone).replace(/[^\d]/g, '');
+  const telDigits = String(storePhone).replace(/[^\d+]/g, '');
+  const instagram = (catalog?.settings as any)?.instagram ?? '';
   const promoCode = catalog?.settings?.promo_code;
   const promoDisc = catalog?.settings?.promo_discount;
   const mostOrdered = catalog?.most_ordered ?? [];
@@ -628,6 +632,35 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
           )}
          </div>
       </section>
+
+      {/* التواصل أسفل المنيو */}
+      <div className="mt-6 flex flex-col items-center gap-2">
+        <p className="text-[10px] font-black tracking-widest text-[#94826A]">تابعنا وتواصل معنا</p>
+        <div className="flex items-center justify-center gap-2.5">
+          {waDigits && (
+            <a href={`https://wa.me/${waDigits}`} target="_blank" rel="noreferrer" aria-label="واتساب المحل"
+              className="grid size-10 place-items-center rounded-full bg-white text-[#26301C] shadow-md ring-1 ring-[#D5DEB4] transition active:scale-90">
+              <Icon name="phone" size={17} />
+            </a>
+          )}
+          {telDigits && (
+            <a href={`tel:${telDigits}`} aria-label="اتصل بالمحل"
+              className="grid size-10 place-items-center rounded-full bg-white text-[#26301C] shadow-md ring-1 ring-[#D5DEB4] transition active:scale-90">
+              <Icon name="headset" size={17} />
+            </a>
+          )}
+          {instagram && (
+            <a href={String(instagram).startsWith('http') ? String(instagram) : `https://instagram.com/${String(instagram).replace(/^@/, '')}`} target="_blank" rel="noreferrer" aria-label="إنستغرام المحل"
+              className="grid size-10 place-items-center rounded-full bg-white text-[#26301C] shadow-md ring-1 ring-[#D5DEB4] transition active:scale-90">
+              <Icon name="instagram" size={17} />
+            </a>
+          )}
+          <button onClick={onOpenTeam} aria-label="فريق التطوير والدعم"
+            className="grid size-10 place-items-center rounded-full bg-[#26301C] text-[#C9D3A8] shadow-md transition active:scale-90">
+            <Icon name="users" size={17} />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1482,9 +1515,6 @@ export default function CustomerApp() {
   const waNumber = catalog?.settings?.whatsapp_number ?? '963936107119';
   const cur = catalog?.settings?.currency_symbol ?? 'ل.س';
   const storePhone = catalog?.settings?.store_phone ?? '';
-  const waDigits = String(waNumber).replace(/[^\d]/g, '');
-  const telDigits = String(storePhone).replace(/[^\d+]/g, '');
-  const instagram = (catalog?.settings as any)?.instagram ?? '';
 
   /* نطاق كود الخصم: مجموع الأصناف المشمولة بالخصم داخل السلة
      (سعر المنتج الأساسي فقط — مطابق لما يحسبه الخادم، الإضافات لا تدخل في الخصم) */
@@ -1709,7 +1739,7 @@ export default function CustomerApp() {
 
       <main className="flex-1 px-4 pb-36 pt-2">
         <Routes>
-          <Route path="/" element={<Home key={homeKey} catalog={catalog} openProduct={setProduct} ads={heroAds} onOpenAd={(a) => setAdOpen(a)} selectedCat={selectedCat} onSelectCat={setSelectedCat} />} />
+          <Route path="/" element={<Home key={homeKey} catalog={catalog} openProduct={setProduct} ads={heroAds} onOpenAd={(a) => setAdOpen(a)} selectedCat={selectedCat} onSelectCat={setSelectedCat} onOpenTeam={() => setTeamOpen(true)} />} />
           <Route path="/cart" element={
             <CartPage lines={cart.lines} setQty={cart.setQty} remove={cart.remove}
               onOrder={() => startOrder(cart.lines)}
@@ -1733,33 +1763,6 @@ export default function CustomerApp() {
           <Route path="*" element={<div className="py-20 text-center text-sm font-bold text-[#7C8665]">الصفحة غير موجودة</div>} />
         </Routes>
       </main>
-
-      {/* روابط التواصل — أعلى الشريط السفلي */}
-      <div className="fixed inset-x-0 z-40 mx-auto flex max-w-md items-center justify-center gap-2 px-4"
-        style={{ bottom: 'calc(4.6rem + env(safe-area-inset-bottom))' }}>
-        {waDigits && (
-          <a href={`https://wa.me/${waDigits}`} target="_blank" rel="noreferrer" aria-label="واتساب المحل"
-            className="grid size-9 place-items-center rounded-full bg-white text-[#26301C] shadow-md ring-1 ring-[#D5DEB4] transition active:scale-90">
-            <Icon name="phone" size={16} />
-          </a>
-        )}
-        {telDigits && (
-          <a href={`tel:${telDigits}`} aria-label="اتصل بالمحل"
-            className="grid size-9 place-items-center rounded-full bg-white text-[#26301C] shadow-md ring-1 ring-[#D5DEB4] transition active:scale-90">
-            <Icon name="headset" size={16} />
-          </a>
-        )}
-        {instagram && (
-          <a href={String(instagram).startsWith('http') ? String(instagram) : `https://instagram.com/${String(instagram).replace(/^@/, '')}`} target="_blank" rel="noreferrer" aria-label="إنستغرام المحل"
-            className="grid size-9 place-items-center rounded-full bg-white text-[#26301C] shadow-md ring-1 ring-[#D5DEB4] transition active:scale-90">
-            <Icon name="instagram" size={16} />
-          </a>
-        )}
-        <button onClick={() => setTeamOpen(true)} aria-label="فريق التطوير والدعم"
-          className="grid size-9 place-items-center rounded-full bg-[#26301C] text-[#C9D3A8] shadow-md transition active:scale-90">
-          <Icon name="users" size={16} />
-        </button>
-      </div>
 
       {/* شريط تنقل عائم + زر السلة */}
       <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-md items-center justify-around px-4"
