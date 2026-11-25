@@ -1221,16 +1221,17 @@ function MyCodes({ redemptions, products, onOrder }: { redemptions: Redemption[]
       <div className="space-y-2.5">
         {visible.map((r) => {
           const prod = productFor(r);
+          const used = r.status === 'used';
           return (
-          <div key={r.code} className="flex items-center justify-between gap-3 rounded-[1.5rem] bg-[#E3E9C8] p-4">
+          <div key={r.code} className={`flex items-center justify-between gap-3 rounded-[1.5rem] p-4 ${used ? 'bg-[#E7F3EA] ring-1 ring-[#BFDCC8]' : 'bg-[#E3E9C8]'}`}>
             <div className="min-w-0">
               <p className="text-sm font-extrabold text-[#26301C]">{r.reward_name}</p>
               <p className="mt-0.5 text-[11px] text-[#7C8665]">{fmtDateTime(r.created_at)}</p>
             </div>
             <div className="flex-none text-center">
-              <p className="rounded-2xl bg-[#26301C] px-3.5 py-2 font-mono text-base font-black tracking-widest text-[#C9D3A8]" dir="ltr">{r.code}</p>
-              <p className={`mt-1 text-[10px] font-extrabold ${r.status === 'unused' ? 'text-[#6B7A45]' : 'text-[#7C8665]'}`}>
-                {r.status === 'unused' ? 'غير مستعمل' : r.status === 'used' ? 'مستعمل' : 'منتهي'}
+              <p className={`rounded-2xl px-3.5 py-2 font-mono text-base font-black tracking-widest ${used ? 'bg-[#2F6B4F] text-[#DFF3E4]' : 'bg-[#26301C] text-[#C9D3A8]'}`} dir="ltr">{r.code}</p>
+              <p className={`mt-1 text-[10px] font-extrabold ${used ? 'text-[#2F6B4F]' : r.status === 'unused' ? 'text-[#6B7A45]' : 'text-[#7C8665]'}`}>
+                {used ? '✓ تم استخدامه' : r.status === 'unused' ? 'غير مستعمل' : 'منتهي'}
               </p>
               {r.status === 'unused' && (
                 <p className="mt-0.5 text-[9.5px] font-bold leading-relaxed text-[#A05B47]">
