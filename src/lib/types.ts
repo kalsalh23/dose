@@ -51,6 +51,6 @@ export interface MyOrder {
   estimated_delivery_at?: string | null; eta_minutes?: number | null;
 }
 export interface AppNotification { id: number; title: string; body: string; kind: string; is_read: boolean; created_at: string }
-export interface Redemption { code: string; reward_name: string; points_cost: number; status: 'unused' | 'used' | 'expired'; created_at: string; expires_at?: string | null; reward_expires_at?: string | null; product_id?: number | null }
+export interface Redemption { code: string; reward_name: string; points_cost: number; status: 'unused' | 'used' | 'expired'; created_at: string; expires_at?: string | null; reward_expires_at?: string | null; used_at?: string | null; product_id?: number | null }
 export interface MyData { customer: AppCustomer | null; favorites: (Product & { created_at: string })[]; orders: MyOrder[]; redemptions: Redemption[]; notifications: AppNotification[] }
 export interface CartLine { product: Product; qty: number; options?: string[]; additions?: PickedAddition[] }

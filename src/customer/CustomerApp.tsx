@@ -1212,6 +1212,10 @@ function MyCodes({ redemptions, products, onOrder }: { redemptions: Redemption[]
     if (r.status === 'expired') return false;
     const exp = r.expires_at || (r as any).reward_expires_at;
     if (r.status === 'unused' && exp && new Date(exp).getTime() <= now) return false;
+    if (r.status === 'used') {
+      const usedAt = r.used_at ? new Date(r.used_at).getTime() : new Date(r.created_at).getTime();
+      if (now - usedAt > 3 * 24 * 60 * 60 * 1000) return false;
+    }
     return true;
   });
   return (
