@@ -526,15 +526,23 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
   useEffect(() => {
     const el = heroRef.current;
     if (!el) return;
-    const child = el.children[heroIdx] as HTMLElement | undefined;
-    child?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    const cards = Array.from(el.querySelectorAll('[data-slide]')) as HTMLElement[];
+    cards[heroIdx]?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
   }, [heroIdx]);
   const onHeroScroll = () => {
     const el = heroRef.current;
     if (!el) return;
-    const w = (el.children[0] as HTMLElement)?.offsetWidth ?? el.clientWidth;
-    const i = Math.max(0, Math.round(Math.abs(el.scrollLeft) / (w + 12)));
-    setHeroIdx((prev) => (prev === i ? prev : i));
+    const cards = Array.from(el.querySelectorAll('[data-slide]')) as HTMLElement[];
+    if (!cards.length) return;
+    const box = el.getBoundingClientRect();
+    const cx = box.left + box.width / 2;
+    let best = 0, bestD = Infinity;
+    cards.forEach((c, i) => {
+      const r = c.getBoundingClientRect();
+      const d = Math.abs((r.left + r.width / 2) - cx);
+      if (d < bestD) { bestD = d; best = i; }
+    });
+    setHeroIdx((prev) => (prev === best ? prev : best));
   };
   const scrollToMenu = () => document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth' });
 
@@ -542,9 +550,10 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
     <div className="anim-rise">
       {/* الهيرو — بطاقات متنقلة */}
       <div ref={heroRef} onScroll={onHeroScroll}
-        className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1">
+        className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1">
+        <div className="w-[11%] flex-none" aria-hidden="true" />
         {heroSlides.map((s) => (
-          <div key={s.key} className="relative h-56 w-full flex-none snap-center overflow-hidden rounded-[1.8rem] text-white shadow-xl shadow-[#26301C]/40">
+          <div key={s.key} data-slide className="relative h-56 w-[78%] flex-none snap-center overflow-hidden rounded-[1.8rem] text-white shadow-xl shadow-[#26301C]/40">
             <img src={s.image} alt="" className="absolute inset-0 size-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-bl from-[#26301C]/85 via-[#3A4531]/60 to-[#414D36]/75" />
             <div className="pointer-events-none absolute -bottom-16 -left-10 size-44 rounded-full bg-white/5 blur-2xl" />
@@ -572,6 +581,7 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
             </div>
           </div>
         ))}
+        <div className="w-[11%] flex-none" aria-hidden="true" />
       </div>
       {heroSlides.length > 1 && (
         <div className="mt-2 flex items-center justify-center gap-1.5">
@@ -582,7 +592,6 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
         </div>
       )}
 
-      {/* البحث */}
       {/* البحث */}
       <div className="relative mt-4">
         <Icon name="search" size={16} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#7C8665]" />
