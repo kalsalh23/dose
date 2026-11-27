@@ -119,7 +119,15 @@ const lineUnit = (l: CartLine) => effPrice(l.product) + (l.additions ?? []).redu
 interface OrderFlow { step: 'contact' | 'fulfillment' | 'location' | 'promo' | 'review' | null; lines: CartLine[]; fulfillment?: Fulfillment; loc?: { lat: number; lng: number; mapUrl: string }; usePromo?: boolean; name?: string; phone?: string; rewardCode?: string }
 
 /* ============================ الإشعارات الفورية ============================ */
+const isIosDevice = () =>
+  /iP(hone|ad|od)/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isStandalonePwa = () =>
+  (typeof window !== 'undefined' && window.matchMedia?.('(display-mode: standalone)').matches) ||
+  (navigator as any).standalone === true;
+
 async function enablePushNotifications(session: Session): Promise<string> {
+  if (isIosDevice() && !isStandalonePwa()) return 'على الآيفون: أضف التطبيق إلى الشاشة الرئيسية أولًا ثم فعّل الإشعارات';
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return 'غير مدعوم في هذا المتصفح';
   const perm = Notification.permission;
   if (perm === 'denied') return 'الإشعارات محظورة من إعدادات المتصفح';
@@ -140,6 +148,7 @@ async function enablePushNotifications(session: Session): Promise<string> {
 /** هل الإشعارات مفعّلة على هذا الجهاز؟ */
 async function isPushEnabled(): Promise<boolean> {
   try {
+    if (isIosDevice() && !isStandalonePwa()) return false;
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return false;
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
     const reg = await navigator.serviceWorker.ready;
@@ -154,6 +163,36 @@ async function disablePushNotifications(): Promise<string> {
   const sub = await reg.pushManager.getSubscription();
   if (sub) await sub.unsubscribe();
   return 'تم تعطيل الإشعارات على هذا الجهاز';
+}
+
+/* ============================ إرشاد تثبيت التطبيق على الآيفون ============================ */
+function IosInstallBanner() {
+  const [show, setShow] = useState(() => {
+    try {
+      return isIosDevice() && !isStandalonePwa() && !localStorage.getItem('dose_ios_hint');
+    } catch {
+      return false;
+    }
+  });
+  if (!show) return null;
+  const close = () => {
+    setShow(false);
+    try { localStorage.setItem('dose_ios_hint', '1'); } catch {}
+  };
+  return (
+    <div className="mx-auto mt-3 w-fit max-w-[92vw] rounded-2xl bg-[#E3E9C8] px-4 py-3 text-[11px] font-bold leading-relaxed text-[#414D36] shadow anim-rise">
+      <div className="flex items-start gap-2">
+        <Icon name="bell" size={15} className="mt-0.5 flex-none" />
+        <p>
+          لتفعيل الإشعارات على الآيفون: افتح التطبيق في <b>Safari</b> ← اضغط زر المشاركة ↑ ←
+          «إضافة إلى الشاشة الرئيسية» ← إضافة، ثم فعّل الإشعارات من الحساب.
+        </p>
+        <button onClick={close} className="flex-none rounded-full bg-white/70 p-1 text-[#7C8665]" aria-label="إغلاق">
+          <Icon name="x" size={13} />
+        </button>
+      </div>
+    </div>
+  );
 }
 
 /* ============================ إعلان وسط الشاشة — يظهر بعد دقيقتين من التصفح ============================ */
@@ -1766,6 +1805,7 @@ export default function CustomerApp() {
       </header>
 
       <main className="flex-1 px-4 pb-36 pt-2">
+        <IosInstallBanner />
         <Routes>
           <Route path="/" element={<Home key={homeKey} catalog={catalog} openProduct={setProduct} ads={heroAds} onOpenAd={(a) => setAdOpen(a)} selectedCat={selectedCat} onSelectCat={setSelectedCat} onOpenTeam={() => setTeamOpen(true)} />} />
           <Route path="/cart" element={

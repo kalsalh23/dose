@@ -13,6 +13,13 @@ const ADMIN_ROLE_KEY = 'dose_admin_role_v1';
 const VAPID_PUB = 'BCDKL0U34tZgWEGIygt6PLe6tpX_7kOn4bkavZYoO6OAPdEBC0kjDpLxuDouKqWNqjgsC5h9V2gNJ08POBsRLmo';
 type AdminRole = 'owner' | 'worker';
 
+const isIosDevice = () =>
+  /iP(hone|ad|od)/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isStandalonePwa = () =>
+  (typeof window !== 'undefined' && window.matchMedia?.('(display-mode: standalone)').matches) ||
+  (navigator as any).standalone === true;
+
 function urlBase64ToUint8Array(base64: string): Uint8Array {
   const padding = '='.repeat((4 - (base64.length % 4)) % 4);
   const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -82,6 +89,7 @@ export default function AdminApp() {
   /* الاشتراك في الإشعارات الخارجية (Push) لأجهزة الإدارة */
   const subscribePush = useCallback(async () => {
     try {
+      if (isIosDevice() && !isStandalonePwa()) { setNotifPerm('ios'); return; }
       if (typeof Notification === 'undefined' || !('PushManager' in window)) return;
       const perm = Notification.permission === 'default' ? await Notification.requestPermission() : Notification.permission;
       setNotifPerm(perm);
@@ -222,7 +230,12 @@ export default function AdminApp() {
         </div>
       </header>
 
-      {notifPerm !== 'granted' && (
+      {notifPerm === 'ios' ? (
+        <div className="mx-auto mt-3 flex w-fit max-w-[92vw] items-center gap-2.5 rounded-2xl bg-[#E3E9C8] px-4 py-2.5 text-[11px] font-bold leading-relaxed text-[#414D36] shadow">
+          <Icon name="bell" size={14} className="flex-none" />
+          <span>على الآيفون: افتح اللوحة في Safari ← مشاركة ↑ ← «إضافة إلى الشاشة الرئيسية» ← إضافة، ثم أعد الدخول لتفعيل الإشعارات.</span>
+        </div>
+      ) : notifPerm !== 'granted' && (
         <div className="mx-auto mt-3 flex w-fit max-w-[92vw] items-center gap-2.5 rounded-2xl bg-[#E3E9C8] px-4 py-2.5 text-[11px] font-bold text-[#414D36] shadow">
           <Icon name="bell" size={14} className="flex-none" />
           <span>فعّل الإشعارات الخارجية لتصلك الطلبات حتى واللوحة مغلقة</span>
