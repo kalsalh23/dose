@@ -454,6 +454,18 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat, o
   const promoDisc = catalog?.settings?.promo_discount;
   const mostOrdered = catalog?.most_ordered ?? [];
   const items = (catalog?.categories ?? []);
+  /* اسم المنتج/الفئة المستهدف بكود الخصم */
+  const promoScope = catalog?.settings?.promo_scope ?? 'all';
+  const promoTarget = catalog?.settings?.promo_target ?? '';
+  const promoTargetName = (() => {
+    if (!promoCode || !promoDisc || promoScope === 'all' || !promoTarget) return '';
+    if (promoScope === 'product') {
+      const p = products.find((x) => String(x.id) === String(promoTarget));
+      return p?.name_ar ?? '';
+    }
+    const c = items.find((x) => x.slug === promoTarget);
+    return c?.name_ar ?? '';
+  })();
   const searching = q.trim() !== '';
   /* عند اختيار فئة تُعرض هذه الفئة وحدها، وأثناء البحث تظهر فقط الفئات التي تحوي نتائج */
   const menuCats = cat
@@ -573,10 +585,11 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
           <p className='mt-1.5 text-[11px] font-medium text-white/80'>{heroSlide.desc}</p>
           <div className='mt-4 flex items-end justify-between gap-2'>
             {promoCode && promoDisc ? (
-              <div className='rounded-xl border-2 border-dashed border-[#C9D3A8]/80 bg-[#26301C]/70 px-2.5 py-1.5 text-center backdrop-blur-sm'>
-              <p className='text-[8.5px] font-bold text-[#C9D3A8]'>كود خصم {promoDisc}%</p>
-              <p className='font-mono text-[13px] font-black tracking-widest' dir='ltr'>{promoCode}</p>
-              </div>
+                <div className='rounded-xl border-2 border-dashed border-[#C9D3A8]/80 bg-[#26301C]/70 px-2.5 py-1.5 text-center backdrop-blur-sm'>
+                <p className='text-[8.5px] font-bold text-[#C9D3A8]'>كود خصم {promoDisc}%</p>
+                <p className='font-mono text-[13px] font-black tracking-widest' dir='ltr'>{promoCode}</p>
+                {promoTargetName && <p className='mt-0.5 max-w-[9rem] truncate text-[8.5px] font-extrabold text-[#EAC98F]'>{promoTargetName}</p>}
+                </div>
             ) : <span />}
             <button onClick={scrollToMenu}
             className='flex items-center gap-1.5 rounded-full bg-[#C9D3A8] px-4 py-2.5 text-[13px] font-black text-[#26301C] shadow-lg transition active:scale-95'>
