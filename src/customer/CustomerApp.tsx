@@ -169,7 +169,7 @@ function MidAd({ ad, cur, onClose, onBrowse }: { ad: Ad; cur: string; onClose: (
     <div className="fixed inset-0 z-[200] grid place-items-center bg-black/60 p-5 backdrop-blur-sm anim-fade" onClick={onClose}>
       <div className="relative w-full max-w-sm overflow-hidden rounded-[2rem] bg-white shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
         <div className="relative">
-          <img src={ad.image_url} alt={ad.title} className="h-56 w-full object-cover" />
+          <img src={ad.image_url} alt={ad.title} decoding="async" className="h-56 w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/25" />
           <span className="absolute right-4 top-4 rounded-full bg-[#C9D3A8] px-3.5 py-1.5 text-[11px] font-black text-[#26301C] shadow-lg">عرض حصري ✨</span>
           <button onClick={onClose} className="absolute left-4 top-4 grid size-9 place-items-center rounded-full bg-black/45 text-white transition active:scale-90" aria-label="إغلاق">
@@ -283,7 +283,7 @@ function OfferBanners({ ads, cur, onOpen }: { ads: Ad[]; cur: string; onOpen: (a
         {ads.map((a) => (
           <button key={a.id} onClick={() => onOpen(a)}
             className="relative h-44 w-full flex-none snap-center overflow-hidden rounded-[1.9rem] text-right shadow-xl shadow-[#8a6a48]/35 sm:h-48">
-            <img src={a.image_url} alt={a.title} className="absolute inset-0 size-full object-cover" />
+            <img src={a.image_url} alt={a.title} decoding="async" className="absolute inset-0 size-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-l from-[#333D25]/95 via-[#333D25]/60 to-transparent" />
             <div className="absolute inset-y-0 right-0 flex w-[62%] flex-col justify-center gap-1 p-6 text-white">
               <span className="text-[11px] font-bold text-[#C9D3A8]">اليوم فقط</span>
@@ -324,7 +324,7 @@ function PopularStrip({ title, emoji, items, cur, openProduct }: {
           <button key={p.id} onClick={() => openProduct(p as unknown as Product)}
             className="w-36 flex-none rounded-[1.4rem] bg-[#F1DCB0] p-2 text-right shadow-sm shadow-[#8a6a48]/15 transition hover:-translate-y-1 anim-rise"
             style={{ animationDelay: `${i * 35}ms` }}>
-            <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-24 w-full rounded-[1rem] object-cover" />
+            <img src={p.image_url} alt={p.name_ar} loading="lazy" decoding="async" className="h-24 w-full rounded-[1rem] object-cover" />
             <h3 className="mt-1.5 truncate px-1 text-[12px] font-extrabold text-[#26301C]">{p.name_ar}</h3>
             <p className="px-1 pb-0.5 text-[12px] font-black text-[#5C6B3C]">
               {hasOffer(p) ? <><span className="me-1 rounded-full bg-[#C4482E] px-1.5 py-0.5 text-[8px] font-black text-white">عرض</span>{eur(effPrice(p), cur)} <span className="text-[10px] font-bold text-neutral-400 line-through">{eur(p.price_cents, cur)}</span></> : eur(p.price_cents, cur)}
@@ -359,7 +359,7 @@ function FeaturedCategories({ catalog, cat, setCat }: { catalog: Catalog | null;
               className={`relative h-24 w-32 flex-none overflow-hidden rounded-[1.3rem] shadow-md transition active:scale-95 anim-rise ${active ? 'ring-[3px] ring-[#5C6B3C]' : 'ring-1 ring-[#D5DEB4]'}`}>
               {c.slug === 'all'
                 ? <span className="grid size-full place-items-center bg-gradient-to-br from-[#414D36] to-[#26301C] text-[#C9D3A8]"><Icon name="package" size={24} /></span>
-                : <img src={CAT_IMAGES[c.slug] ?? '/img/latte.jpg'} alt={c.name_ar} className='size-full object-cover' loading='lazy' />}
+                : <img src={CAT_IMAGES[c.slug] ?? '/img/latte.jpg'} alt={c.name_ar} className='size-full object-cover' loading='lazy' decoding='async' />}
               <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
               <span className="absolute inset-x-0 bottom-0 pb-2 text-center text-[12px] font-black text-white drop-shadow">{c.name_ar}</span>
             </button>
@@ -456,7 +456,7 @@ function Home({ catalog, openProduct, ads, onOpenAd, selectedCat, onSelectCat, o
       className={`${horizontal ? 'w-40 flex-none' : 'w-full'} rounded-[1.4rem] bg-white p-2.5 text-right shadow-sm ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 anim-rise`}
       style={{ animationDelay: `${i * 20}ms` }}>
       <div className="relative">
-        <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-24 w-full rounded-[1rem] object-cover" />
+        <img src={p.image_url} alt={p.name_ar} loading="lazy" decoding="async" className="h-24 w-full rounded-[1rem] object-cover" />
         {p.is_available === false && <span className="absolute top-1.5 left-1.5 rounded-full bg-[#26301C] px-2 py-0.5 text-[8.5px] font-black text-[#C9D3A8] shadow">نفذت الكمية</span>}
         {hasOffer(p) && <span className="absolute top-1.5 right-1.5 rounded-full bg-[#C4482E] px-2 py-0.5 text-[8.5px] font-black text-white shadow">عرض</span>}
       </div>
@@ -513,15 +513,19 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
     return () => clearInterval(t);
   }, [heroSlides.length]);
   const heroSlide = heroSlides[heroIdx % heroSlides.length];
+  /* تحميل الصورة التالية مسبقًا لتبديل سلس */
+  useEffect(() => {
+    const next = heroSlides[(heroIdx + 1) % heroSlides.length];
+    if (next?.image) { const im = new Image(); im.src = next.image; }
+  }, [heroIdx, heroSlides]);
   const scrollToMenu = () => document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth' });
 
   return (
     <div className="anim-rise">
       {/* الهيرو */}
       <div className='relative overflow-hidden rounded-[1.8rem] p-5 text-white shadow-xl shadow-[#26301C]/40'>
-        {heroSlides.map((s, i) => (
-          <img key={s.key} src={s.image} alt='' className={`absolute inset-0 size-full object-cover transition-opacity duration-1000 ${heroIdx % heroSlides.length === i ? 'opacity-100' : 'opacity-0'}`} />
-        ))}
+        <img key={heroSlide.key} src={heroSlide.image} alt='' fetchPriority='high' decoding='async'
+          className='absolute inset-0 size-full object-cover' />
         <div className='absolute inset-0 bg-gradient-to-bl from-[#26301C]/80 via-[#3A4531]/60 to-[#414D36]/75' />
         <div className='pointer-events-none absolute -bottom-16 -left-10 size-44 rounded-full bg-white/5 blur-2xl' />
         <div className='relative'>
@@ -560,7 +564,7 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
             return (
               <button key={c.slug} onClick={() => { setCat(active ? null : c.slug); jumpToCat(c.slug); }} className="flex flex-none flex-col items-center gap-1.5 transition active:scale-95">
                 <span className={`grid size-[62px] place-items-center overflow-hidden rounded-full shadow-md shadow-[#8a6a48]/15 transition-all ${active ? 'ring-2 ring-[#5C6B3C] ring-offset-2 ring-offset-[#F6E7C9] scale-105 shadow-lg' : 'ring-1 ring-[#EAD3A0]'}`}>
-                  <img src={img} alt={c.name_ar} className='size-full object-cover' loading='lazy' />
+                  <img src={img} alt={c.name_ar} className='size-full object-cover' loading='lazy' decoding='async' />
                 </span>
                 <span className={`text-[11px] font-extrabold ${active ? 'text-[#26301C]' : 'text-[#7C8665]'}`}>{c.name_ar}</span>
               </button>
@@ -583,7 +587,7 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
                   className='w-40 flex-none rounded-[1.4rem] bg-white p-2.5 text-right shadow-sm ring-1 ring-[#D5DEB4] transition hover:-translate-y-1 anim-rise'
                   style={{ animationDelay: `${i * 35}ms` }}>
                   <div className="relative">
-                    <img src={p.image_url} alt={p.name_ar} loading="lazy" className="h-24 w-full rounded-[1rem] object-cover" />
+                    <img src={p.image_url} alt={p.name_ar} loading="lazy" decoding="async" className="h-24 w-full rounded-[1rem] object-cover" />
                     <span className="absolute top-1.5 left-1.5 rounded-full bg-[#26301C] px-2 py-0.5 text-[8.5px] font-black text-[#C9D3A8] shadow">الأكثر طلبًا</span>
                     {hasOffer(p) && <span className="absolute top-1.5 right-1.5 rounded-full bg-[#C4482E] px-2 py-0.5 text-[8.5px] font-black text-white shadow">عرض</span>}
                   </div>
@@ -688,7 +692,7 @@ function ProductSheet({ product, catalog, onClose, onAdd, onOrderNow, isFav, onT
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-white anim-rise">
       <div className="relative h-[42vh] min-h-56 flex-none overflow-hidden">
-        <img src={product.image_url} alt={product.name_ar} className="size-full object-cover" />
+        <img src={product.image_url} alt={product.name_ar} decoding="async" className="size-full object-cover" />
         <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/35 to-transparent" />
         <button onClick={() => onToggleFav(product.id)}
           className="absolute top-4 left-4 grid size-11 place-items-center rounded-full bg-white shadow-lg transition active:scale-90" aria-label="المفضلة">
@@ -825,7 +829,7 @@ function CartPage({ lines, setQty, remove, onOrder, onBrowse }: {
     <div className="space-y-3 pb-4 anim-rise">
       {lines.map((l, i) => (
         <div key={i} className="flex items-center gap-3.5 rounded-[1.5rem] bg-white p-3 shadow-sm ring-1 ring-[#D5DEB4]">
-          <img src={l.product.image_url} alt="" className="size-20 flex-none rounded-[1.1rem] object-cover" />
+          <img src={l.product.image_url} alt="" decoding="async" className="size-20 flex-none rounded-[1.1rem] object-cover" />
           <div className="min-w-0 flex-1">
             <h3 className="truncate text-sm font-extrabold text-[#26301C]">{l.product.name_ar}</h3>
             {(l.options || []).length > 0 && <p className="mt-0.5 truncate text-[10.5px] font-bold text-[#5C6B3C]">✓ {l.options.join('، ')}</p>}
@@ -878,7 +882,7 @@ function FavoritesPage({ myData, session, openProduct, onToggleFav }: any) {
       {items.map((p, i) => (
         <div key={p.id} className="flex items-center gap-3.5 rounded-[1.5rem] bg-white p-3 shadow-sm ring-1 ring-[#D5DEB4] anim-rise" style={{ animationDelay: `${i * 25}ms` }}>
           <button onClick={() => openProduct(p)} className="flex min-w-0 flex-1 items-center gap-3.5 text-right">
-            <img src={p.image_url} alt="" className="size-16 flex-none rounded-[1rem] object-cover" />
+            <img src={p.image_url} alt="" decoding="async" className="size-16 flex-none rounded-[1rem] object-cover" />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-extrabold text-[#26301C]">{p.name_ar}</span>
               <span className="mt-0.5 block text-sm font-black text-[#5C6B3C]">
@@ -916,7 +920,7 @@ function RewardsPage({ catalog, myData, session, onRedeem }: any) {
           const can = (myData?.customer?.points ?? session.customer.points) >= r.points_cost;
           return (
             <div key={r.id} className="flex items-center gap-4 py-2 anim-rise" style={{ animationDelay: `${i * 30}ms` }}>
-<img src={r.image_url} alt={r.name_ar} loading="lazy" className="size-[72px] flex-none rounded-[1.3rem] object-cover shadow-md shadow-[#8a6a48]/25" />
+<img src={r.image_url} alt={r.name_ar} loading="lazy" decoding="async" className="size-[72px] flex-none rounded-[1.3rem] object-cover shadow-md shadow-[#8a6a48]/25" />
               <div className="min-w-0 flex-1">
                 <h3 className="text-[15px] font-extrabold text-[#26301C]">{r.name_ar}</h3>
                 <p className="mt-0.5 flex items-center gap-1 text-sm font-black text-[#7C8F52]">
@@ -1880,7 +1884,7 @@ export default function CustomerApp() {
       {adOpen && (
         <div className="fixed inset-0 z-[120] grid place-items-center bg-black/60 p-4 backdrop-blur-sm anim-fade" onClick={() => setAdOpen(null)}>
           <div className="relative w-full max-w-sm overflow-hidden rounded-[2rem] bg-white shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
-            <img src={adOpen.image_url} alt={adOpen.title} className="h-56 w-full object-cover" />
+            <img src={adOpen.image_url} alt={adOpen.title} decoding="async" className="h-56 w-full object-cover" />
             <div className="p-5 text-center">
               <h3 className="text-lg font-black text-[#26301C]">{adOpen.title}</h3>
               <p className="mt-1 text-sm text-neutral-500">{adOpen.description_ar}</p>

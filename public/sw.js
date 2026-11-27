@@ -1,4 +1,4 @@
-const CACHE = 'dose-v6';
+const CACHE = 'dose-v7';
 const CORE = ['/', '/logo.jpg', '/manifest.webmanifest'];
 
 self.addEventListener('install', (e) => {
@@ -46,7 +46,21 @@ self.addEventListener('notificationclick', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
-  if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+  if (e.request.method !== 'GET') return;
+  /* تخزين الصور مؤقتًا (تشمل صور Supabase) لتسريع الفتح */
+  if (e.request.destination === 'image' || url.pathname.includes('/storage/v1/object/public/images/')) {
+    e.respondWith(
+      caches.match(e.request).then((hit) => hit || fetch(e.request).then((res) => {
+        if (res.ok || res.type === 'opaque') {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(e.request, copy));
+        }
+        return res;
+      }).catch(() => Response.error()))
+    );
+    return;
+  }
+  if (url.origin !== location.origin) return;
   if (url.pathname.startsWith('/img/') || url.pathname === '/logo.jpg') {
     e.respondWith(
       caches.match(e.request).then((hit) => hit || fetch(e.request).then((res) => {
