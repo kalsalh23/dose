@@ -420,15 +420,33 @@ function ImageUploadField({ value, onChange, folder }: { value: string; onChange
 /* ============================ الرئيسية ============================ */
 function Dashboard({ token }: { token: string }) {
   const [stats, setStats] = useState<any>(null);
+  const [dayOrders, setDayOrders] = useState<any[] | null>(null);
+  const [workClose, setWorkClose] = useState('00:00');
   useEffect(() => {
-    const load = () => arpc<any>('admin_stats', { p_token: token }).then(setStats).catch(() => {});
+    const load = () => {
+      arpc<any>('admin_stats', { p_token: token }).then(setStats).catch(() => {});
+      arpc<any[]>('admin_list_orders', { p_token: token, p_limit: 200 }).then((r) => { if (Array.isArray(r)) setDayOrders(r); }).catch(() => {});
+      arpc<any>('admin_get_settings', { p_token: token }).then((s) => setWorkClose(s?.work_close || '00:00')).catch(() => {});
+    };
     load(); const t = setInterval(load, 20000); return () => clearInterval(t);
   }, [token]);
+  /* بداية يوم العمل = وقت إغلاق المحل (تصفير يومي بعد الإغلاق) */
+  const dayStart = (() => {
+    const [h, m] = String(workClose || '00:00').split(':').map((x) => parseInt(x, 10) || 0);
+    const now = new Date();
+    const start = new Date(now);
+    start.setHours(h, m, 0, 0);
+    if (now.getTime() < start.getTime()) start.setDate(start.getDate() - 1);
+    return start.getTime();
+  })();
+  const todayOrders = (dayOrders ?? []).filter((o) => new Date(o.created_at).getTime() >= dayStart);
+  const activeToday = todayOrders.filter((o) => ['pending', 'confirmed', 'preparing', 'ready'].includes(o.status)).length;
+  const completedToday = todayOrders.filter((o) => o.status === 'completed').length;
   const cards: { label: string; value: any; icon: IconName; color: string }[] = [
     { label: 'العملاء', value: stats?.customers ?? '—', icon: 'users', color: 'bg-blue-50 text-blue-700' },
-    { label: 'إجمالي الطلبات', value: stats?.orders ?? '—', icon: 'receipt', color: 'bg-amber-50 text-amber-700' },
-    { label: 'طلبات حالية', value: stats?.active_orders ?? '—', icon: 'clock', color: 'bg-orange-50 text-orange-700' },
-    { label: 'طلبات مكتملة', value: stats?.completed_orders ?? '—', icon: 'check', color: 'bg-emerald-50 text-emerald-700' },
+    { label: 'إجمالي الطلبات (اليوم)', value: dayOrders ? todayOrders.length : stats?.orders ?? '—', icon: 'receipt', color: 'bg-amber-50 text-amber-700' },
+    { label: 'طلبات حالية (اليوم)', value: dayOrders ? activeToday : stats?.active_orders ?? '—', icon: 'clock', color: 'bg-orange-50 text-orange-700' },
+    { label: 'طلبات مكتملة (اليوم)', value: dayOrders ? completedToday : stats?.completed_orders ?? '—', icon: 'check', color: 'bg-emerald-50 text-emerald-700' },
     { label: 'المبيعات', value: stats != null ? eur(stats.sales_cents, 'ل.س') : '—', icon: 'chart', color: 'bg-green-50 text-green-700' },
     { label: 'نقاط معلقة', value: stats?.points_outstanding ?? '—', icon: 'star', color: 'bg-yellow-50 text-yellow-700' },
     { label: 'استبدالات', value: stats?.redemptions ?? '—', icon: 'gift', color: 'bg-purple-50 text-purple-700' },
