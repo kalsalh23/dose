@@ -420,33 +420,18 @@ function ImageUploadField({ value, onChange, folder }: { value: string; onChange
 /* ============================ الرئيسية ============================ */
 function Dashboard({ token }: { token: string }) {
   const [stats, setStats] = useState<any>(null);
-  const [dayOrders, setDayOrders] = useState<any[] | null>(null);
-  const [workClose, setWorkClose] = useState('00:00');
   useEffect(() => {
     const load = () => {
       arpc<any>('admin_stats', { p_token: token }).then(setStats).catch(() => {});
-      arpc<any[]>('admin_list_orders', { p_token: token, p_limit: 200 }).then((r) => { if (Array.isArray(r)) setDayOrders(r); }).catch(() => {});
-      arpc<any>('admin_get_settings', { p_token: token }).then((s) => setWorkClose(s?.work_close || '00:00')).catch(() => {});
     };
     load(); const t = setInterval(load, 20000); return () => clearInterval(t);
   }, [token]);
-  /* بداية يوم العمل = وقت إغلاق المحل (تصفير يومي بعد الإغلاق) */
-  const dayStart = (() => {
-    const [h, m] = String(workClose || '00:00').split(':').map((x) => parseInt(x, 10) || 0);
-    const now = new Date();
-    const start = new Date(now);
-    start.setHours(h, m, 0, 0);
-    if (now.getTime() < start.getTime()) start.setDate(start.getDate() - 1);
-    return start.getTime();
-  })();
-  const todayOrders = (dayOrders ?? []).filter((o) => new Date(o.created_at).getTime() >= dayStart);
-  const activeToday = todayOrders.filter((o) => ['pending', 'confirmed', 'preparing', 'ready'].includes(o.status)).length;
-  const completedToday = todayOrders.filter((o) => o.status === 'completed').length;
+  /* الأرقام الرئيسية مأخوذة من إحصاءات الخادم الدقيقة (كل الطلبات — غير مقيّدة بحدّ القائمة) */
   const cards: { label: string; value: any; icon: IconName; color: string }[] = [
+    { label: 'طلبات حالية', value: stats?.active_orders ?? '—', icon: 'clock', color: 'bg-orange-50 text-orange-700' },
+    { label: 'طلبات مكتملة', value: stats?.completed_orders ?? '—', icon: 'check', color: 'bg-emerald-50 text-emerald-700' },
+    { label: 'إجمالي الطلبات', value: stats?.orders ?? '—', icon: 'receipt', color: 'bg-amber-50 text-amber-700' },
     { label: 'العملاء', value: stats?.customers ?? '—', icon: 'users', color: 'bg-blue-50 text-blue-700' },
-    { label: 'إجمالي الطلبات (اليوم)', value: dayOrders ? todayOrders.length : stats?.orders ?? '—', icon: 'receipt', color: 'bg-amber-50 text-amber-700' },
-    { label: 'طلبات حالية (اليوم)', value: dayOrders ? activeToday : stats?.active_orders ?? '—', icon: 'clock', color: 'bg-orange-50 text-orange-700' },
-    { label: 'طلبات مكتملة (اليوم)', value: dayOrders ? completedToday : stats?.completed_orders ?? '—', icon: 'check', color: 'bg-emerald-50 text-emerald-700' },
     { label: 'المبيعات', value: stats != null ? eur(stats.sales_cents, 'ل.س') : '—', icon: 'chart', color: 'bg-green-50 text-green-700' },
     { label: 'نقاط معلقة', value: stats?.points_outstanding ?? '—', icon: 'star', color: 'bg-yellow-50 text-yellow-700' },
     { label: 'استبدالات', value: stats?.redemptions ?? '—', icon: 'gift', color: 'bg-purple-50 text-purple-700' },
@@ -699,7 +684,7 @@ function SalesTab({ token }: { token: string }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const isReward = (o: any) => !!(o.is_reward || o.total_cents === 0 || o.reward_code || o.promo_type === 'reward');
+  const isReward = (o: any) => !!(o.is_reward || o.reward_code || o.promo_type === 'reward' || (o.total_cents === 0 && o.source === 'kiosk'));
   const ordersAll = (data?.orders ?? []) as any[];
 
   const filterOpts: { id: SalesFilter; label: string }[] = [
@@ -707,34 +692,34 @@ function SalesTab({ token }: { token: string }) {
     { id: 'app', label: 'طلبات التطبيق' },
     { id: 'gifts', label: 'هدايا' },
   ];
-  // عدد الطلبات لكل تصنيف (من كل الطلبات، قبل بحث العميل/الحالة)
   const filterCount = (id: SalesFilter) => ordersAll.filter((o) => {
     if (id === 'app') return !isReward(o) && o.source === 'customer';
     if (id === 'gifts') return isReward(o);
     return true;
   }).length;
 
+  /* التصفية تؤثر على جدول التفاصيل فقط — أرقام المحاسبة أدناه تمثل كامل الفترة */
   const filteredOrders = ordersAll.filter((o) => {
-    // 1) تصنيف المبيعات
     if (salesFilter === 'app' && (isReward(o) || o.source !== 'customer')) return false;
     if (salesFilter === 'gifts' && !isReward(o)) return false;
     return true;
   });
 
-  const totals = {
-    total: filteredOrders.reduce((s, o) => s + Number(o.total_cents ?? 0), 0),
-    orders: filteredOrders.length,
-    app: filteredOrders.filter((o) => o.source === 'customer' && !isReward(o)).length,
-    gifts: filteredOrders.filter(isReward).length,
-  };
-
   const num = (v: any) => Number(v ?? 0).toLocaleString('en-US');
   const money = (v: any) => num(v) + ' ل.س';
-  const daily = (data?.daily ?? []) as { day: string; total_cents: number; orders_count: number }[];
-  const max = Math.max(1, ...daily.map((d) => d.total_cents));
+
+  /* ===== أرقام المحاسبة (كامل الفترة) ===== */
+  const incoming = Number(data?.totals?.total ?? 0);            // المبالغ الداخلة = إيراد الطلبات المدفوعة
+  const outgoing = Number(data?.totals?.out_value ?? 0);        // المبالغ الخارجة = قيمة الطلبات المجانية/الهدايا
+  const net = incoming - outgoing;                              // الصافي
+  const ordersCount = Number(data?.totals?.orders ?? 0);
+  const avgPerOrder = ordersCount > 0 ? Math.round(incoming / ordersCount) : 0;
+  const giftsCount = Number(data?.totals?.kiosk_rewards ?? ordersAll.filter(isReward).length);
+
+  const daily = (data?.daily ?? []) as { day: string; total_cents: number; orders_count: number; out_value?: number }[];
+  const maxBar = Math.max(1, ...daily.map((d) => Math.max(Number(d.total_cents) || 0, Number(d.out_value) || 0)));
   const products = (data?.products ?? []) as { name_ar: string; qty: number; revenue_cents: number }[];
 
-  // خيارات الفترة مع أسماء المدى الحالي
   const ranges: { id: SalesRange; label: string }[] = [
     { id: 'today', label: 'اليوم' },
     { id: 'week', label: 'آخر 7 أيام' },
@@ -749,7 +734,7 @@ function SalesTab({ token }: { token: string }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <h2 className="text-base font-extrabold text-coffee-900">المبيعات والجرد</h2>
+          <h2 className="text-base font-extrabold text-coffee-900">المحاسبة والصندوق</h2>
           {loaded && data && <span className="rounded-full bg-[#EEF2DC] px-2.5 py-1 text-[10px] font-black text-[#5C6B3C]">{periodLabel}</span>}
         </div>
         <button onClick={load} className={btnCls}>تحديث</button>
@@ -769,54 +754,78 @@ function SalesTab({ token }: { token: string }) {
         )}
       </div>
 
-      {/* الفلترة: تصنيف المبيعات */}
-      <div className="space-y-3 rounded-2xl bg-white p-3 ring-1 ring-beige">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-[11px] font-black text-neutral-500">تصفية النتائج{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}:</span>
-          <div className="flex items-center gap-2">
-            {activeFilterCount > 0 && (
-              <button onClick={clearFilters} className="rounded-full bg-[#E3E9C8] px-3 py-1.5 text-[10px] font-extrabold text-neutral-700 hover:bg-[#D6DDB8]">مسح الفلاتر</button>
-            )}
-          </div>
-        </div>
-        <FilterPills<SalesFilter> value={salesFilter} options={filterOpts.map((f) => ({ ...f, badge: filterCount(f.id) }))} onChange={setSalesFilter} />
-      </div>
-
       {loaded && data ? (
         <>
-          {/* أرقام الفترة (حسب التصفية الحالية) */}
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <StatCard label="إجمالي المبيعات" value={money(totals.total)} sub={periodLabel} tone="bg-gradient-to-br from-[#414D36] via-[#35412E] to-[#23291B]" icon={<Icon name="chart" size={20} />} />
-            <StatCard label="عدد الطلبات" value={num(totals.orders)} sub={'خلال ' + num(data.totals?.days) + ' يوم'} tone="bg-gradient-to-br from-[#5C6B3C] via-[#4A5A36] to-[#3A4828]" icon={<Icon name="receipt" size={20} />} />
-            <StatCard label="طلبات التطبيق" value={num(totals.app)} sub="طلب من التطبيق" tone="bg-gradient-to-br from-[#3B82F6] via-[#2563EB] to-[#1E40AF]" icon={<Icon name="phone" size={20} />} />
-            <StatCard label="هدايا" value={num(totals.gifts)} sub="طلب مكافأة" tone="bg-gradient-to-br from-[#7C3AED] via-[#6D28D9] to-[#5B21B6]" icon={<Icon name="gift" size={20} />} />
+          {/* ===== بطاقة الصافي — الأرقام الرئيسية ===== */}
+          <div className="overflow-hidden rounded-3xl bg-gradient-to-bl from-[#414D36] via-[#35412E] to-[#23291B] p-5 text-white shadow-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black tracking-wide text-[#C9D3A8]">الصافي بعد الخصم والهدايا</span>
+              <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold text-[#C9D3A8]">{periodLabel}</span>
+            </div>
+            <p className="mt-1.5 text-4xl font-black tracking-tight">{money(net)}</p>
+            <p className="mt-1 text-[11px] font-medium text-white/60">الفرق بين المبالغ الداخلة والخارجة خلال الفترة</p>
           </div>
 
-          {activeFilterCount > 0 && (
-            <p className="rounded-xl bg-[#FFF9EC] px-3 py-2 text-[10.5px] font-bold text-[#8A6D2F]">
-              الأرقام أعلاه أدناه تعكس التصفية الحالية ({filteredOrders.length} طلب). الجدول والرسم يعرضان كامل الفترة.
-            </p>
-          )}
+          {/* ===== داخل / خارج ===== */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#2F6B4F] to-[#1F4A36] p-5 text-white shadow">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black text-[#DFF3E4]">⬆️ مبالغ داخلة</span>
+                <Icon name="chart" size={18} className="text-white/70" />
+              </div>
+              <p className="mt-1.5 text-2xl font-black">{money(incoming)}</p>
+              <p className="mt-0.5 text-[10px] font-medium text-white/60">إيراد الطلبات المدفوعة ({num(ordersCount)} طلب)</p>
+            </div>
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#C4482E] to-[#8F2F1C] p-5 text-white shadow">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black text-[#FBE3DC]">⬇️ مبالغ خارجة</span>
+                <Icon name="gift" size={18} className="text-white/70" />
+              </div>
+              <p className="mt-1.5 text-2xl font-black">{money(outgoing)}</p>
+              <p className="mt-0.5 text-[10px] font-medium text-white/60">قيمة الهدايا/المكافآت ({num(giftsCount)} طلب)</p>
+            </div>
+          </div>
 
-          {/* مبيعات يومية */}
+          {/* ===== مؤشرات صغيرة ===== */}
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <StatCard label="عدد الطلبات" value={num(ordersCount)} sub={'خلال ' + num(data.totals?.days) + ' يوم'} tone="bg-gradient-to-br from-[#5C6B3C] via-[#4A5A36] to-[#3A4828]" icon={<Icon name="receipt" size={20} />} />
+            <StatCard label="متوسط الفاتورة" value={money(avgPerOrder)} sub="الإيراد ÷ عدد الطلبات" tone="bg-gradient-to-br from-[#3B82F6] via-[#2563EB] to-[#1E40AF]" icon={<Icon name="chart" size={20} />} />
+            <StatCard label="طلبات التطبيق" value={num(filterCount('app'))} sub="طلب من التطبيق" tone="bg-gradient-to-br from-[#0EA5E9] via-[#0284C7] to-[#075985]" icon={<Icon name="phone" size={20} />} />
+            <StatCard label="هدايا" value={num(giftsCount)} sub="طلب مكافأة" tone="bg-gradient-to-br from-[#7C3AED] via-[#6D28D9] to-[#5B21B6]" icon={<Icon name="gift" size={20} />} />
+          </div>
+
+          {/* ===== حركة الصندوق اليومية: داخل مقابل خارج ===== */}
           <Card className="p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-xs font-extrabold text-coffee-900">المبيعات اليومية</p>
-              <span className="text-[10px] font-bold text-neutral-400">القيم بـ (ل.س) — بعدد الطلبات</span>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-extrabold text-coffee-900">حركة الصندوق اليومية</p>
+              <div className="flex items-center gap-3 text-[9.5px] font-black">
+                <span className="flex items-center gap-1 text-[#2F6B4F]"><span className="inline-block size-2.5 rounded-sm bg-[#2F6B4F]" /> داخل</span>
+                <span className="flex items-center gap-1 text-[#C4482E]"><span className="inline-block size-2.5 rounded-sm bg-[#C4482E]" /> خارج</span>
+              </div>
             </div>
-            <div className="flex items-end gap-1.5 overflow-x-auto pb-1" dir="ltr">
-              {daily.map((d) => (
-                <div key={d.day} className="flex min-w-[40px] flex-1 flex-col items-center gap-1.5">
-                  <span className="text-[8.5px] font-black text-neutral-500">{d.total_cents > 0 ? (d.total_cents / 1000).toLocaleString('en-US') + 'k' : ''}</span>
-                  <div className="w-full rounded-t-lg bg-gradient-to-t from-[#5C6B3C] to-[#A9B87F] transition-all" style={{ height: `${d.total_cents > 0 ? 10 + Math.round((d.total_cents / max) * 90) : 3}px` }} />
-                  <span className="text-[8px] font-bold text-neutral-400">{d.day.slice(5)}</span>
-                  <span className="text-[8px] font-black text-neutral-600">{d.orders_count > 0 ? d.orders_count : ''}</span>
-                </div>
-              ))}
-            </div>
+            {daily.length === 0 ? (
+              <p className="py-6 text-center text-xs font-bold text-neutral-400">لا توجد حركة في هذه الفترة</p>
+            ) : (
+              <div className="flex items-end gap-1.5 overflow-x-auto pb-1" dir="ltr">
+                {daily.map((d) => {
+                  const inc = Number(d.total_cents) || 0;
+                  const out = Number(d.out_value) || 0;
+                  return (
+                    <div key={d.day} className="flex min-w-[38px] flex-1 flex-col items-center gap-1">
+                      <div className="flex h-24 w-full items-end justify-center gap-0.5">
+                        <div className="w-1/2 rounded-t bg-gradient-to-t from-[#2F6B4F] to-[#5FBF8E] transition-all" style={{ height: `${inc > 0 ? 8 + Math.round((inc / maxBar) * 88) : 2}px` }} title={'داخل: ' + money(inc)} />
+                        <div className="w-1/2 rounded-t bg-gradient-to-t from-[#C4482E] to-[#F0836B] transition-all" style={{ height: `${out > 0 ? 8 + Math.round((out / maxBar) * 88) : 2}px` }} title={'خارج: ' + money(out)} />
+                      </div>
+                      <span className="text-[8px] font-bold text-neutral-400">{d.day.slice(5)}</span>
+                      <span className="text-[8px] font-black text-neutral-600">{d.orders_count > 0 ? d.orders_count : ''}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </Card>
 
-          {/* جرد المنتجات */}
+          {/* ===== جرد المنتجات ===== */}
           <Card className="p-5">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-xs font-extrabold text-coffee-900">جرد المنتجات المباعة في الفترة</p>
@@ -848,7 +857,17 @@ function SalesTab({ token }: { token: string }) {
             )}
           </Card>
 
-          {/* جدول الطلبات المفصّل — يعكس التصفية */}
+          {/* ===== الفلترة + تفاصيل الطلبات ===== */}
+          <div className="space-y-3 rounded-2xl bg-white p-3 ring-1 ring-beige">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-[11px] font-black text-neutral-500">تصفية جدول التفاصيل{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}:</span>
+              {activeFilterCount > 0 && (
+                <button onClick={clearFilters} className="rounded-full bg-[#E3E9C8] px-3 py-1.5 text-[10px] font-extrabold text-neutral-700 hover:bg-[#D6DDB8]">مسح الفلاتر</button>
+              )}
+            </div>
+            <FilterPills<SalesFilter> value={salesFilter} options={filterOpts.map((f) => ({ ...f, badge: filterCount(f.id) }))} onChange={setSalesFilter} />
+          </div>
+
           <Card className="p-5">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs font-extrabold text-coffee-900">تفاصيل الطلبات ({filteredOrders.length})</p>
@@ -867,7 +886,7 @@ function SalesTab({ token }: { token: string }) {
                     <tr className="border-b border-beige text-[10px] font-black text-neutral-400">
                       <th className="pb-2">رقم</th>
                       <th className="pb-2">العميل</th>
-                      <th className="pb-2 text-center">الإجمالي</th>
+                      <th className="pb-2 text-center">المبلغ</th>
                       <th className="pb-2 text-center">الحالة</th>
                       <th className="pb-2">المصدر</th>
                       <th className="pb-2">الوقت</th>
@@ -876,6 +895,7 @@ function SalesTab({ token }: { token: string }) {
                   <tbody>
                     {filteredOrders.map((o: any) => {
                       const reward = isReward(o);
+                      const outVal = Number(o.reward_value ?? 0);
                       return (
                         <tr key={o.id} className={reward ? "border-b border-dashed border-[#D6C6FF] bg-[#F6F3FF]" : "border-b border-dashed border-beige bg-[#FFF9EC]"}>
                           <td className="py-2 font-mono font-black text-coffee-900" dir="ltr">#{o.order_number}</td>
@@ -883,7 +903,7 @@ function SalesTab({ token }: { token: string }) {
                             <div className="font-bold text-coffee-900">{o.customer_name || '—'}</div>
                             <div dir="ltr" className="text-[10px] text-neutral-400">{o.customer_phone || ''}</div>
                           </td>
-                          <td className="py-2 text-center font-black text-gold-deep">{reward ? 'مجاني' : money(o.total_cents)}</td>
+                          <td className="py-2 text-center font-black text-gold-deep">{reward ? (outVal > 0 ? money(outVal) : 'مجاني') : money(o.total_cents)}</td>
                           <td className="py-2 text-center">
                             {reward ? (
                               <span className="rounded-full px-2 py-0.5 text-[9px] font-extrabold bg-[#EDE7FF] text-[#6D28D9]">مكافأة</span>
@@ -909,7 +929,7 @@ function SalesTab({ token }: { token: string }) {
           </Card>
 
           <p className="rounded-xl bg-[#EEF2DC] px-3 py-2 text-[10.5px] font-bold leading-relaxed text-[#77825E]">
-            الطلبات المُسلَّمة تُحذف تلقائيًا بعد يوم من تسليمها للزبون — لكن مبالغها تبقى محسوبة في الإجماليات. جرد الأصناف يظهر من الطلبات المحفوظة حاليًا، والمبالغ المعروضة تشمل الطلبات الحاملة حالة «مكتمل» أو «تم التسليم».
+            «المبالغ الداخلة» = إيراد الطلبات المدفوعة، و«المبالغ الخارجة» = قيمة مشروبات/حلويات الطلبات المجانية (المكافآت) تُحسب بسعر المنيو، والصافي = الفرق بينهما. الطلبات المُسلَّمة تُحذف من التفاصيل بعد يوم، لكن تبقى مبالغها في الإجماليات.
           </p>
         </>
       ) : (
@@ -1531,7 +1551,7 @@ function AdsTab({ token }: { token: string }) {
                   {a.popup_after_2min
                     ? (a.show_in_hero !== false ? 'إعلان منبثق بعد دقيقتين من التصفح + ضمن الهيرو المتنقل' : 'إعلان منبثق بعد دقيقتين من التصفح')
                     : 'يظهر ضمن الهيرو المتنقل'}
-                  {a.ends_at ? ' · حتى ' + new Date(a.ends_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric' }) : ' · بلا نهاية'}
+                  {' · مستمر حتى الحذف اليدوي'}
                 </p>
                 {a.category_slug && (
                   <span className="mt-1 inline-block rounded-full bg-[#EEF2DC] px-2.5 py-1 text-[10px] font-black text-[#414D36]">🏷️ فئة: {catName(a.category_slug)}</span>
@@ -1539,7 +1559,7 @@ function AdsTab({ token }: { token: string }) {
               </div>
             </div>
             <div className="mt-2 flex gap-2">
-              <button onClick={() => setEdit({ ...EMPTY_AD, ...a, popup_after_2min: a.popup_after_2min ?? a.full_screen ?? false, show_in_hero: a.show_in_hero !== false, ends_at: a.ends_at ? a.ends_at.slice(0, 16) : '' })} className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
+              <button onClick={() => setEdit({ ...EMPTY_AD, ...a, popup_after_2min: a.popup_after_2min ?? a.full_screen ?? false, show_in_hero: a.show_in_hero !== false })} className="rounded-lg bg-[#E3E9C8] px-3 py-1.5 text-[11px] font-extrabold text-neutral-700">تعديل</button>
               <button disabled={busy} onClick={() => wrap(async () => { await arpc('admin_delete_ad', { p_token: token, p_id: a.id }); load(); })}
                 className="rounded-lg bg-red-50 px-3 py-1.5 text-[11px] font-extrabold text-red-600">حذف</button>
             </div>
@@ -1559,7 +1579,6 @@ function AdsTab({ token }: { token: string }) {
                 </select>
               </Field>
               <Field label="الوصف"><textarea className={`${inputCls} h-20 py-2`} value={edit.description_ar} onChange={(e) => setEdit({ ...edit, description_ar: e.target.value })} placeholder="مثال: عرض حصري على أغلب أصناف الموهيتو" /></Field>
-              <Field label="نهاية العرض (اختياري — يبدأ فور الحفظ)"><input type="datetime-local" className={inputCls} dir="ltr" value={edit.ends_at} onChange={(e) => setEdit({ ...edit, ends_at: e.target.value })} /></Field>
               <div className="grid grid-cols-2 gap-2">
                 <Field label="نشط">
                   <select className={inputCls} value={String(edit.is_active)} onChange={(e) => setEdit({ ...edit, is_active: e.target.value === 'true' })}>
@@ -1589,7 +1608,7 @@ function AdsTab({ token }: { token: string }) {
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3">
               <button disabled={busy || !(edit.category_slug ?? '').trim()} onClick={() => wrap(async () => {
-                const ad = { ...edit, ends_at: edit.ends_at ? new Date(edit.ends_at).toISOString() : '' };
+                const ad = { ...edit, ends_at: '' };
                 await arpc('admin_save_ad', { p_token: token, p_ad: ad });
                 setEdit(null); load();
               })}
@@ -1667,7 +1686,6 @@ function PromoTab({ token }: { token: string }) {
             <option value="all">على الطلب كاملًا</option>
             <option value="product">منتج محدد فقط</option>
             <option value="category">فئة محددة فقط</option>
-            <option value="menu">menu قائمة محددة فقط</option>
           </select>
         </Field>
         {settings.promo_scope === 'product' && (
@@ -1683,14 +1701,6 @@ function PromoTab({ token }: { token: string }) {
             <select className={inputCls} value={settings.promo_target ?? ''} onChange={(e) => setSettings({ ...settings, promo_target: e.target.value })}>
               <option value="">— اختر —</option>
               {(catalog?.categories ?? []).map((c: any) => <option key={c.id} value={c.slug}>{c.name_ar}</option>)}
-            </select>
-          </Field>
-        )}
-        {settings.promo_scope === 'menu' && (
-          <Field label="اختر القائمة المخصصة">
-            <select className={inputCls} value={settings.promo_target ?? ''} onChange={(e) => setSettings({ ...settings, promo_target: e.target.value })}>
-              <option value="">— اختر —</option>
-              {(catalog?.menus ?? []).map((m: any) => <option key={m.id} value={String(m.id)}>{(m.emoji || '☕') + ' ' + m.title}</option>)}
             </select>
           </Field>
         )}

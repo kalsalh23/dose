@@ -883,9 +883,16 @@ function CartPage({ lines, setQty, remove, onOrder, onBrowse }: {
         <div key={i} className="flex items-center gap-3.5 rounded-[1.5rem] bg-white p-3 shadow-sm ring-1 ring-[#D5DEB4]">
           <img src={l.product.image_url} alt="" decoding="async" className="size-20 flex-none rounded-[1.1rem] object-cover" />
           <div className="min-w-0 flex-1">
-            <h3 className="truncate text-sm font-extrabold text-[#26301C]">{l.product.name_ar}</h3>
-            {(l.options || []).length > 0 && <p className="mt-0.5 truncate text-[10.5px] font-bold text-[#5C6B3C]">✓ {l.options.join('، ')}</p>}
-            {(l.additions ?? []).length > 0 && <p className="mt-0.5 truncate text-[10.5px] font-bold text-[#7A5A22]">🍯 {(l.additions ?? []).map((a) => a.name_ar).join('، ')}</p>}
+            <h3 className="text-sm font-extrabold text-[#26301C]">{l.product.name_ar}</h3>
+            {(l.options || []).length > 0 && <p className="mt-0.5 break-words text-[10.5px] font-bold leading-snug text-[#5C6B3C]">✓ {l.options.join('، ')}</p>}
+            {(l.additions ?? []).length > 0 && (
+              <div className="mt-1 rounded-lg bg-[#FBF3E2] px-2 py-1">
+                <p className="text-[9.5px] font-black text-[#A9742B]">الإضافات المختارة</p>
+                <p className="break-words text-[10.5px] font-bold leading-snug text-[#7A5A22]">
+                  🍯 {(l.additions ?? []).map((a) => a.name_ar).join('، ')}
+                </p>
+              </div>
+            )}
             <p className="mt-1 text-sm font-black text-[#26301C]">
               {hasOffer(l.product) ? <><span className="text-xs font-bold text-neutral-400 line-through">{eur(lineUnit(l) * l.qty, cur)}</span> {eur(lineUnit(l) * l.qty, cur)}</> : eur(lineUnit(l) * l.qty, cur)}
             </p>
@@ -1466,7 +1473,7 @@ function LoginPage({ onLogged }: { onLogged: (s: Session) => void }) {
         <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="numeric" dir="ltr" placeholder="09XXXXXXXX"
           className="mt-5 h-12 w-full rounded-2xl border-2 border-[#D5DEB4] bg-[#EEF2DC] px-4 text-center text-base font-bold tracking-widest text-[#26301C] outline-none focus:border-[#A9B87F]" />
         {err && <p className="mt-3 rounded-2xl bg-red-50 px-3 py-2 text-center text-xs font-bold text-red-600">{err}</p>}
-        <button onClick={submit} disabled={busy || phone.replace(/\D/g, '').length < 8}
+         <button onClick={submit} disabled={busy || phone.replace(/\D/g, '').length < 10}
           className="mt-5 w-full rounded-full bg-[#C9D3A8] py-3.5 text-base font-black text-[#26301C] shadow-lg shadow-[#8a6a48]/35 active:scale-[.98] disabled:opacity-40">
           {busy ? 'جارٍ الدخول…' : 'دخول'}
         </button>
@@ -1489,7 +1496,7 @@ function SignupPage({ onLogged }: { onLogged: (s: Session) => void }) {
     if (busy) return;
     setErr('');
     if (name.trim().length < 2) return setErr('أدخل اسمك الكامل');
-    if (phone.replace(/\D/g, '').length < 8) return setErr('أدخل رقم هاتف صحيح');
+    if (phone.replace(/\D/g, '').length < 10) return setErr('أدخل رقم هاتف صحيح');
     setBusy(true);
     try {
       await rpc('create_customer', { p_full_name: name.trim(), p_phone: phone.replace(/\D/g, ''), p_device_id: deviceId });
