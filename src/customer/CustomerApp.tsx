@@ -579,8 +579,12 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
     <div className="anim-rise">
       {/* الهيرو */}
       <div className='relative overflow-hidden rounded-[1.8rem] p-5 text-white shadow-xl shadow-[#26301C]/40'>
-        <img key={heroSlide.key} src={heroSlide.image} alt='' fetchPriority='high' decoding='async'
-          className='hero-kenburns absolute inset-0 size-full object-cover' />
+        {/* شرائح متداخلة — انتقال تلاشٍ ناعم بين الصور */}
+        {heroSlides.map((s, i) => (
+          <img key={s.key} src={s.image} alt='' decoding='async'
+            className='hero-kenburns absolute inset-0 size-full object-cover transition-opacity duration-700 ease-in-out'
+            style={{ opacity: i === heroCur ? 1 : 0 }} />
+        ))}
         <div className='absolute inset-0 bg-gradient-to-bl from-[#26301C]/80 via-[#3A4531]/60 to-[#414D36]/75' />
         <div className='pointer-events-none absolute -bottom-16 -left-10 size-44 rounded-full bg-white/5 blur-2xl' />
 
