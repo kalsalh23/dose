@@ -783,7 +783,17 @@ function SalesTab({ token }: { token: string }) {
               <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold text-[#C9D3A8]">{periodLabel}</span>
             </div>
             <p className="mt-1.5 text-4xl font-black tracking-tight">{money(net)}</p>
-            <p className="mt-1 text-[11px] font-medium text-white/60">الفرق بين المبالغ الداخلة والخارجة والمصاريف خلال الفترة</p>
+            <p className="mt-1 text-[11px] font-medium text-white/60">الفرق بين الإيرادات والمصاريف خلال الفترة</p>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="rounded-2xl bg-white/10 p-3">
+                <span className="text-[10px] font-black text-[#C9D3A8]">💵 الإيرادات</span>
+                <p className="mt-1 text-xl font-black">{money(incoming)}</p>
+              </div>
+              <div className="rounded-2xl bg-white/10 p-3">
+                <span className="text-[10px] font-black text-[#FBE3DC]">💸 المصروف</span>
+                <p className="mt-1 text-xl font-black">{money(expensesTotal)}</p>
+              </div>
+            </div>
           </div>
 
           {/* ===== المصاريف ===== */}
