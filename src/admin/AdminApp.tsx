@@ -735,7 +735,7 @@ function SalesTab({ token }: { token: string }) {
   const expensesTotal = expenses.reduce((s, e) => s + Number(e.amount_cents || 0), 0); // المصاريف المسجّلة
   const net = incoming - outgoing - expensesTotal;             // الصافي بعد الخصم والهدايا والمصاريف
   const ordersCount = Number(data?.totals?.orders ?? 0);
-  const giftsCount = Number(data?.totals?.kiosk_rewards ?? ordersAll.filter(isReward).length);
+  const giftsTotal = Number(data?.totals?.kiosk_rewards ?? ordersAll.filter(isReward).length); // هدايا/هدايا = قيمة الهدايا/الهدايا/إعادة
 
   const daily = (data?.daily ?? []) as { day: string; total_cents: number; orders_count: number; out_value?: number }[];
   const maxBar = Math.max(1, ...daily.map((d) => Math.max(Number(d.total_cents) || 0, Number(d.out_value) || 0)));
@@ -879,7 +879,7 @@ function SalesTab({ token }: { token: string }) {
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <StatCard label="عدد الطلبات" value={num(ordersCount)} sub={'خلال ' + num(data.totals?.days) + ' يوم'} tone="bg-gradient-to-br from-[#5C6B3C] via-[#4A5A36] to-[#3A4828]" icon={<Icon name="receipt" size={20} />} />
             <StatCard label="طلبات التطبيق" value={num(filterCount('app'))} sub={money(incoming)} tone="bg-gradient-to-br from-[#0EA5E9] via-[#0284C7] to-[#075985]" icon={<Icon name="phone" size={20} />} />
-            <StatCard label="هدايا" value={num(giftsCount)} sub={money(outgoing)} tone="bg-gradient-to-br from-[#7C3AED] via-[#6D28D9] to-[#5B21B6]" icon={<Icon name="gift" size={20} />} />
+            <StatCard label="هدايا" value={num(giftsTotal)} sub={money(giftsTotal)} tone="bg-gradient-to-br from-[#7C3AED] via-[#6D28D9] to-[#5B21B6]" icon={<Icon name="gift" size={20} />} />
           </div>
 
           <p className="rounded-xl bg-[#EEF2DC] px-3 py-2 text-[10.5px] font-bold leading-relaxed text-[#77825E]">
