@@ -1386,16 +1386,6 @@ function RewardsTab({ token }: { token: string }) {
                 <input type="number" min="0" className={inputCls} value={edit.redemption_days ?? ''} onChange={(e) => setEdit({ ...edit, redemption_days: e.target.value })} placeholder="مثال: 7" />
               </Field>
               <p className="text-[10px] font-bold text-neutral-400">عدد الأيام التي يبقى فيها كود الاستبدال صالحاً للزبون بعد استبداله</p>
-              <Field label="تاريخ صلاحية المكافأة (اختياري)">
-                <input type="date" className={inputCls} value={edit.expires_at ? edit.expires_at.substring(0,10) : ''} onChange={(e) => { setErr(''); setEdit({ ...edit, expires_at: e.target.value ? e.target.value : null }); }} />
-              </Field>
-              <p className="text-[10px] font-bold text-neutral-400">تاريخ انتهاء ظهور المكافأة في التطبيق — اتركه فارغًا لتظهر دائمًا</p>
-              {edit.expires_at && new Date(edit.expires_at).getTime() <= Date.now() && (
-                <div className="rounded-xl bg-red-50 px-3 py-2 text-[10.5px] font-bold leading-relaxed text-red-600">
-                  هذا التاريخ في الماضي — لن تظهر المكافأة في التطبيق.
-                  <button onClick={() => setEdit({ ...edit, expires_at: null })} className="ms-1 underline">إزالة التاريخ</button>
-                </div>
-              )}
               <Field label="صورة المكافأة"><ImageUploadField value={edit.image_url} onChange={(url) => setEdit({ ...edit, image_url: url })} folder="rewards" /></Field>
               <Field label="نشط">
                 <select className={inputCls} value={String(edit.is_active ?? true)} onChange={(e) => setEdit({ ...edit, is_active: e.target.value === 'true' })}>
@@ -1406,14 +1396,9 @@ function RewardsTab({ token }: { token: string }) {
             {err && <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-[11px] font-bold leading-relaxed text-red-600">{err}</p>}
             <div className="mt-5 grid grid-cols-2 gap-3">
               <button disabled={busy} onClick={() => wrap(async () => {
-                const payload = { ...edit };
-                if (payload.expires_at === '') payload.expires_at = null;
+                const payload = { ...edit, expires_at: null };
                 if (payload.redemption_days === '' || payload.redemption_days === null || payload.redemption_days === undefined) delete payload.redemption_days;
                 else payload.redemption_days = Number(payload.redemption_days);
-                if (payload.expires_at && new Date(payload.expires_at).getTime() <= Date.now()) {
-                  setErr('تاريخ الصلاحية في الماضي — لن تظهر المكافأة. اختر تاريخًا قادمًا أو أزل التاريخ.');
-                  return;
-                }
                 setErr('');
                 await arpc('admin_save_reward', { p_token: token, p_reward: payload });
                 setEdit(null);
