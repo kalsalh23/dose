@@ -705,7 +705,7 @@ function SalesTab({ token }: { token: string }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const isReward = (o: any) => !!(o.is_reward || o.reward_code || o.promo_type === 'reward' || (o.total_cents === 0 && o.source === 'kiosk'));
+  const isReward = (o: any) => !!(o.is_reward || o.is_redemption || o.reward_code || o.promo_type === 'reward' || (o.total_cents === 0 && o.source === 'kiosk'));
   const ordersAll = (data?.orders ?? []) as any[];
 
   const filterOpts: { id: SalesFilter; label: string }[] = [
@@ -731,11 +731,11 @@ function SalesTab({ token }: { token: string }) {
 
   /* ===== أرقام المحاسبة (كامل الفترة) ===== */
   const incoming = Number(data?.totals?.total ?? 0);            // المبالغ الداخلة = إيراد الطلبات المدفوعة
-  const outgoing = Number(data?.totals?.out_value ?? 0);        // المبالغ الخارجة = قيمة الطلبات المجانية/الهدايا
+  const outgoing = Number(data?.totals?.out_value ?? 0) + Number(data?.totals?.redemption_value ?? 0);        // المبالغ الخارجة = قيمة الهدايا (كيوسك + استبدالات)
   const expensesTotal = expenses.reduce((s, e) => s + Number(e.amount_cents || 0), 0); // المصاريف المسجّلة
   const net = incoming - outgoing - expensesTotal;             // الصافي بعد الخصم والهدايا والمصاريف
   const ordersCount = Number(data?.totals?.orders ?? 0);
-  const giftsTotal = Number(data?.totals?.kiosk_rewards ?? ordersAll.filter(isReward).length); // هدايا/هدايا = قيمة الهدايا/الهدايا/إعادة
+  const giftsTotal = Number(data?.totals?.kiosk_rewards ?? 0) + Number(data?.totals?.redemptions ?? 0); // هدايا = كيوسك + استبدالات
 
   const daily = (data?.daily ?? []) as { day: string; total_cents: number; orders_count: number; out_value?: number }[];
   const maxBar = Math.max(1, ...daily.map((d) => Math.max(Number(d.total_cents) || 0, Number(d.out_value) || 0)));
@@ -879,11 +879,11 @@ function SalesTab({ token }: { token: string }) {
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <StatCard label="عدد الطلبات" value={num(ordersCount)} sub={'خلال ' + num(data.totals?.days) + ' يوم'} tone="bg-gradient-to-br from-[#5C6B3C] via-[#4A5A36] to-[#3A4828]" icon={<Icon name="receipt" size={20} />} />
             <StatCard label="طلبات التطبيق" value={num(filterCount('app'))} sub={money(incoming)} tone="bg-gradient-to-br from-[#0EA5E9] via-[#0284C7] to-[#075985]" icon={<Icon name="phone" size={20} />} />
-            <StatCard label="هدايا" value={num(giftsTotal)} sub={money(giftsTotal)} tone="bg-gradient-to-br from-[#7C3AED] via-[#6D28D9] to-[#5B21B6]" icon={<Icon name="gift" size={20} />} />
+            <StatCard label="هدايا" value={num(giftsTotal)} sub={money(outgoing)} tone="bg-gradient-to-br from-[#7C3AED] via-[#6D28D9] to-[#5B21B6]" icon={<Icon name="gift" size={20} />} />
           </div>
 
           <p className="rounded-xl bg-[#EEF2DC] px-3 py-2 text-[10.5px] font-bold leading-relaxed text-[#77825E]">
-            «المبالغ الداخلة» = إيراد الطلبات المدفوعة، و«المبالغ الخارجة» = قيمة مشروبات/حلويات الطلبات المجانية (المكافآت) تُحسب بسعر المنيو، و«المصروفات» = ما صرفه صاحب المحل خلال الفترة، والصافي = الدخل − الخارج − المصاريف. الطلبات المُسلَّمة تُحذف من التفاصيل بعد يوم، لكن تبقى مبالغها في الإجماليات.
+            «المبالغ الداخلة» = إيراد الطلبات المدفوعة، و«المبالغ الخارجة» = قيمة مشروبات/حلويات الطلبات المجانية (المكافآت + الاستبدالات) تُحسب بسعر المنيو، و«المصروفات» = ما صرفه صاحب المحل خلال الفترة، والصافي = الدخل − الخارج − المصاريف. الطلبات المُسلَّمة تُحذف من التفاصيل بعد يوم، لكن تبقى مبالغها في الإجماليات.
           </p>
         </>
       ) : (
