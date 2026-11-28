@@ -1357,7 +1357,16 @@ function RewardsTab({ token }: { token: string }) {
         ))}
       </div>
 
-      <h2 className="pt-2 text-base font-extrabold text-coffee-900">أكواد الاستبدال ({redemptions.length})</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+        <h2 className="text-base font-extrabold text-coffee-900">أكواد الاستبدال ({redemptions.length})</h2>
+        {redemptions.length > 0 && (
+          <button disabled={busy} onClick={() => wrap(async () => {
+            if (!window.confirm('تصفير كل أكواد الاستبدال نهائيًا؟ سيتم حذف جميع الأكواد والبدء من جديد.')) return;
+            await arpc('admin_reset_redemptions', { p_token: token });
+            load();
+          })} className="rounded-xl bg-red-50 px-4 py-2.5 text-xs font-extrabold text-red-600 transition active:scale-95 disabled:opacity-40">تصفير الأكواد</button>
+        )}
+      </div>
       <Card className="overflow-x-auto p-0">
         <table className="w-full text-right text-xs">
           <thead><tr className="border-b border-beige text-neutral-400">
