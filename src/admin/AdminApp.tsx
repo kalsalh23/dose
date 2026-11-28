@@ -680,6 +680,7 @@ function SalesTab({ token }: { token: string }) {
   const [expAmount, setExpAmount] = useState('');
   const [expDate, setExpDate] = useState('');
   const [expErr, setExpErr] = useState('');
+  const [showAllExpenses, setShowAllExpenses] = useState(false);
   const { busy: expBusy, wrap: expWrap } = useAdminAction();
 
   const todayStr = () => (new Date(Date.now() - new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 10);
@@ -812,33 +813,40 @@ function SalesTab({ token }: { token: string }) {
             {expenses.length === 0 ? (
               <p className="py-6 text-center text-xs font-bold text-neutral-400">لا توجد مصاريف مسجّلة في هذه الفترة</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-right text-xs">
-                  <thead>
-                    <tr className="border-b border-beige text-[10px] font-black text-neutral-400">
-                      <th className="pb-2">المصروف</th>
-                      <th className="pb-2 text-center">المبلغ</th>
-                      <th className="pb-2 text-center">التاريخ</th>
-                      <th className="pb-2 text-center">حذف</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {expenses.map((e) => (
-                      <tr key={e.id} className="border-b border-dashed border-beige last:border-0">
-                        <td className="py-2 font-extrabold text-coffee-900">{e.name_ar || '—'}</td>
-                        <td className="py-2 text-center font-black text-[#C4482E]">{money(e.amount_cents)}</td>
-                        <td className="py-2 text-center text-[10px] font-bold text-neutral-400" dir="ltr">{e.spent_at}</td>
-                        <td className="py-2 text-center">
-                          <button disabled={expBusy} onClick={() => expWrap(async () => {
-                            await arpc('admin_delete_expense', { p_token: token, p_id: e.id });
-                            load();
-                          })} className="rounded-lg bg-red-50 px-2.5 py-1 text-[10px] font-extrabold text-red-500 hover:bg-red-100 disabled:opacity-40">حذف</button>
-                        </td>
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-right text-xs">
+                    <thead>
+                      <tr className="border-b border-beige text-[10px] font-black text-neutral-400">
+                        <th className="pb-2">المصروف</th>
+                        <th className="pb-2 text-center">المبلغ</th>
+                        <th className="pb-2 text-center">التاريخ</th>
+                        <th className="pb-2 text-center">حذف</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {(showAllExpenses ? expenses : expenses.slice(0, 1)).map((e) => (
+                        <tr key={e.id} className="border-b border-dashed border-beige last:border-0">
+                          <td className="py-2 font-extrabold text-coffee-900">{e.name_ar || '—'}</td>
+                          <td className="py-2 text-center font-black text-[#C4482E]">{money(e.amount_cents)}</td>
+                          <td className="py-2 text-center text-[10px] font-bold text-neutral-400" dir="ltr">{e.spent_at}</td>
+                          <td className="py-2 text-center">
+                            <button disabled={expBusy} onClick={() => expWrap(async () => {
+                              await arpc('admin_delete_expense', { p_token: token, p_id: e.id });
+                              load();
+                            })} className="rounded-lg bg-red-50 px-2.5 py-1 text-[10px] font-extrabold text-red-500 hover:bg-red-100 disabled:opacity-40">حذف</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {expenses.length > 1 && (
+                  <button onClick={() => setShowAllExpenses((v) => !v)} className="mt-3 w-full rounded-xl bg-[#FAF5EA] py-2.5 text-[11px] font-extrabold text-neutral-600 ring-1 ring-beige hover:bg-[#F3EAD6]">
+                    {showAllExpenses ? 'إخفاء باقي المصاريف' : `عرض باقي المصاريف (${expenses.length - 1})`}
+                  </button>
+                )}
+              </>
             )}
           </Card>
 
