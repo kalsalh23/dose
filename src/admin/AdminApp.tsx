@@ -258,7 +258,6 @@ export default function AdminApp() {
         </div>
       )}
       <main className="mx-auto max-w-6xl p-4">
-        {tab === 'dashboard' && <Dashboard token={token} />}
         {tab === 'sales' && <SalesTab token={token} />}
         {tab === 'orders' && <OrdersTab token={token} />}
         {tab === 'products' && <ProductsTab token={token} />}
@@ -413,39 +412,6 @@ function ImageUploadField({ value, onChange, folder }: { value: string; onChange
         {value && <span className="text-[10px] font-extrabold text-green-600">جاهزة للعرض</span>}
       </div>
       {err && <p className="mt-1.5 text-[11px] font-bold text-red-600">{err}</p>}
-    </div>
-  );
-}
-
-/* ============================ الرئيسية ============================ */
-function Dashboard({ token }: { token: string }) {
-  const [stats, setStats] = useState<any>(null);
-  useEffect(() => {
-    const load = () => {
-      arpc<any>('admin_stats', { p_token: token }).then(setStats).catch(() => {});
-    };
-    load(); const t = setInterval(load, 20000); return () => clearInterval(t);
-  }, [token]);
-  /* الأرقام الرئيسية مأخوذة من إحصاءات الخادم الدقيقة (كل الطلبات — غير مقيّدة بحدّ القائمة) */
-  const cards: { label: string; value: any; icon: IconName; color: string }[] = [
-    { label: 'طلبات حالية', value: stats?.active_orders ?? '—', icon: 'clock', color: 'bg-orange-50 text-orange-700' },
-    { label: 'طلبات مكتملة', value: stats?.completed_orders ?? '—', icon: 'check', color: 'bg-emerald-50 text-emerald-700' },
-    { label: 'إجمالي الطلبات', value: stats?.orders ?? '—', icon: 'receipt', color: 'bg-amber-50 text-amber-700' },
-    { label: 'العملاء', value: stats?.customers ?? '—', icon: 'users', color: 'bg-blue-50 text-blue-700' },
-    { label: 'المبيعات', value: stats != null ? eur(stats.sales_cents, 'ل.س') : '—', icon: 'chart', color: 'bg-green-50 text-green-700' },
-    { label: 'نقاط معلقة', value: stats?.points_outstanding ?? '—', icon: 'star', color: 'bg-yellow-50 text-yellow-700' },
-    { label: 'استبدالات', value: stats?.redemptions ?? '—', icon: 'gift', color: 'bg-purple-50 text-purple-700' },
-    { label: 'منتجات نشطة', value: stats?.products ?? '—', icon: 'package', color: 'bg-rose-50 text-rose-700' },
-  ];
-  return (
-    <div className="grid grid-cols-2 gap-3 anim-rise md:grid-cols-4">
-      {cards.map((c) => (
-        <Card key={c.label} className="text-center">
-          <span className={`mx-auto grid size-11 place-items-center rounded-2xl ${c.color}`}><Icon name={c.icon} size={20} /></span>
-          <p className="mt-2 text-2xl font-black text-coffee-900">{c.value}</p>
-          <p className="text-[11px] font-bold text-neutral-500">{c.label}</p>
-        </Card>
-      ))}
     </div>
   );
 }
