@@ -713,7 +713,6 @@ function SalesTab({ token }: { token: string }) {
   const outgoing = Number(data?.totals?.out_value ?? 0);        // المبالغ الخارجة = قيمة الطلبات المجانية/الهدايا
   const net = incoming - outgoing;                              // الصافي
   const ordersCount = Number(data?.totals?.orders ?? 0);
-  const avgPerOrder = ordersCount > 0 ? Math.round(incoming / ordersCount) : 0;
   const giftsCount = Number(data?.totals?.kiosk_rewards ?? ordersAll.filter(isReward).length);
 
   const daily = (data?.daily ?? []) as { day: string; total_cents: number; orders_count: number; out_value?: number }[];
@@ -766,30 +765,9 @@ function SalesTab({ token }: { token: string }) {
             <p className="mt-1 text-[11px] font-medium text-white/60">الفرق بين المبالغ الداخلة والخارجة خلال الفترة</p>
           </div>
 
-          {/* ===== داخل / خارج ===== */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#2F6B4F] to-[#1F4A36] p-5 text-white shadow">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black text-[#DFF3E4]">⬆️ مبالغ داخلة</span>
-                <Icon name="chart" size={18} className="text-white/70" />
-              </div>
-              <p className="mt-1.5 text-2xl font-black">{money(incoming)}</p>
-              <p className="mt-0.5 text-[10px] font-medium text-white/60">إيراد الطلبات المدفوعة ({num(ordersCount)} طلب)</p>
-            </div>
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#C4482E] to-[#8F2F1C] p-5 text-white shadow">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black text-[#FBE3DC]">⬇️ مبالغ خارجة</span>
-                <Icon name="gift" size={18} className="text-white/70" />
-              </div>
-              <p className="mt-1.5 text-2xl font-black">{money(outgoing)}</p>
-              <p className="mt-0.5 text-[10px] font-medium text-white/60">قيمة الهدايا/المكافآت ({num(giftsCount)} طلب)</p>
-            </div>
-          </div>
-
           {/* ===== مؤشرات صغيرة ===== */}
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <StatCard label="عدد الطلبات" value={num(ordersCount)} sub={'خلال ' + num(data.totals?.days) + ' يوم'} tone="bg-gradient-to-br from-[#5C6B3C] via-[#4A5A36] to-[#3A4828]" icon={<Icon name="receipt" size={20} />} />
-            <StatCard label="متوسط الفاتورة" value={money(avgPerOrder)} sub="الإيراد ÷ عدد الطلبات" tone="bg-gradient-to-br from-[#3B82F6] via-[#2563EB] to-[#1E40AF]" icon={<Icon name="chart" size={20} />} />
             <StatCard label="طلبات التطبيق" value={num(filterCount('app'))} sub="طلب من التطبيق" tone="bg-gradient-to-br from-[#0EA5E9] via-[#0284C7] to-[#075985]" icon={<Icon name="phone" size={20} />} />
             <StatCard label="هدايا" value={num(giftsCount)} sub="طلب مكافأة" tone="bg-gradient-to-br from-[#7C3AED] via-[#6D28D9] to-[#5B21B6]" icon={<Icon name="gift" size={20} />} />
           </div>
