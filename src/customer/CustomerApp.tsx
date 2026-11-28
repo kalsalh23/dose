@@ -559,20 +559,14 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
   const [heroIdx, setHeroIdx] = useState(0);
   /* إعادة ضبط الفهرس عند تغيّر عدد الشرائح */
   useEffect(() => { setHeroIdx(0); }, [heroSlides.length]);
-  /* تبديل تلقائي كل 10 ثوانٍ — يُعاد ضبط المؤقّت عند التنقّل اليدوي */
-  const [heroTick, setHeroTick] = useState(0);
+  /* تبديل تلقائي كل 10 ثوانٍ */
   useEffect(() => {
     if (heroSlides.length <= 1) return;
     const t = setInterval(() => setHeroIdx((i) => (i + 1) % heroSlides.length), 10000);
     return () => clearInterval(t);
-  }, [heroSlides.length, heroTick]);
+  }, [heroSlides.length]);
   const heroLen = heroSlides.length;
   const heroCur = heroIdx % heroLen;
-  const goHero = (n: number) => {
-    if (heroLen <= 1) return;
-    setHeroIdx(((n % heroLen) + heroLen) % heroLen);
-    setHeroTick((t) => t + 1);
-  };
   const heroSlide = heroSlides[heroCur];
   /* تحميل الصورة التالية مسبقًا لتبديل سلس */
   useEffect(() => {
@@ -586,7 +580,7 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
       {/* الهيرو */}
       <div className='relative overflow-hidden rounded-[1.8rem] p-5 text-white shadow-xl shadow-[#26301C]/40'>
         <img key={heroSlide.key} src={heroSlide.image} alt='' fetchPriority='high' decoding='async'
-          className='anim-fade absolute inset-0 size-full object-cover' />
+          className='hero-kenburns absolute inset-0 size-full object-cover' />
         <div className='absolute inset-0 bg-gradient-to-bl from-[#26301C]/80 via-[#3A4531]/60 to-[#414D36]/75' />
         <div className='pointer-events-none absolute -bottom-16 -left-10 size-44 rounded-full bg-white/5 blur-2xl' />
 
@@ -595,20 +589,6 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
           <span dir='ltr' className='absolute left-4 top-4 z-10 rounded-full bg-black/30 px-2.5 py-1 text-[10px] font-black text-white/90 ring-1 ring-white/20 backdrop-blur-sm'>
             {heroCur + 1} / {heroLen}
           </span>
-        )}
-
-        {/* أسهم التنقّل */}
-        {heroLen > 1 && (
-          <>
-            <button onClick={() => goHero(heroCur - 1)} aria-label='الشريحة السابقة'
-              className='absolute right-2.5 top-1/2 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-full bg-black/30 text-white ring-1 ring-white/25 backdrop-blur-sm transition hover:bg-black/50 active:scale-90'>
-              <Icon name='chevron' size={17} className='rotate-180' />
-            </button>
-            <button onClick={() => goHero(heroCur + 1)} aria-label='الشريحة التالية'
-              className='absolute left-2.5 top-1/2 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-full bg-black/30 text-white ring-1 ring-white/25 backdrop-blur-sm transition hover:bg-black/50 active:scale-90'>
-              <Icon name='chevron' size={17} />
-            </button>
-          </>
         )}
 
         <div className='relative'>
@@ -629,18 +609,6 @@ const heroBadge = (catalog?.settings?.hero_badge ?? '').trim();
           </button>
           </div>
         </div>
-
-        {/* شريط تقدّم الشرائح (أسلوب القصص) */}
-        {heroLen > 1 && (
-          <div className='absolute inset-x-0 bottom-0 z-10 flex gap-1.5 px-5 pb-2.5'>
-            {heroSlides.map((s, i) => (
-              <button key={s.key} onClick={() => goHero(i)} aria-label={'الشريحة ' + (i + 1)}
-                className='group flex-1 py-1.5'>
-                <span className={`block h-1 rounded-full transition-all ${i === heroCur ? 'bg-[#C9D3A8]' : 'bg-white/35 group-hover:bg-white/60'}`} />
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* البحث */}

@@ -50,6 +50,12 @@ body {
 @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(50%); } }
 @keyframes pulse-slow { 0%,100%{opacity:1} 50%{opacity:.75} }
 @keyframes welcome-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes hero-kenburns {
+  0%   { transform: scale(1.08) translate3d(0, 0, 0); }
+  50%  { transform: scale(1.14) translate3d(-1.5%, -1%, 0); }
+  100% { transform: scale(1.08) translate3d(0, 0, 0); }
+}
+.hero-kenburns { animation: hero-kenburns 12s ease-in-out infinite; will-change: transform; }
 
 .welcome-progress-bar {
   height: 3px;
