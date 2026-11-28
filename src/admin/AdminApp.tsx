@@ -388,10 +388,22 @@ function ImageUploadField({ value, onChange, folder }: { value: string; onChange
     try {
       if (!file.type.startsWith('image/')) throw new Error('اختر صورة صحيحة');
       if (file.size > 10 * 1024 * 1024) throw new Error('حجم الصورة يجب أن يكون أقل من 10 ميجابايت');
-      const compressed = await compress(file);
-      if (compressed.size > 300 * 1024) throw new Error('الصورة كبيرة جدًا حتى بعد الضغط — جرب صورة أصغر');
-      const path = folder + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.jpg';
-      const { error } = await sb.storage.from('images').upload(path, compressed, { contentType: 'image/jpeg' });
+      let toUpload: File = file;
+      let contentType = file.type || 'image/jpeg';
+      let ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      try {
+        const compressed = await compress(file);
+        if (compressed.size > 300 * 1024) throw new Error('too large after compression');
+        toUpload = compressed;
+        contentType = 'image/jpeg';
+        ext = 'jpg';
+      } catch {
+        // تعذّر ضغط الصورة (صيغة لا يدعمها المتصفح) — نرفعها كما هي
+        if (file.size > 300 * 1024) throw new Error('الصورة كبيرة جدًا — جرب صورة أصغر');
+      }
+      const safeExt = /^[a-z0-9]+$/.test(ext) ? ext : 'jpg';
+      const path = folder + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + safeExt;
+      const { error } = await sb.storage.from('images').upload(path, toUpload, { contentType });
       if (error) throw error;
       onChange(sb.storage.from('images').getPublicUrl(path).data.publicUrl);
     } catch (e: any) {
