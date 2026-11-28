@@ -662,6 +662,13 @@ function SalesTab({ token }: { token: string }) {
   const [data, setData] = useState<any>(null);
   const [loaded, setLoaded] = useState(false);
   const [salesFilter, setSalesFilter] = useState<SalesFilter>('all');
+  const [expenses, setExpenses] = useState<{ id: string; amount_cents: number; name_ar: string; spent_at: string }[]>([]);
+  const [showExpense, setShowExpense] = useState(false);
+  const [expName, setExpName] = useState('');
+  const [expAmount, setExpAmount] = useState('');
+  const [expDate, setExpDate] = useState('');
+  const [expErr, setExpErr] = useState('');
+  const { busy: expBusy, wrap: expWrap } = useAdminAction();
 
   const todayStr = () => (new Date(Date.now() - new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 10);
   const dates = (r: SalesRange) => {
@@ -679,6 +686,7 @@ function SalesTab({ token }: { token: string }) {
     try {
       const r = await arpc<any>('admin_sales_report', { p_token: token, p_from: f, p_to: t });
       setData(r); setLoaded(true);
+      arpc<any[]>('admin_list_expenses', { p_token: token, p_from: f, p_to: t }).then((ex) => setExpenses(ex ?? [])).catch(() => setExpenses([]));
     } catch { setLoaded(false); }
   }, [token, range, from, to]);
 
@@ -711,7 +719,8 @@ function SalesTab({ token }: { token: string }) {
   /* ===== أرقام المحاسبة (كامل الفترة) ===== */
   const incoming = Number(data?.totals?.total ?? 0);            // المبالغ الداخلة = إيراد الطلبات المدفوعة
   const outgoing = Number(data?.totals?.out_value ?? 0);        // المبالغ الخارجة = قيمة الطلبات المجانية/الهدايا
-  const net = incoming - outgoing;                              // الصافي
+  const expensesTotal = expenses.reduce((s, e) => s + Number(e.amount_cents || 0), 0); // المصاريف المسجّلة
+  const net = incoming - outgoing - expensesTotal;             // الصافي بعد الخصم والهدايا والمصاريف
   const ordersCount = Number(data?.totals?.orders ?? 0);
   const giftsCount = Number(data?.totals?.kiosk_rewards ?? ordersAll.filter(isReward).length);
 
@@ -762,8 +771,79 @@ function SalesTab({ token }: { token: string }) {
               <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold text-[#C9D3A8]">{periodLabel}</span>
             </div>
             <p className="mt-1.5 text-4xl font-black tracking-tight">{money(net)}</p>
-            <p className="mt-1 text-[11px] font-medium text-white/60">الفرق بين المبالغ الداخلة والخارجة خلال الفترة</p>
+            <p className="mt-1 text-[11px] font-medium text-white/60">الفرق بين المبالغ الداخلة والخارجة والمصاريف خلال الفترة</p>
           </div>
+
+          {/* ===== المصاريف ===== */}
+          <Card className="p-5">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-extrabold text-coffee-900">المصروفات</p>
+                <span className="rounded-full bg-[#FBE3DC] px-2.5 py-1 text-[10px] font-black text-[#C4482E]">{money(expensesTotal)}</span>
+              </div>
+              <button
+                onClick={() => { setExpName(''); setExpAmount(''); setExpDate(''); setExpErr(''); setShowExpense(true); }}
+                className="rounded-xl bg-[#C4482E] px-4 py-2.5 text-xs font-extrabold text-white transition active:scale-95">
+                + إضافة مصروف
+              </button>
+            </div>
+            {expenses.length === 0 ? (
+              <p className="py-6 text-center text-xs font-bold text-neutral-400">لا توجد مصاريف مسجّلة في هذه الفترة</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-right text-xs">
+                  <thead>
+                    <tr className="border-b border-beige text-[10px] font-black text-neutral-400">
+                      <th className="pb-2">المصروف</th>
+                      <th className="pb-2 text-center">المبلغ</th>
+                      <th className="pb-2 text-center">التاريخ</th>
+                      <th className="pb-2 text-center">حذف</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {expenses.map((e) => (
+                      <tr key={e.id} className="border-b border-dashed border-beige last:border-0">
+                        <td className="py-2 font-extrabold text-coffee-900">{e.name_ar || '—'}</td>
+                        <td className="py-2 text-center font-black text-[#C4482E]">{money(e.amount_cents)}</td>
+                        <td className="py-2 text-center text-[10px] font-bold text-neutral-400" dir="ltr">{e.spent_at}</td>
+                        <td className="py-2 text-center">
+                          <button disabled={expBusy} onClick={() => expWrap(async () => {
+                            await arpc('admin_delete_expense', { p_token: token, p_id: e.id });
+                            load();
+                          })} className="rounded-lg bg-red-50 px-2.5 py-1 text-[10px] font-extrabold text-red-500 hover:bg-red-100 disabled:opacity-40">حذف</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+
+          {showExpense && (
+            <div className="fixed inset-0 z-[110] grid place-items-center bg-black/50 p-4 backdrop-blur-sm anim-fade">
+              <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl anim-pop">
+                <h3 className="text-base font-extrabold text-coffee-900">إضافة مصروف</h3>
+                <div className="mt-4 space-y-3">
+                  <Field label="اسم المصروف"><input className={inputCls} value={expName} onChange={(e) => setExpName(e.target.value)} placeholder="مثال: إيجار، كهرباء، رواتب" /></Field>
+                  <Field label="المبلغ (ل.س)"><input type="number" min="0" className={inputCls} value={expAmount} onChange={(e) => setExpAmount(e.target.value)} placeholder="0" /></Field>
+                  <Field label="التاريخ (اختياري)"><input type="date" className={inputCls} dir="ltr" value={expDate} onChange={(e) => setExpDate(e.target.value)} /></Field>
+                </div>
+                {expErr && <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-[11px] font-bold leading-relaxed text-red-600">{expErr}</p>}
+                <div className="mt-5 grid grid-cols-2 gap-3">
+                  <button disabled={expBusy} onClick={() => expWrap(async () => {
+                    const amt = Number(expAmount);
+                    if (!expAmount || isNaN(amt) || amt <= 0) { setExpErr('أدخل مبلغاً صحيحاً أكبر من صفر'); return; }
+                    setExpErr('');
+                    await arpc('admin_add_expense', { p_token: token, p_amount_cents: Math.round(amt * 100), p_name: expName.trim(), p_date: expDate || null });
+                    setShowExpense(false);
+                    load();
+                  })} className="rounded-2xl bg-gradient-to-l from-[#C4482E] to-[#8F2F1C] py-3 text-sm font-extrabold text-white disabled:opacity-50">حفظ</button>
+                  <button onClick={() => setShowExpense(false)} className="rounded-2xl bg-neutral-100 py-3 text-sm font-extrabold text-neutral-600">إلغاء</button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ===== مؤشرات صغيرة ===== */}
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -907,7 +987,7 @@ function SalesTab({ token }: { token: string }) {
           </Card>
 
           <p className="rounded-xl bg-[#EEF2DC] px-3 py-2 text-[10.5px] font-bold leading-relaxed text-[#77825E]">
-            «المبالغ الداخلة» = إيراد الطلبات المدفوعة، و«المبالغ الخارجة» = قيمة مشروبات/حلويات الطلبات المجانية (المكافآت) تُحسب بسعر المنيو، والصافي = الفرق بينهما. الطلبات المُسلَّمة تُحذف من التفاصيل بعد يوم، لكن تبقى مبالغها في الإجماليات.
+            «المبالغ الداخلة» = إيراد الطلبات المدفوعة، و«المبالغ الخارجة» = قيمة مشروبات/حلويات الطلبات المجانية (المكافآت) تُحسب بسعر المنيو، و«المصروفات» = ما صرفه صاحب المحل خلال الفترة، والصافي = الدخل − الخارج − المصاريف. الطلبات المُسلَّمة تُحذف من التفاصيل بعد يوم، لكن تبقى مبالغها في الإجماليات.
           </p>
         </>
       ) : (
